@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 84" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- StartRide 官方 logo 线条车（深色部分用 currentColor 跟随主题，蓝色点缀固定） -->
+  <g stroke="currentColor" stroke-width="5">
+    <path d="M9 62 C6.5 56 6.5 48 10 44 L30 38 C36 35 40 29 47 25 C60 17.5 84 17.5 95 21.5 C101 23.5 104 27 104 31 L104 34" />
+    <path d="M9 62 L24 64.5" />
+  </g>
+  <circle cx="33.5" cy="65.5" r="8" fill="none" stroke="currentColor" stroke-width="4.5" />
+  <g stroke="#2FA8E1" stroke-width="5">
+    <path d="M45 70 L70 65.5" />
+    <path d="M94 61.5 L101 60.2 C103.4 59.8 104 58.4 104 56.5 L104 46" />
+  </g>
+  <circle cx="82.5" cy="62.5" r="8" fill="none" stroke="#2FA8E1" stroke-width="4.5" />
+</svg>

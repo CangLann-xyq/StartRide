@@ -1,0 +1,32 @@
+# 行尾符规范：源码用 CRLF（Windows / WPF 工程），文档与数据用 LF
+* text=auto
+
+*.cs      text eol=crlf
+*.xaml    text eol=crlf
+*.csproj  text eol=crlf
+*.sln     text eol=crlf
+*.resx    text eol=crlf
+*.ps1     text eol=crlf
+*.bat     text eol=crlf
+
+*.md      text eol=lf
+*.json    text eol=lf
+*.svg     text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# 二进制：不做任何行尾转换
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.webp    binary
+*.ico     binary
+*.dll     binary
+*.exe     binary
+*.zip     binary
+*.7z      binary
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary

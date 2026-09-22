@@ -1,0 +1,22 @@
+{
+  "version": "2.6.0",
+  "displayVersion": "2.6.0",
+  "versionCode": 20600,
+  "releasePageUrl": "https://github.com/xiaoyouqi/StartRide/releases",
+  "downloadUrl": "",
+  "downloadUrls": [
+    {
+      "name": "GitHub Releases",
+      "url": "https://github.com/xiaoyouqi/StartRide/releases/latest",
+      "priority": 0
+    }
+  ],
+  "downloadFileName": "StartRide-2.6.0-win-x64.zip",
+  "assetKind": "releasepage",
+  "sizeBytes": 0,
+  "sha256": "",
+  "changelog": "本版本为当前发布版本。更新内容见项目发布页。",
+  "isMandatory": false,
+  "minSupportedVersionCode": 0,
+  "publishedAt": "2026-09-22T00:00:00Z"
+}

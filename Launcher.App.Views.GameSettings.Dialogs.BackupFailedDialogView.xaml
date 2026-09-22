@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="Launcher.App.Views.GameSettings.Dialogs.BackupFailedDialogView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:res="clr-namespace:Launcher.App.Resources" Focusable="False" xmlns:dialogs="clr-namespace:Launcher.App.Views.GameSettings.Dialogs">
+  <Grid Style="{StaticResource DialogContentGridStyle}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <TextBlock Text="{x:Static res:Strings.Dialog_BackupCreateFailedTitle}" Style="{StaticResource DialogTitleTextStyle}" />
+    <TextBlock Grid.Row="1" Margin="0,16,0,24" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding BackupFailureDialogMessage}" />
+    <StackPanel Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
+      <Button Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Confirm_Button}" Command="{Binding CloseBackupFailureDialogCommand}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

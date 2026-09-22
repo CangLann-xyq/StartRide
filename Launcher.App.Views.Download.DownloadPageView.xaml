@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="Launcher.App.Views.Download.DownloadPageView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:Launcher.App.Controls" xmlns:views="clr-namespace:Launcher.App.Views.Download" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:res="clr-namespace:Launcher.App.Resources" x:Name="Root" Focusable="False">
+  <Grid Name="PageRoot">
+    <controls:SecondaryMenuFrame controls:SecondaryMenuOptionButton.RefreshRequested="SecondaryMenuOptionButton_OnRefreshRequested" Title="{x:Static res:Strings.Download_VersionListTitle}">
+      <controls:SecondaryMenuFrame.MenuContent>
+        <ItemsControl ItemsSource="{Binding VersionList.VersionCategories}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <controls:SecondaryMenuOptionButton Text="{Binding Title}" IconMode="{Binding IconMode}" IconKey="{Binding IconKey}" Glyph="{Binding Icon}" IsEnabled="{Binding IsEnabled}" IsSelected="{Binding IsSelected}" Command="{Binding DataContext.VersionList.SelectVersionCategoryCommand, RelativeSource={RelativeSource AncestorType={x:Type views:DownloadPageView}}}" CommandParameter="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </controls:SecondaryMenuFrame.MenuContent>
+    </controls:SecondaryMenuFrame>
+    <controls:ListPageFrame x:Name="DownloadVersionListFrame" Margin="272,36,24,8" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="False" Title="{Binding PageTitle}" TitleIconSource="{Binding PageTitleIconSource}" IsHeaderBackButtonVisible="{Binding IsInstanceOptionsStep}" HeaderBackCommand="{Binding BackToVersionListCommand}" SearchText="{Binding VersionList.VersionSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSearchVisible="{Binding IsVersionListStep}" IsListVisible="{Binding IsDownloadContentVisible}">
+      <controls:ListPageFrame.OverlayContent>
+        <Grid>
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type Grid}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="True" Binding="{Binding IsVersionListStep}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+          <TextBlock Margin="12,122,0,0" Text="{x:Static res:Strings.Download_LoadingVersions}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource DownloadOverlayEmptyStateTextStyle}" TargetType="{x:Type TextBlock}">
+                <Style.Triggers>
+                  <DataTrigger Value="True" Binding="{Binding VersionList.IsLoadingVersions}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+          <StackPanel Margin="12,122,0,0" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type StackPanel}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Value="True" Binding="{Binding VersionList.HasVersionLoadError}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+            <TextBlock Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding VersionList.VersionLoadError}" />
+            <Button Margin="0,16,0,0" HorizontalAlignment="Center" Content="{x:Static res:Strings.Refresh_Button}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding VersionList.RefreshVersionsCommand}" />
+          </StackPanel>
+          <TextBlock Margin="12,122,0,0" Text="{Binding VersionList.VersionEmptyMessage}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource DownloadOverlayEmptyStateTextStyle}" TargetType="{x:Type TextBlock}">
+                <Style.Triggers>
+                  <DataTrigger Value="True" Binding="{Binding VersionList.HasVersionEmptyMessage}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+        </Grid>
+      </controls:ListPageFrame.OverlayContent>
+      <controls:ListPageFrame.ListContent>
+        <Grid Tag="DownloadStepHost" ClipToBounds="True">
+          <Grid Tag="VersionListStep">
+            <UIElement.RenderTransform>
+              <TranslateTransform />
+            </UIElement.RenderTransform>
+            <views:DownloadVersionListView Tag="DownloadVersionList" DataContext="{Binding VersionList}" />
+          </Grid>
+          <Grid Tag="InstanceOptionsStep" Opacity="0" Visibility="Collapsed">
+            <UIElement.RenderTransform>
+              <TranslateTransform />
+            </UIElement.RenderTransform>
+            <views:DownloadInstanceOptionsView DataContext="{Binding InstanceOptions}" />
+          </Grid>
+        </Grid>
+      </controls:ListPageFrame.ListContent>
+      <controls:ListPageFrame.FloatingContent>
+        <Grid>
+          <Button Tag="InstallStep" Content="{Binding InstallButtonText}" IsEnabled="{Binding CanInstallSelectedVersion}" Command="{Binding InstallCommand}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource DownloadNextStepButtonStyle}" TargetType="{x:Type Button}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Setter Property="UIElement.Opacity" Value="0" />
+              </Style>
+            </FrameworkElement.Style>
+          </Button>
+        </Grid>
+      </controls:ListPageFrame.FloatingContent>
+    </controls:ListPageFrame>
+  </Grid>
+</UserControl>

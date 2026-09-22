@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <FontFamily x:Key="LauncherFontFamily">Segoe UI Variable Text, Microsoft YaHei UI</FontFamily>
+  <FontFamily x:Key="LauncherIconFontFamily">Segoe MDL2 Assets</FontFamily>
+  <system:Double x:Key="LauncherCompactControlHeight" xmlns:system="clr-namespace:System;assembly=System.Private.CoreLib">36</system:Double>
+  <!-- StartRide：原版 800 是为 Minecraft 那套窄列表定的。窗口拉宽后正文被卡在 800px，
+       右侧留出大片空白，一眼就是"套模板"。放到 1180：常见分辨率下不再出现空白，
+       同时仍给超宽屏留一条可读的行长上限。 -->
+  <Double x:Key="DetailPageContentMaxWidth" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">1180</Double>
+  <Double x:Key="HomeLaunchMenuPanelWidth" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">224</Double>
+  <Double x:Key="HomeLaunchMenuCollapsedHeight" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">72</Double>
+  <Double x:Key="HomeLaunchMenuItemHeight" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">54</Double>
+  <Double x:Key="HomeLaunchMenuAnimationDurationMilliseconds" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">380</Double>
+  <Double x:Key="HomeLaunchMenuAnimationEasePower" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">3.2</Double>
+  <Double x:Key="HomeLaunchMenuCollapseDelayMilliseconds" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">110</Double>
+  <Double x:Key="HomeLaunchPinnedContentGap" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">24</Double>
+  <Thickness x:Key="DialogTrailingButtonMargin">14,0,0,0</Thickness>
+  <Thickness x:Key="HomeLaunchMenuPanelMargin">24,24,0,24</Thickness>
+  <Thickness x:Key="Thickness.Surface.WindowBorder">1</Thickness>
+  <GridLength x:Key="SecondaryMenuIconColumnWidth">36</GridLength>
+  <CornerRadius x:Key="LauncherCornerRadiusSmall">10</CornerRadius>
+  <CornerRadius x:Key="LauncherCornerRadiusMedium">12</CornerRadius>
+  <CornerRadius x:Key="LauncherCornerRadiusLarge">16</CornerRadius>
+  <CornerRadius x:Key="LauncherDialogCornerRadius">20</CornerRadius>
+  <CornerRadius x:Key="LauncherToolTipCornerRadius">12</CornerRadius>
+  <system:Boolean x:Key="Is.SecondaryMenu.BackdropBlur.Enabled" xmlns:system="clr-namespace:System;assembly=System.Private.CoreLib">True</system:Boolean>
+  <Boolean x:Key="Is.Surface.BackdropBlur.Enabled" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">False</Boolean>
+  <Boolean x:Key="Is.ImageBackground.ControlTint.Enabled" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">False</Boolean>
+  <Boolean x:Key="Is.ProgressiveBlur.Enabled" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">False</Boolean>
+  <x:NullExtension x:Key="Effect.Home.ForegroundTextShadow" />
+  <Double x:Key="ListPage.ProgressiveBlur.MaxRadius" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">24</Double>
+  <Double x:Key="ListPage.ProgressiveBlur.RenderScale" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">0.2</Double>
+  <Double x:Key="ListPage.ProgressiveBlur.ActiveMinimumOpacity" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">0</Double>
+  <Double x:Key="ListPage.ProgressiveBlur.ActiveIntermediateOpacity" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">0.4</Double>
+  <Color x:Key="Color.AccentOption.Blue">#0A84FF</Color>
+  <Color x:Key="Color.AccentOption.Cyan">#00BCD4</Color>
+  <Color x:Key="Color.AccentOption.Green">#22C55E</Color>
+  <Color x:Key="Color.AccentOption.Emerald">#10B981</Color>
+  <Color x:Key="Color.AccentOption.Purple">#8B5CF6</Color>
+  <Color x:Key="Color.AccentOption.Pink">#EC4899</Color>
+  <Color x:Key="Color.AccentOption.Orange">#F97316</Color>
+  <Color x:Key="Color.AccentOption.Amber">#F59E0B</Color>
+  <SolidColorBrush x:Key="Brush.AccentOption.Blue" Color="{StaticResource Color.AccentOption.Blue}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Cyan" Color="{StaticResource Color.AccentOption.Cyan}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Green" Color="{StaticResource Color.AccentOption.Green}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Emerald" Color="{StaticResource Color.AccentOption.Emerald}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Purple" Color="{StaticResource Color.AccentOption.Purple}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Pink" Color="{StaticResource Color.AccentOption.Pink}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Orange" Color="{StaticResource Color.AccentOption.Orange}" />
+  <SolidColorBrush x:Key="Brush.AccentOption.Amber" Color="{StaticResource Color.AccentOption.Amber}" />
+</ResourceDictionary>

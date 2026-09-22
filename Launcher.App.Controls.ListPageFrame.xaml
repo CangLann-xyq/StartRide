@@ -1,0 +1,282 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="Launcher.App.Controls.ListPageFrame" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:Launcher.App.Behaviors" xmlns:controls="clr-namespace:Launcher.App.Controls" x:Name="Root" Focusable="False">
+  <Grid>
+    <ContentPresenter Content="{Binding OverlayContent, ElementName=Root}" />
+    <Grid Name="PART_ListLayer" behaviors:VerticalEdgeOpacityMask.IsEnabled="{Binding IsListVisible, ElementName=Root}">
+      <FrameworkElement.Style>
+        <Style TargetType="{x:Type Grid}">
+          <Setter Property="behaviors:VerticalEdgeOpacityMask.TopFadeLength" Value="140" />
+          <Setter Property="behaviors:VerticalEdgeOpacityMask.TopIntermediateLength" Value="100" />
+          <Setter Property="behaviors:VerticalEdgeOpacityMask.TopIntermediateOpacity" Value="0.1" />
+          <Setter Property="behaviors:VerticalEdgeOpacityMask.BottomFadeLength" Value="72" />
+          <Setter Property="behaviors:VerticalEdgeOpacityMask.MinimumOpacity" Value="0" />
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}">
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopFadeLength" Value="172" />
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopIntermediateLength" Value="132" />
+            </DataTrigger>
+            <MultiDataTrigger>
+              <MultiDataTrigger.Conditions>
+                <Condition Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}" />
+                <Condition Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}" />
+              </MultiDataTrigger.Conditions>
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopFadeLength" Value="196" />
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopIntermediateLength" Value="156" />
+            </MultiDataTrigger>
+            <DataTrigger Value="False" Binding="{Binding IsSearchVisible, ElementName=Root}">
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopFadeLength" Value="70" />
+              <Setter Property="behaviors:VerticalEdgeOpacityMask.TopIntermediateLength" Value="30" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+      <Grid Name="PART_DirectListHost" SnapsToDevicePixels="True" IsHitTestVisible="{Binding IsListVisible, ElementName=Root}">
+        <Grid Name="PART_ListVisualSource" Background="#00FFFFFF">
+          <ScrollViewer Name="PART_ScrollViewer">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource ListPageScrollViewerStyle}" TargetType="{x:Type ScrollViewer}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Value="True" Binding="{Binding IsListVisible, ElementName=Root}" />
+                      <Condition Value="True" Binding="{Binding UseFrameScrollViewer, ElementName=Root}" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                  </MultiDataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+            <StackPanel>
+              <Border>
+                <FrameworkElement.Style>
+                  <Style BasedOn="{StaticResource ListPageHeaderSpacerStyle}" TargetType="{x:Type Border}">
+                    <Style.Triggers>
+                      <DataTrigger Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}">
+                        <Setter Property="Height" Value="148" />
+                      </DataTrigger>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}" />
+                          <Condition Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Height" Value="172" />
+                      </MultiDataTrigger>
+                      <DataTrigger Value="False" Binding="{Binding IsSearchVisible, ElementName=Root}">
+                        <Setter Property="Height" Value="70" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </FrameworkElement.Style>
+              </Border>
+              <ContentPresenter>
+                <FrameworkElement.Style>
+                  <Style TargetType="{x:Type ContentPresenter}">
+                    <Setter Property="Content" Value="{Binding ListContent, ElementName=Root}" />
+                    <Style.Triggers>
+                      <DataTrigger Value="False" Binding="{Binding UseFrameScrollViewer, ElementName=Root}">
+                        <Setter Property="Content" Value="{x:Null}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </FrameworkElement.Style>
+              </ContentPresenter>
+              <Border Style="{StaticResource ListPageBottomSpacerStyle}" />
+            </StackPanel>
+          </ScrollViewer>
+          <controls:DeferredListContentHost ListContent="{Binding ListContent, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type controls:DeferredListContentHost}">
+                <Setter Property="controls:DeferredListContentHost.IsListVisible" Value="False" />
+                <Style.Triggers>
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Value="True" Binding="{Binding IsListVisible, ElementName=Root}" />
+                      <Condition Value="False" Binding="{Binding UseFrameScrollViewer, ElementName=Root}" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="controls:DeferredListContentHost.IsListVisible" Value="True" />
+                  </MultiDataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </controls:DeferredListContentHost>
+        </Grid>
+      </Grid>
+      <Grid Name="PART_BlurBandViewport" HorizontalAlignment="Stretch" VerticalAlignment="Top" ClipToBounds="True" IsHitTestVisible="False" SnapsToDevicePixels="True" Visibility="Collapsed">
+        <Grid Name="PART_BlurBandUpscaleHost" HorizontalAlignment="Left" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="Linear">
+          <UIElement.RenderTransform>
+            <ScaleTransform x:Name="PART_BlurBandUpscaleTransform" ScaleX="1" ScaleY="1" />
+          </UIElement.RenderTransform>
+          <Grid Name="PART_BlurBandVerticalHost" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Border Name="PART_BlurBandHorizontalHost" HorizontalAlignment="Left" VerticalAlignment="Top">
+              <Border.Background>
+                <VisualBrush x:Name="PART_BlurBandBrush" Viewbox="0,0,1,1" ViewboxUnits="Absolute" Viewport="0,0,1,1" ViewportUnits="RelativeToBoundingBox" Stretch="Fill" TileMode="None" />
+              </Border.Background>
+            </Border>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+    <Border Name="PART_HeaderOverlay">
+      <FrameworkElement.Style>
+        <Style BasedOn="{StaticResource ListPageHeaderOverlayStyle}" TargetType="{x:Type Border}">
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}">
+              <Setter Property="Height" Value="148" />
+            </DataTrigger>
+            <MultiDataTrigger>
+              <MultiDataTrigger.Conditions>
+                <Condition Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}" />
+                <Condition Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}" />
+              </MultiDataTrigger.Conditions>
+              <Setter Property="Height" Value="172" />
+            </MultiDataTrigger>
+            <DataTrigger Value="False" Binding="{Binding IsSearchVisible, ElementName=Root}">
+              <Setter Property="Height" Value="70" />
+            </DataTrigger>
+            <DataTrigger Value="False" Binding="{Binding IsListVisible, ElementName=Root}">
+              <Setter Property="Background" Value="#00FFFFFF" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+      <Grid>
+        <Grid Name="PART_HeaderTitleRow" Margin="12,6,12,0" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Button Command="{Binding HeaderBackCommand, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource ListPageHeaderBackButtonStyle}" TargetType="{x:Type Button}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Value="True" Binding="{Binding IsHeaderBackButtonVisible, ElementName=Root}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </Button>
+          <Image Grid.Column="1" Width="28" Height="28" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" Source="{Binding ResolvedTitleIconSource, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type Image}">
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ResolvedTitleIconSource, ElementName=Root}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </Image>
+          <TextBlock Grid.Column="2" Text="{Binding Title, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource ListPageHeaderTextStyle}" TargetType="{x:Type TextBlock}">
+                <Setter Property="Margin" Value="0" />
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+        </Grid>
+        <ContentPresenter Height="30" Margin="12,46,12,0" VerticalAlignment="Top" Content="{Binding DataContext, ElementName=Root}" ContentTemplate="{Binding SearchToolbarContentTemplate, ElementName=Root}">
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type ContentPresenter}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+        </ContentPresenter>
+        <Grid Height="{StaticResource LauncherCompactControlHeight}" VerticalAlignment="Top">
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type Grid}">
+              <Setter Property="Visibility" Value="Visible" />
+              <Setter Property="Margin" Value="12,58,12,0" />
+              <Style.Triggers>
+                <DataTrigger Value="False" Binding="{Binding IsSearchVisible, ElementName=Root}">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+                <DataTrigger Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}">
+                  <Setter Property="Margin" Value="12,82,12,0" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentPresenter Grid.Column="0" VerticalAlignment="Center" Content="{Binding SearchLeadingContent, ElementName=Root}" ContentTemplate="{Binding SearchLeadingContentTemplate, ElementName=Root}" DataContext="{Binding DataContext, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type ContentPresenter}">
+                <Setter Property="Margin" Value="0,0,10,0" />
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SearchLeadingContent, ElementName=Root}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                  <DataTrigger Value="False" Binding="{Binding IsSearchLeadingContentVisible, ElementName=Root}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                  <DataTrigger Value="Collapsed" Binding="{Binding SearchLeadingContent.Visibility, ElementName=Root}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </ContentPresenter>
+          <controls:SearchTextBox Grid.Column="1" Tag="{Binding ElementName=PART_ListLayer}" Text="{Binding SearchText, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <ContentPresenter Grid.Column="2" VerticalAlignment="Center" Content="{Binding SearchTrailingContent, ElementName=Root}" DataContext="{Binding DataContext, ElementName=Root}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type ContentPresenter}">
+                <Setter Property="Margin" Value="10,0,0,0" />
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SearchTrailingContent, ElementName=Root}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                  <DataTrigger Value="Collapsed" Binding="{Binding SearchTrailingContent.Visibility, ElementName=Root}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </ContentPresenter>
+        </Grid>
+        <ContentPresenter Height="32" VerticalAlignment="Top" Content="{Binding SearchFilterContent, ElementName=Root}" ContentTemplate="{Binding SearchFilterContentTemplate, ElementName=Root}">
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type ContentPresenter}">
+              <Setter Property="Margin" Value="12,100,12,0" />
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="True" Binding="{Binding IsSearchFilterVisible, ElementName=Root}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Value="True" Binding="{Binding IsSearchToolbarVisible, ElementName=Root}">
+                  <Setter Property="Margin" Value="12,124,12,0" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+        </ContentPresenter>
+      </Grid>
+    </Border>
+    <Border>
+      <FrameworkElement.Style>
+        <Style BasedOn="{StaticResource ListPageBottomOverlayStyle}" TargetType="{x:Type Border}">
+          <Style.Triggers>
+            <DataTrigger Value="False" Binding="{Binding IsListVisible, ElementName=Root}">
+              <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+    </Border>
+    <ContentPresenter Panel.ZIndex="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{Binding FloatingContent, ElementName=Root}" />
+  </Grid>
+</UserControl>

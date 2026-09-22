@@ -1,0 +1,50 @@
+# ============================================================================
+# StartRide 启动器 .gitignore
+# ============================================================================
+
+# ---- 构建产物 ----
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+*.binlog
+
+# ---- 本地部署 / 调试脚本（内含服务器地址与口令，绝不入库）----
+_sr_*.py
+_sr_*.json
+_sr_*.txt
+*_report.md
+*_report.json
+_patch_*.py
+ssh_*.py
+restart_*.py
+deploy_*.py
+
+# ---- 凭据与密钥 ----
+.env
+.env.*
+!/.env.example
+*.jks
+*.keystore
+*.pem
+*.pfx
+*.p12
+cloud-auth.json
+account-state.json
+
+# ---- 本地工具与临时产物 ----
+_sr_tools/
+*.bak
+*.orig
+*.tmp
+*.log
+build_log.txt
+
+# ---- 编辑器 ----
+.idea/
+.vscode/
+*.swp

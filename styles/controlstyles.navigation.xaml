@@ -1,0 +1,319 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:Launcher.App.Controls" xmlns:behaviors="clr-namespace:Launcher.App.Behaviors" xmlns:converters="clr-namespace:Launcher.App.Converters" xmlns:res="clr-namespace:Launcher.App.Resources">
+  <Style x:Key="NavigationMenuTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="12,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="UIElement.Opacity" Value="0" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Style.Triggers>
+      <DataTrigger Value="True" Binding="{Binding IsMenuExpanded, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+        <Setter Property="UIElement.Opacity" Value="1" />
+        <TriggerBase.EnterActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.20">
+                <DoubleAnimation.EasingFunction>
+                  <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </TriggerBase.EnterActions>
+        <TriggerBase.ExitActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16">
+                <DoubleAnimation.EasingFunction>
+                  <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </TriggerBase.ExitActions>
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="TopNavigationTabStyle" TargetType="{x:Type Button}">
+    <Setter Property="Height" Value="38" />
+    <Setter Property="Margin" Value="6,0" />
+    <Setter Property="Padding" Value="20,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontFamily" Value="{DynamicResource LauncherFontFamily}" />
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Name="Root" Background="{TemplateBinding Control.Background}" CornerRadius="19">
+            <Grid>
+              <Border Name="HoverBackground" Background="{DynamicResource Brush.14FFFFFF}" CornerRadius="19" Opacity="0" />
+              <Border Name="SelectedBackground" Background="{DynamicResource Brush.Accent.Primary}" CornerRadius="19" Opacity="0" />
+              <ContentPresenter Margin="{TemplateBinding Control.Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.14">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="0.6" />
+            </Trigger>
+            <DataTrigger Value="True" Binding="{Binding IsSelected}">
+              <Setter TargetName="SelectedBackground" Property="UIElement.Opacity" Value="1" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.F4FFFFFF}" />
+            </DataTrigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="NavigationMenuButtonStyle" TargetType="{x:Type Button}">    <Setter Property="ToolTipService.IsEnabled" Value="False" />
+    <Setter Property="ToolTipService.Placement" Value="Right" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Margin" Value="10,2" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.CFFFFFFF}" />
+    <Setter Property="FontFamily" Value="{DynamicResource LauncherFontFamily}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderBrush" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Name="Root" Background="#00FFFFFF" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" CornerRadius="14">
+            <Grid>
+              <Border Name="SelectedBackground" Background="{DynamicResource MenuButtonSelectedBackgroundBrush}" CornerRadius="14" Opacity="0" />
+              <Border Name="SelectedAccentBar" Width="3" Height="20" Margin="7,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{DynamicResource Brush.Accent.Primary}" CornerRadius="1.5" Opacity="0" />
+              <Border Name="HoverBackground" Background="{DynamicResource MenuButtonHoverBackgroundBrush}" CornerRadius="14" Opacity="0" />
+              <ContentPresenter HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="1" />
+            </Trigger>
+            <DataTrigger Value="True" Binding="{Binding IsSelected}">
+              <Setter TargetName="SelectedBackground" Property="UIElement.Opacity" Value="1" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.F4FFFFFF}" />
+              <TriggerBase.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="SelectedAccentBar" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.18">
+                      <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </TriggerBase.EnterActions>
+              <TriggerBase.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="SelectedAccentBar" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.14">
+                      <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </TriggerBase.ExitActions>
+            </DataTrigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <DataTrigger Value="False" Binding="{Binding IsMenuExpanded, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+        <Setter Property="ToolTipService.IsEnabled" Value="True" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="WindowCaptionButtonStyle" TargetType="{x:Type Button}">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Margin" Value="3,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Name="Root" CornerRadius="6">
+            <Grid>
+              <Border Name="HoverBackground" Background="{DynamicResource Brush.14FFFFFF}" CornerRadius="6" Opacity="0" />
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="WindowCaptionCloseButtonStyle" TargetType="{x:Type Button}">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Margin" Value="3,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Name="Root" CornerRadius="6">
+            <Grid>
+              <Border Name="HoverBackground" Background="{DynamicResource Brush.Danger.Primary}" CornerRadius="6" Opacity="0" />
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="0.7" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="NavigationMenuGlyphStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="FontFamily" Value="{DynamicResource LauncherIconFontFamily}" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="NavigationMenuAvatarContainerStyle" TargetType="{x:Type Border}">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="ClipToBounds" Value="True" />
+    <Setter Property="UIElement.Effect">
+      <Setter.Value>
+        <DropShadowEffect BlurRadius="8" Color="{DynamicResource Color.000000}" Opacity="0.42" ShadowDepth="1" />
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SecondaryMenuAvatarContainerStyle" TargetType="{x:Type Border}">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style x:Key="SecondaryMenuGlyphStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="FontFamily" Value="{DynamicResource LauncherIconFontFamily}" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="SecondaryMenuItemTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="4,0,8,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F4F4F4}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+</ResourceDictionary>

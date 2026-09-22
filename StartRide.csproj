@@ -1,0 +1,274 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>StartRide</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>True</UseWPF>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- App 的入口 Main 由 WPF 从 ApplicationDefinition 的 XAML 生成；
+         反编译出的文件名不是约定的 App.xaml，所以要显式声明，否则报 CS5001。 -->
+    <Page Remove="Launcher.App.App.xaml" />
+    <ApplicationDefinition Include="Launcher.App.App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="assets\icons\block\forge_logo.svg" />
+    <None Remove="effects\shaders\progressivegaussianblur.ps" />
+    <None Remove="assets\icons\setting_page\new_feature.svg" />
+    <None Remove="assets\icons\general\general_extention.svg" />
+    <None Remove="assets\icons\general\general_external-web.svg" />
+    <None Remove="assets\icons\multiple_player\multi_create.svg" />
+    <None Remove="assets\icons\main_menu_library.svg" />
+    <None Remove="assets\icons\world.svg" />
+    <None Remove="assets\icons\save_as.svg" />
+    <None Remove="assets\icons\general\general_all_application.svg" />
+    <None Remove="assets\icons\general\general_delete.svg" />
+    <None Remove="assets\icons\instance_setting_page\shader.svg" />
+    <None Remove="assets\icons\instance_setting_page\export.svg" />
+    <None Remove="assets\icons\block\beacon_block.png" />
+    <None Remove="assets\icons\account_page\account_page_add_account.svg" />
+    <None Remove="assets\icons\instance_download_page\time.svg" />
+    <None Remove="assets\icons\main_menu_instance_setting.svg" />
+    <None Remove="assets\icons\app_icon_concept_1024.png" />
+    <None Remove="assets\icons\block\craftingtable_block.png" />
+    <None Remove="assets\icons\main_menu_account.svg" />
+    <None Remove="assets\icons\instance_setting_page\-e7-bd-91-e6-a0-bc2_grid-two.svg" />
+    <None Remove="assets\icons\general\general_copy.svg" />
+    <None Remove="assets\icons\home_page\home_page_close.svg" />
+    <None Remove="assets\icons\main_menu_install.svg" />
+    <None Remove="assets\icons\setting_page\remove_folder.svg" />
+    <None Remove="assets\icons\instance_setting_page\folder-conversion.svg" />
+    <None Remove="assets\icons\block\anvil.png" />
+    <None Remove="assets\icons\instance_setting_page\general_setting.svg" />
+    <None Remove="assets\icons\block\redstone_lamp.png" />
+    <None Remove="assets\icons\general\general_search.svg" />
+    <None Remove="assets\icons\block\furnace_block.png" />
+    <None Remove="assets\icons\main_menu_multiplayer.svg" />
+    <None Remove="assets\icons\block\stone_block.png" />
+    <None Remove="assets\icons\setting_page\earth.svg" />
+    <None Remove="assets\icons\block\grass_block.png" />
+    <None Remove="assets\icons\app_icon_concept_48.png" />
+    <None Remove="assets\icons\multiple_player\multi_enter.svg" />
+    <None Remove="assets\icons\app_icon_concept_256.png" />
+    <None Remove="assets\icons\general\general_folder.svg" />
+    <None Remove="assets\icons\general\general_edit.svg" />
+    <None Remove="assets\icons\setting_page\theme.svg" />
+    <None Remove="assets\icons\instance_setting_page\mod.svg" />
+    <None Remove="assets\icons\instance_setting_page\loader.svg" />
+    <None Remove="assets\icons\modpack.svg" />
+    <None Remove="assets\icons\setting_page\info.svg" />
+    <None Remove="assets\icons\instance_setting_page\recover.svg" />
+    <None Remove="assets\icons\general\general_attention.svg" />
+    <None Remove="assets\icons\main_menu_launch.svg" />
+    <None Remove="assets\icons\account_page\account_page_add_account_dialog_offline_user.svg" />
+    <None Remove="assets\icons\account_page\account_page_forbid.svg" />
+    <None Remove="assets\icons\app_icon_concept_512.png" />
+    <None Remove="assets\icons\block\note_block.png" />
+    <None Remove="assets\icons\block\quilt_x16.png" />
+    <None Remove="assets\icons\instance_setting_page\backup.svg" />
+    <None Remove="assets\icons\block\dirt_block.png" />
+    <None Remove="assets\icons\general\general_passed.svg" />
+    <None Remove="assets\icons\main_menu_setting.svg" />
+    <None Remove="assets\icons\setting_page\bug.svg" />
+    <None Remove="assets\icons\instance_setting_page\info.svg" />
+    <None Remove="assets\icons\home.svg" />
+    <None Remove="assets\icons\app_icon_concept.svg" />
+    <None Remove="assets\icons\block\fabric.png" />
+    <None Remove="assets\icons\block\neo_logo.png" />
+    <None Remove="assets\icons\instance_download_page\release.svg" />
+    <None Remove="assets\icons\main_menu_fold.svg" />
+    <None Remove="assets\icons\instance_setting_page\saves.svg" />
+    <None Remove="assets\icons\main_menu_expand.svg" />
+    <None Remove="assets\icons\instance_download_page\snapshot.svg" />
+    <None Remove="assets\icons\instance_download_page\localimport.svg" />
+    <None Remove="assets\icons\account_page\account_page_add_account_dialog_online_user.svg" />
+    <None Remove="assets\icons\instance_setting_page\java.svg" />
+    <None Remove="assets\icons\instance_setting_page\launch.svg" />
+    <None Remove="assets\icons\server.svg" />
+    <None Remove="assets\icons\instance_setting_page\advanced_setting.svg" />
+    <None Remove="assets\icons\block\tnt_block.png" />
+    <None Remove="assets\icons\main_menu_instance_download.svg" />
+    <None Remove="assets\icons\setting_page\message.svg" />
+    <None Remove="assets\icons\general\general_arrow_left.svg" />
+    <None Remove="assets\icons\general\general_pin.svg" />
+    <None Remove="assets\icons\setting_page\download.svg" />
+    <None Remove="assets\icons\instance_download_page\winking-face-with-open-eyes.svg" />
+    <None Remove="assets\icons\block\redstone_block.png" />
+    <None Remove="assets\icons\account_page\third_party_login.svg" />
+    <None Remove="assets\icons\block\diamond_block.png" />
+    <None Remove="Launcher.App.Resources.ReferenceProjects.json" />
+    <Resource Include="assets\icons\beamng\beamng.svg" />
+    <Resource Include="assets\icons\block\forge_logo.svg" />
+    <Resource Include="effects\shaders\progressivegaussianblur.ps" />
+    <Resource Include="assets\icons\setting_page\new_feature.svg" />
+    <Resource Include="assets\icons\general\general_extention.svg" />
+    <Resource Include="assets\icons\general\general_external-web.svg" />
+    <Resource Include="assets\icons\multiple_player\multi_create.svg" />
+    <Resource Include="assets\icons\main_menu_library.svg" />
+    <Resource Include="assets\icons\world.svg" />
+    <Resource Include="assets\icons\save_as.svg" />
+    <Resource Include="assets\icons\general\general_all_application.svg" />
+    <Resource Include="assets\icons\general\general_delete.svg" />
+    <Resource Include="assets\icons\instance_setting_page\shader.svg" />
+    <Resource Include="assets\icons\instance_setting_page\export.svg" />
+    <Resource Include="assets\icons\block\beacon_block.png" />
+    <Resource Include="assets\icons\account_page\account_page_add_account.svg" />
+    <Resource Include="assets\icons\instance_download_page\time.svg" />
+    <Resource Include="assets\icons\main_menu_instance_setting.svg" />
+    <Resource Include="assets\icons\app_icon_concept_1024.png" />
+    <Resource Include="assets\icons\block\craftingtable_block.png" />
+    <Resource Include="assets\icons\main_menu_account.svg" />
+    <Resource Include="assets\icons\instance_setting_page\-e7-bd-91-e6-a0-bc2_grid-two.svg" />
+    <Resource Include="assets\icons\general\general_copy.svg" />
+    <Resource Include="assets\icons\home_page\home_page_close.svg" />
+    <Resource Include="assets\icons\main_menu_install.svg" />
+    <Resource Include="assets\icons\setting_page\remove_folder.svg" />
+    <Resource Include="assets\icons\instance_setting_page\folder-conversion.svg" />
+    <Resource Include="assets\icons\block\anvil.png" />
+    <Resource Include="assets\icons\instance_setting_page\general_setting.svg" />
+    <Resource Include="assets\icons\block\redstone_lamp.png" />
+    <Resource Include="assets\icons\general\general_search.svg" />
+    <Resource Include="assets\icons\block\furnace_block.png" />
+    <Resource Include="assets\icons\main_menu_multiplayer.svg" />
+    <Resource Include="assets\icons\block\stone_block.png" />
+    <Resource Include="assets\icons\setting_page\earth.svg" />
+    <Resource Include="assets\icons\block\grass_block.png" />
+    <Resource Include="assets\icons\app_icon_concept_48.png" />
+    <Resource Include="assets\icons\multiple_player\multi_enter.svg" />
+    <Resource Include="assets\icons\app_icon_concept_256.png" />
+    <Resource Include="assets\icons\general\general_folder.svg" />
+    <Resource Include="assets\icons\general\general_edit.svg" />
+    <Resource Include="assets\icons\setting_page\theme.svg" />
+    <Resource Include="assets\icons\instance_setting_page\mod.svg" />
+    <Resource Include="assets\icons\instance_setting_page\loader.svg" />
+    <Resource Include="assets\icons\modpack.svg" />
+    <Resource Include="assets\icons\setting_page\info.svg" />
+    <Resource Include="assets\icons\instance_setting_page\recover.svg" />
+    <Resource Include="assets\icons\general\general_attention.svg" />
+    <Resource Include="assets\icons\main_menu_launch.svg" />
+    <Resource Include="assets\icons\account_page\account_page_add_account_dialog_offline_user.svg" />
+    <Resource Include="assets\icons\account_page\account_page_forbid.svg" />
+    <Resource Include="assets\icons\app_icon_concept_512.png" />
+    <Resource Include="assets\icons\block\note_block.png" />
+    <Resource Include="assets\icons\block\quilt_x16.png" />
+    <Resource Include="assets\icons\instance_setting_page\backup.svg" />
+    <Resource Include="assets\icons\block\dirt_block.png" />
+    <Resource Include="assets\icons\general\general_passed.svg" />
+    <Resource Include="assets\icons\main_menu_setting.svg" />
+    <Resource Include="assets\icons\setting_page\bug.svg" />
+    <Resource Include="assets\icons\instance_setting_page\info.svg" />
+    <Resource Include="assets\icons\home.svg" />
+    <Resource Include="assets\icons\app_icon_concept.svg" />
+    <Resource Include="assets\icons\block\fabric.png" />
+    <Resource Include="assets\icons\block\neo_logo.png" />
+    <Resource Include="assets\icons\instance_download_page\release.svg" />
+    <Resource Include="assets\icons\main_menu_fold.svg" />
+    <Resource Include="assets\icons\instance_setting_page\saves.svg" />
+    <Resource Include="assets\icons\main_menu_expand.svg" />
+    <Resource Include="assets\icons\instance_download_page\snapshot.svg" />
+    <Resource Include="assets\icons\instance_download_page\localimport.svg" />
+    <Resource Include="assets\icons\account_page\account_page_add_account_dialog_online_user.svg" />
+    <Resource Include="assets\icons\instance_setting_page\java.svg" />
+    <Resource Include="assets\icons\instance_setting_page\launch.svg" />
+    <Resource Include="assets\icons\server.svg" />
+    <Resource Include="assets\icons\instance_setting_page\advanced_setting.svg" />
+    <Resource Include="assets\icons\block\tnt_block.png" />
+    <Resource Include="assets\icons\main_menu_instance_download.svg" />
+    <Resource Include="assets\icons\setting_page\message.svg" />
+    <Resource Include="assets\icons\general\general_arrow_left.svg" />
+    <Resource Include="assets\icons\general\general_pin.svg" />
+    <Resource Include="assets\icons\setting_page\download.svg" />
+    <Resource Include="assets\icons\instance_download_page\winking-face-with-open-eyes.svg" />
+    <Resource Include="assets\icons\block\redstone_block.png" />
+    <Resource Include="assets\icons\account_page\third_party_login.svg" />
+    <Resource Include="assets\icons\block\diamond_block.png" />
+    <EmbeddedResource Include="Launcher.App.Resources.ReferenceProjects.json" LogicalName="Launcher.App.Resources.ReferenceProjects.json" />
+    <!-- StartRide：BeamNG 语境图标 -->
+    <Resource Include="assets\icons\beamng\car.svg" />
+    <Resource Include="assets\icons\beamng\map.svg" />
+    <Resource Include="assets\icons\beamng\replay.svg" />
+    <Resource Include="assets\icons\beamng\mod.svg" />
+    <Resource Include="assets\icons\beamng\online.svg" />
+    <Resource Include="assets\icons\beamng\wheel.svg" />
+    <Resource Include="assets\icons\beamng\gear.svg" />
+    <Resource Include="assets\icons\beamng\download.svg" />
+    <Resource Include="assets\icons\beamng\record.svg" />
+    <Resource Include="assets\icons\beamng\steer.svg" />
+    <Resource Include="assets\icons\beamng\openweb.svg" />
+    <Resource Include="assets\icons\beamng\folder.svg" />
+    <Resource Include="assets\icons\general\general_window_minimize.svg" />
+    <Resource Include="assets\icons\general\general_window_close.svg" />
+    <Resource Include="assets\icons\account_page\account_page_add_account_dialog_steam.svg" />
+    <Resource Include="assets\icons\general\general_home.svg" />
+    <Resource Include="assets\icons\general\general_person.svg" />
+    <!-- StartRide 官方品牌 logo（由用户提供的 logo 生成，四角圆角处理） -->
+    <Resource Include="assets\branding\startride_icon_512.png" />
+    <Resource Include="assets\branding\startride_icon_256.png" />
+    <Resource Include="assets\branding\startride_icon_128.png" />
+    <Resource Include="assets\branding\startride_icon_64.png" />
+    <Resource Include="assets\branding\startride_icon_48.png" />
+    <Resource Include="assets\branding\startride_mark_256.png" />
+    <Resource Include="assets\branding\startride_logo_full.png" />
+    <!-- BeamNG.drive 官方 logo（取自游戏内 ui/images/beamng_logo_50x50.png，橙+黑，两主题都清楚） -->
+    <Resource Include="assets\branding\beamng_logo_50x50.png" />
+    <!-- 同一 logo 的 256 方形高清版：列表行/卡片是 32px 且用 UniformToFill，
+         50px 原图缩放余量不够，这里由 _sr_make_beamng_icon.py 按官方几何重绘 -->
+    <None Remove="assets\branding\beamng_logo_256.png" />
+    <Resource Include="assets\branding\beamng_logo_256.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 联机 Lua 模组源：ModInstaller 打包 startride.zip 时从这里读，
+         必须随 EXE 一起输出到 Mods\ 目录，否则联机模组装不上（游戏内就没有联机）。 -->
+    <None Remove="Mods\**\*" />
+    <None Include="Mods\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Launcher.Infrastructure">
+      <HintPath>..\startride-electron\_helm_dlls\Launcher.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection">
+      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+    </Reference>
+    <Reference Include="Launcher.Domain">
+      <HintPath>..\startride-electron\_helm_dlls\Launcher.Domain.dll</HintPath>
+    </Reference>
+    <Reference Include="Launcher.Application">
+      <HintPath>..\startride-electron\_helm_dlls\Launcher.Application.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="CommunityToolkit.Mvvm">
+      <HintPath>..\startride-electron\_helm_dlls\CommunityToolkit.Mvvm.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog">
+      <HintPath>..\startride-electron\_helm_dlls\Serilog.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.File">
+      <HintPath>..\startride-electron\_helm_dlls\Serilog.Sinks.File.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging">
+      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Extensions.Logging">
+      <HintPath>..\startride-electron\_helm_dlls\Serilog.Extensions.Logging.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+</Project>
