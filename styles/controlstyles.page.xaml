@@ -424,5 +424,5 @@
   <!-- 注意：原本这里放过 RideWideListBoxStyle（BasedOn ListPageVirtualizedListBoxStyle）。
        它属于「跨文件前向 StaticResource 引用」——本文件先于 ControlStyles.Lists.xaml 合并，
        BasedOn 在合并期解析 → 找不到 → MainWindow 加载即抛 XamlParseException，启动器 rc=-1。
-       已挪到 ControlStyles.Lists.xaml 末尾。新增跨文件 BasedOn 前先跑 `_sr_stylecheck.py`。 -->
+       已挪到 ControlStyles.Lists.xaml 末尾。新增跨文件 BasedOn 前先跑 `tools/check-style-refs.py`。 -->
 </ResourceDictionary>

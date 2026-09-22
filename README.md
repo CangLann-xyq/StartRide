@@ -51,6 +51,19 @@ dotnet build .\StartRide.csproj -c Release
 
 > 若要发布单文件版本，使用 `dotnet publish -c Release -r win-x64 --self-contained false`。
 
+### 改完样式后请跑一次引用检查
+
+WPF 的 `{StaticResource}` 在**资源字典合并时**解析，因此 `styles/` 下靠后的字典里定义的样式，
+不能被靠前的字典用 `BasedOn="{StaticResource ...}"` 引用——这种**跨文件前向引用**编译期不报错，
+但会在 `MainWindow` 加载时抛 `XamlParseException`，表现为启动器一闪而过、退出码 `-1`。
+
+```powershell
+python .\tools\check-style-refs.py
+```
+
+它按 `styles/ControlStyles.xaml` 里的合并顺序，逐文件核对每个 `StaticResource` 引用是否可用，
+有跨文件前向引用时退出码为 `1`，可直接用作 CI 门禁。
+
 ---
 
 ## 目录结构
@@ -62,6 +75,7 @@ dotnet build .\StartRide.csproj -c Release
 | `styles/` | 界面样式：按钮、输入、列表、导航、对话框、滚动 |
 | `resources/themes/` | 主题与配色（深色 / 浅色 / 强调色） |
 | `Assets/branding/` | 品牌图标与 Logo |
+| `tools/` | 开发辅助脚本（样式引用检查等） |
 | `Launcher.App.*` | 界面、视图模型与服务层 |
 
 ---
