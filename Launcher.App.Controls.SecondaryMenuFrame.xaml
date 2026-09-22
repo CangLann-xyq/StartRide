@@ -40,7 +40,10 @@
             </FrameworkElement.Style>
           </ContentControl>
           <Border Style="{StaticResource SecondaryMenuHeaderOverlayStyle}">
-            <TextBlock Style="{StaticResource SecondaryMenuHeaderTextStyle}" Text="{Binding Title, ElementName=Root}" />
+            <StackPanel>
+              <TextBlock Style="{StaticResource SecondaryMenuHeaderTextStyle}" Text="{Binding Title, ElementName=Root}" />
+              <Border Style="{StaticResource SecondaryMenuHeaderRuleStyle}" />
+            </StackPanel>
           </Border>
         </Grid>
         <ContentControl Grid.Row="1" Content="{Binding FooterContent, ElementName=Root}">
