@@ -44,6 +44,11 @@ _sr_tools/
 *.log
 build_log.txt
 
+# ---- Python 字节码缓存（曾误入仓库：__pycache__/_sr_install.*.pyc）----
+__pycache__/
+*.pyc
+*.pyo
+
 # ---- 编辑器 ----
 .idea/
 .vscode/
