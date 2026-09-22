@@ -772,7 +772,7 @@
   <data name="Status_AccountDeletedCacheCleanupFailedFormat" xml:space="preserve"><value>已从列表删除账户 {0}，但清理登录缓存失败。</value></data>
   <data name="GameSettings_ModManagementActionsLabel" xml:space="preserve"><value>操作</value></data>
   <data name="Settings_ControlDemoDangerButton" xml:space="preserve"><value>危险按钮</value></data>
-  <data name="Multiplayer_Create_StepSelectInstance" xml:space="preserve"><value>2. 自动把联机模组安装进游戏的 mods 目录。</value></data>
+  <data name="Multiplayer_Create_StepSelectInstance" xml:space="preserve"><value>自动把联机模组安装进游戏的 mods 目录。</value></data>
   <data name="GameSettings_LaunchAutoRepairOption" xml:space="preserve"><value>缺失文件自动补全</value></data>
   <data name="GameSettings_BackupActionsLabel" xml:space="preserve"><value>操作</value></data>
   <data name="Resources_WorldVersionsLoading" xml:space="preserve"><value>正在加载可用世界版本...</value></data>
@@ -873,7 +873,7 @@
   <data name="Status_LaunchAbnormalExit" xml:space="preserve"><value>游戏启动异常退出，已记录诊断日志。</value></data>
   <data name="Settings_InfoContent" xml:space="preserve"><value>关于</value></data>
   <data name="Page_Download" xml:space="preserve"><value>车辆管理</value></data>
-  <data name="Multiplayer_Create_StepOpenToLan" xml:space="preserve"><value>1. 自动检测 BeamNG.drive 安装位置（Steam 库与常见目录）。</value></data>
+  <data name="Multiplayer_Create_StepOpenToLan" xml:space="preserve"><value>自动检测 BeamNG.drive 安装位置（Steam 库与常见目录）。</value></data>
   <data name="Multiplayer_LobbyWorldClosed" xml:space="preserve"><value>游戏已退出，房间已自动解散。</value></data>
   <data name="Dialog_MinecraftDirectoryNameValidation" xml:space="preserve"><value>请输入 1 到 64 个字符的目录名称。</value></data>
   <data name="Status_AccountRenameFailed" xml:space="preserve"><value>账户名修改失败，请稍后重试。</value></data>
@@ -1335,7 +1335,7 @@
   <data name="Account_ThirdPartyServerUnavailable" xml:space="preserve"><value>无法连接认证服务器</value></data>
   <data name="Download_QuiltLibraryNone" xml:space="preserve"><value>不安装</value></data>
   <data name="Settings_ViewLegalDocumentButton" xml:space="preserve"><value>查看</value></data>
-  <data name="Multiplayer_Create_StepCreateLobby" xml:space="preserve"><value>3. 向云端注册临时房间并连上中继，随后自动启动游戏；把房间码发给好友即可加入。</value></data>
+  <data name="Multiplayer_Create_StepCreateLobby" xml:space="preserve"><value>向云端注册临时房间并连上中继，随后自动启动游戏；把房间码发给好友即可加入。</value></data>
   <data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>点击下方按钮，启动器会自动完成上述全部配置并联机，无需手动设置。</value></data>
   <data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>一键创建并联机</value></data>
   <data name="Settings_OpenSourceLicenseDescription" xml:space="preserve"><value>本软件依据 GNU 通用公共许可证第 3 版（GPL-3.0-only）发布。</value></data>

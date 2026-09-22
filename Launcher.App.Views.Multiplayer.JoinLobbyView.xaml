@@ -7,35 +7,46 @@
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </FrameworkElement.Resources>
+  <!-- StartRide 自有版式：页头（图标 + 标题 + 说明 + 动作）→ 统计条 → 列表卡面。
+       原版这里是「分组框标题 + 又一个大标题」两层重复，中间还夹一个只装一句说明的
+       空分组框，是 StartRide 的套模板痕迹。 -->
   <StackPanel Margin="12,62,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-    <GroupBox Header="{x:Static res:Strings.Multiplayer_SectionJoinLobby}" Style="{StaticResource LauncherContentSectionStyle}">
-      <StackPanel>
-        <TextBlock Text="浏览所有公开房间，点击即可直接加入，无需输入房间代码。" Style="{StaticResource SettingsDescriptionTextStyle}" />
-      </StackPanel>
-    </GroupBox>
 
-    <!-- 工具栏：标题 + 刷新 -->
-    <Grid Margin="0,26,0,0">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
+    <!-- ① 页头 -->
+    <DockPanel LastChildFill="False" Margin="0,0,0,14">
+      <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Multiplayer_Join_RefreshButton}" Command="{Binding RefreshRoomsCommand}" />
       <StackPanel Orientation="Horizontal">
-        <TextBlock VerticalAlignment="Center" Text="{x:Static res:Strings.Multiplayer_Join_RoomsSection}" Style="{StaticResource PageTitleTextStyle}" FontSize="18" />
-        <Border Margin="10,0,0,0" VerticalAlignment="Center" Padding="8,2" CornerRadius="9" Background="{DynamicResource Brush.Accent.Selection}">
-          <TextBlock Foreground="{DynamicResource Brush.Accent.Primary}" FontSize="12" Text="{Binding PublicRooms.Count, StringFormat={}{0} 个}" />
-        </Border>
+        <controls:SvgIcon Width="22" Height="22" Margin="0,0,11,0" VerticalAlignment="Center" IconKey="main_menu_multiplayer" Foreground="{DynamicResource Brush.Text.Strong}" />
+        <TextBlock Style="{StaticResource RidePageTitleTextStyle}" Text="{x:Static res:Strings.Multiplayer_SectionJoinLobby}" />
+        <TextBlock Style="{StaticResource RidePageSubtitleTextStyle}" Text="选择公开房间直接进入，无需房主提供房间码" />
       </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Multiplayer_Join_RefreshButton}" Command="{Binding RefreshRoomsCommand}" />
-    </Grid>
+    </DockPanel>
 
-    <!-- 房间列表 -->
-    <GroupBox Margin="0,16,0,0" Style="{StaticResource LauncherContentSectionStyle}">
+    <!-- ② 统计条 -->
+    <Border Style="{StaticResource RideStatStripStyle}" Margin="0,0,0,14">
+      <DockPanel LastChildFill="False">
+        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding RoomsLoadStatus}" IsHitTestVisible="False" />
+        <Border Style="{StaticResource RideStatChipStyle}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource RideStatChipValueStyle}" Text="{Binding PublicRooms.Count}" />
+            <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="个公开房间" />
+          </StackPanel>
+        </Border>
+      </DockPanel>
+    </Border>
+
+    <!-- ③ 房间列表 -->
+    <Border Style="{StaticResource RideListSurfaceStyle}" MinHeight="200">
       <Grid>
         <ItemsControl ItemsSource="{Binding PublicRooms}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Margin="4,4,4,4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type multiplayer:PublicRoomItem}">
-              <controls:ListPageItemButton IconKey="beamng/car" IconWidth="30" IconHeight="30" ItemMargin="0,2" Title="{Binding Name}" Subtitle="{Binding Host, StringFormat=房主：{0}}" TrailingText="{Binding PlayerCount}" Command="{Binding DataContext.JoinRoomCommand, RelativeSource={RelativeSource AncestorType={x:Type views:JoinLobbyView}}}" CommandParameter="{Binding}">
+              <controls:ListPageItemButton IconKey="beamng/online" IconWidth="21" IconHeight="21" IconColumnWidth="58" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="9" IconTileCornerRadius="11" ItemMargin="0,2" Title="{Binding Name}" Subtitle="{Binding Host, StringFormat=房主：{0}}" TrailingText="{Binding PlayerCount}" Command="{Binding DataContext.JoinRoomCommand, RelativeSource={RelativeSource AncestorType={x:Type views:JoinLobbyView}}}" CommandParameter="{Binding}">
                 <controls:ListPageItemButton.TitleTrailingContent>
                   <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Padding="8,2" CornerRadius="9" Background="{DynamicResource Brush.Field.ReadOnly.Surface}">
@@ -47,8 +58,9 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <!-- 空状态 / 加载状态 -->
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="13" Text="{Binding RoomsLoadStatus}">
+
+        <!-- 状态：加载中 / 无房间 -->
+        <TextBlock Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" LineHeight="20" Foreground="{DynamicResource Brush.Text.Subtle}" FontSize="12.5" Text="{Binding RoomsLoadStatus}">
           <FrameworkElement.Style>
             <Style TargetType="{x:Type TextBlock}">
               <Setter Property="Visibility" Value="Collapsed" />
@@ -56,11 +68,14 @@
                 <DataTrigger Value="True" Binding="{Binding HasRoomsLoadStatus}">
                   <Setter Property="Visibility" Value="Visible" />
                 </DataTrigger>
+                <DataTrigger Value="0" Binding="{Binding PublicRooms.Count}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
               </Style.Triggers>
             </Style>
           </FrameworkElement.Style>
         </TextBlock>
       </Grid>
-    </GroupBox>
+    </Border>
   </StackPanel>
 </UserControl>
