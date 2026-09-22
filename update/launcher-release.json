@@ -2,12 +2,12 @@
   "version": "2.6.0",
   "displayVersion": "2.6.0",
   "versionCode": 20600,
-  "releasePageUrl": "https://github.com/xiaoyouqi/StartRide/releases",
+  "releasePageUrl": "https://github.com/CangLann-xyq/StartRide/releases",
   "downloadUrl": "",
   "downloadUrls": [
     {
       "name": "GitHub Releases",
-      "url": "https://github.com/xiaoyouqi/StartRide/releases/latest",
+      "url": "https://github.com/CangLann-xyq/StartRide/releases/latest",
       "priority": 0
     }
   ],

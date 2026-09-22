@@ -86,7 +86,7 @@ python .\tools\check-style-refs.py
 
 StartRide 是 **StartRide Launcher**（GPL-3.0，界面标的版本 `0.9.15.0`）的二次开发版本。
 原始版权归 StartRide Launcher 作者所有。依照 GPL-3.0，本项目同样以 GPL-3.0 授权，
-完整源代码在 [本仓库](https://github.com/xiaoyouqi/StartRide) 公开。
+完整源代码在 [本仓库](https://github.com/CangLann-xyq/StartRide) 公开。
 
 **属于独立实现的部分**：联机会话与中继协议、模组安装与版本校验、BeamNG 启动与运行时
 管理、游玩时长统计、诊断包导出、云端同步、Steam 登录、以及全部车辆/模组/回放的管理界面。
@@ -102,7 +102,7 @@ StartRide 是 **StartRide Launcher**（GPL-3.0，界面标的版本 `0.9.15.0`�
 ## 相关链接
 
 - 项目主页：[startride.top](https://startride.top)
-- 问题反馈：[Issues](https://github.com/xiaoyouqi/StartRide/issues)
+- 问题反馈：[Issues](https://github.com/CangLann-xyq/StartRide/issues)
 - 联系邮箱：3956860183@qq.com
 
 ---

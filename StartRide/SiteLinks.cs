@@ -18,7 +18,7 @@ namespace StartRide.Core
         public const string ProjectHome = "https://startride.top";
 
         /// <summary>GitHub 仓库所有者。换账号只改这一行。</summary>
-        public const string GitHubOwner = "xiaoyouqi";
+        public const string GitHubOwner = "CangLann-xyq";
 
         /// <summary>GitHub 仓库名。换仓库只改这一行。</summary>
         public const string GitHubRepoName = "StartRide";
