@@ -16,6 +16,16 @@ namespace StartRide.Core
         /// <summary>项目主页（已备案的 StartRide 站点）。</summary>
         public const string ProjectHome = "https://startride.top";
 
+        /// <summary>
+        /// 联机中继的项目入口（「联机功能使用须知」弹窗里的「StartRide 中继项目」、联机页的归属行都指这里）。
+        ///
+        /// ⚠️ 这里原本硬编码指向上游那套 Minecraft 局域网穿透方案（Terracotta）的仓库，
+        /// 但联机层早已换成自建中继（relay-server.js + 房间码），文案改了、链接却漏改，
+        /// 会出现「写着 StartRide 中继项目、点开是别人的 Minecraft 项目」。
+        /// 以后有独立的中继说明页，也只改这一行。
+        /// </summary>
+        public static string RelayProjectUrl => GitHubRepo;
+
         /// <summary>GitHub 仓库所有者。换账号只改这一行。</summary>
         public const string GitHubOwner = "CangLann-xyq";
 

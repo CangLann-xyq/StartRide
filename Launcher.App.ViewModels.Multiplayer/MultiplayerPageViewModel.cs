@@ -920,18 +920,20 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		try
 		{
-			if (externalLinkService?.TryOpen("https://github.com/burningtnt/Terracotta") ?? false)
+			// 归属行写的是「StartRide 中继」，链接也必须指自己的项目（原先硬编码指向
+			// 上游那套 Minecraft 穿透方案的仓库，改文案时漏掉了）。
+			if (externalLinkService?.TryOpen(StartRide.Core.SiteLinks.RelayProjectUrl) ?? false)
 			{
 				return;
 			}
 		}
 		catch (Exception exception)
 		{
-			logger.LogWarning(exception, "Failed to open the Terracotta project page from the multiplayer page.");
+			logger.LogWarning(exception, "Failed to open the relay project page from the multiplayer page.");
 			ReportExternalLinkFailure();
 			return;
 		}
-		logger.LogWarning("Failed to open the Terracotta project page from the multiplayer page.");
+		logger.LogWarning("Failed to open the relay project page from the multiplayer page.");
 		ReportExternalLinkFailure();
 	}
 

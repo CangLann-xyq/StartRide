@@ -17,7 +17,14 @@ namespace Launcher.App.ViewModels.Multiplayer;
 
 public sealed class TerracottaAgreementDialogViewModel : ObservableObject
 {
-	internal const string TerracottaProjectUrl = "https://github.com/burningtnt/Terracotta";
+	/// <summary>
+	/// 「联机功能使用须知」里那个链接的目标地址。
+	///
+	/// 原先硬编码成 https://github.com/burningtnt/Terracotta —— 那是上游的 Minecraft
+	/// 局域网穿透方案；联机层换成自建中继后文案已改成「StartRide 中继项目」，链接却没跟着改，
+	/// 点开就跳到别人的 Minecraft 项目。统一收到 SiteLinks（唯一事实来源）。
+	/// </summary>
+	internal static string TerracottaProjectUrl => StartRide.Core.SiteLinks.RelayProjectUrl;
 
 	private readonly ITerracottaProvisioningService provisioningService;
 
@@ -221,18 +228,18 @@ public sealed class TerracottaAgreementDialogViewModel : ObservableObject
 	{
 		try
 		{
-			if (externalLinkService.TryOpen("https://github.com/burningtnt/Terracotta"))
+			if (externalLinkService.TryOpen(TerracottaProjectUrl))
 			{
 				return;
 			}
 		}
 		catch (Exception exception)
 		{
-			logger.LogWarning(exception, "Failed to open the Terracotta project page.");
+			logger.LogWarning(exception, "Failed to open the relay project page.");
 			ReportFailure(Strings.Status_OpenTerracottaProjectFailed);
 			return;
 		}
-		logger.LogWarning("Failed to open the Terracotta project page.");
+		logger.LogWarning("Failed to open the relay project page.");
 		ReportFailure(Strings.Status_OpenTerracottaProjectFailed);
 	}
 
