@@ -143,6 +143,12 @@ public sealed partial class HomePageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>
+	/// 首页头像：只返回账户自带的真实头像（Steam 头像来自 avatars.steamstatic.com）。
+	/// 没有头像就返回 null，由昵称首字母的圆形占位（HomeAccountInitial）兜底——
+	/// 不再去拉 minotar / crafatar 这类第三方 Minecraft 皮肤服务：它们与 StartRide 无关，
+	/// 而且国内基本不可达，只会得到一个一直转圈的空图片。
+	/// </summary>
 	public string? HomeAvatarUrl
 	{
 		get
@@ -152,15 +158,7 @@ public sealed partial class HomePageViewModel : ObservableObject
 			{
 				return null;
 			}
-			if (!string.IsNullOrWhiteSpace(selectedAccount.AvatarSource))
-			{
-				return selectedAccount.AvatarSource;
-			}
-			if (!selectedAccount.IsMicrosoft || string.IsNullOrWhiteSpace(selectedAccount.Uuid))
-			{
-				return "https://minotar.net/avatar/Steve/576.png";
-			}
-			return "https://crafatar.com/avatars/" + selectedAccount.Uuid + "?size=576&overlay";
+			return string.IsNullOrWhiteSpace(selectedAccount.AvatarSource) ? null : selectedAccount.AvatarSource;
 		}
 	}
 

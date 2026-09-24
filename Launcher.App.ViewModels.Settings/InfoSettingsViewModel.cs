@@ -71,6 +71,9 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	private RelayCommand? openGithubRepositoryCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? openProjectHomeCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand<InfoReferenceProjectItem?>? openReferenceProjectCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
@@ -250,6 +253,10 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
+	public IRelayCommand OpenProjectHomeCommand => openProjectHomeCommand ?? (openProjectHomeCommand = new RelayCommand(OpenProjectHome));
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	[ExcludeFromCodeCoverage]
 	public IRelayCommand<InfoReferenceProjectItem?> OpenReferenceProjectCommand => openReferenceProjectCommand ?? (openReferenceProjectCommand = new RelayCommand<InfoReferenceProjectItem>(OpenReferenceProject));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
@@ -293,6 +300,23 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		catch (Exception)
 		{
 			statusService.Report(Strings.Status_OpenGithubRepositoryFailed);
+		}
+	}
+
+	/// <summary>打开项目主页（startride.top）。地址来自 SiteLinks，换域名只改那一处。</summary>
+	[RelayCommand]
+	private void OpenProjectHome()
+	{
+		try
+		{
+			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.ProjectHome))
+			{
+				statusService.Report(Strings.Status_OpenProjectHomeFailed);
+			}
+		}
+		catch (Exception)
+		{
+			statusService.Report(Strings.Status_OpenProjectHomeFailed);
 		}
 	}
 

@@ -2268,6 +2268,7 @@ public static class Strings
 	public static string Status_OpenLaunchReportFailed => Get("Status_OpenLaunchReportFailed");
 
 	public static string Status_OpenGithubRepositoryFailed => Get("Status_OpenGithubRepositoryFailed");
+	public static string Status_OpenProjectHomeFailed => Get("Status_OpenProjectHomeFailed");
 
 	public static string Status_OpenFeedbackPageFailed => Get("Status_OpenFeedbackPageFailed");
 

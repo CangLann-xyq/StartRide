@@ -12,7 +12,13 @@
       <Image Width="64" Height="64" HorizontalAlignment="Left" Source="/StartRide;component/Assets/Branding/startride_icon_256.png" RenderOptions.BitmapScalingMode="HighQuality" />
       <TextBlock Margin="0,10,0,0" Text="{x:Static res:Strings.App_Title}" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="26" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
       <TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{Binding LauncherVersionText, StringFormat=v{0}}" />
+      <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12.5" TextTrimming="CharacterEllipsis">
+        <Run Text="{x:Static res:Strings.Settings_DeveloperLabel}" />
+        <Run Text=" · " />
+        <Run Text="{x:Static res:Strings.Settings_DeveloperValue}" />
+      </TextBlock>
       <WrapPanel Margin="0,16,0,0">
+        <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_ViewProjectHomeButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenProjectHomeCommand}" />
         <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_ViewGithubRepositoryButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenGithubRepositoryCommand}" />
         <Button Name="CheckUpdatesButton" Margin="0,0,10,10" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{Binding CheckUpdatesButtonText}" Command="{Binding CheckUpdatesCommand}" RequestBringIntoView="CheckUpdatesButton_OnRequestBringIntoView" />
       </WrapPanel>
@@ -71,6 +77,10 @@
             </StackPanel>
             <Button Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Content="{x:Static res:Strings.Settings_ViewLegalDocumentButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenUserAgreementCommand}" />
           </Grid>
+          <!-- GPL-3.0 要求衍生作品显著保留原始版权与许可声明。
+               这段文案原本只躺在 resx 里、界面上从来没出现过，属于合规缺口，补在版权章节末。 -->
+          <Border Style="{StaticResource RideHairlineStyle}" Margin="0,20,0,14" />
+          <TextBlock Text="{x:Static res:Strings.Settings_DerivationNotice}" Style="{StaticResource SettingsDescriptionTextStyle}" />
         </StackPanel>
       </Border>
     </GroupBox>

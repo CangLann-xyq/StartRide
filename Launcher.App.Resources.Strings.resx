@@ -318,7 +318,7 @@
   <data name="Status_NoMatchingVersions" xml:space="preserve"><value>没有找到匹配的版本。</value></data>
   <data name="Dialog_SkinModelSubtitle" xml:space="preserve"><value>请选择当前皮肤使用的模型。</value></data>
   <data name="Status_ModpackExported" xml:space="preserve"><value>整合包已导出</value></data>
-  <data name="Account_AuthenticationServerPlaceholder" xml:space="preserve"><value>如 https://littleskin.cn/api/yggdrasil</value></data>
+  <data name="Account_AuthenticationServerPlaceholder" xml:space="preserve"><value>第三方账号服务器地址</value></data>
   <data name="Status_QuiltLibraryVersionsLoadFailed" xml:space="preserve"><value>QFAPI / QSL 版本列表加载失败，已改为不安装。</value></data>
   <data name="GameSettings_DetailsPlaceholderBody" xml:space="preserve"><value>这里会继续补充这个版本的详细设置项，下一步将接入更多可编辑内容。</value></data>
   <data name="Status_LoadLocalSavesFailed" xml:space="preserve"><value>加载存档列表失败，请稍后重试。</value></data>
@@ -1322,6 +1322,7 @@
   <data name="Dialog_LaunchAnalysisGameFileIntegrityDownloadFailedRecommendation" xml:space="preserve"><value>请检查网络连接和下载源设置后重试。</value></data>
   <data name="Multiplayer_Create_LobbyFailed" xml:space="preserve"><value>创建房间失败，请稍后重试。</value></data>
   <data name="Status_OpenGithubRepositoryFailed" xml:space="preserve"><value>打开源码仓库失败</value></data>
+  <data name="Status_OpenProjectHomeFailed" xml:space="preserve"><value>无法打开项目主页，请检查系统浏览器设置后重试。</value></data>
   <data name="Account_SkinModelClassicTitle" xml:space="preserve"><value>默认</value></data>
   <data name="Status_SelectedModsDisablePartialFailedFormat" xml:space="preserve"><value>已禁用 {0} 个模组，{1} 个失败</value></data>
   <data name="Status_ModpackImportFailed" xml:space="preserve"><value>导入整合包失败</value></data>
@@ -1601,7 +1602,7 @@
   <data name="Settings_RelayFailedFormat" xml:space="preserve"><value>测试失败：{0}</value></data>
   <data name="Settings_RelayLastResultFormat" xml:space="preserve"><value>上次测试：{0} ms</value></data>
   <data name="Settings_DeveloperLabel" xml:space="preserve"><value>开发者</value></data>
-  <data name="Settings_DeveloperValue" xml:space="preserve"><value>肖又祺（xiaoyouqi）</value></data>
+  <data name="Settings_DeveloperValue" xml:space="preserve"><value>肖又祺（CangLann-xyq）</value></data>
   <data name="Settings_ProjectHomeLabel" xml:space="preserve"><value>项目主页</value></data>
   <data name="Settings_ProjectHomeValue" xml:space="preserve"><value>startride.top</value></data>
   <data name="Settings_ViewProjectHomeButton" xml:space="preserve"><value>访问项目主页</value></data>

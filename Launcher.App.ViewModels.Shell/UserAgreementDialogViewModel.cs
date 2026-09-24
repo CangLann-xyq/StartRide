@@ -141,7 +141,9 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 	{
 		try
 		{
-			if (externalLinkService.TryOpen("https://docs.qq.com/markdown/DSmhwTHJ3WXVobHVY"))
+			// 指向自己仓库里的 docs/USER-AGREEMENT.md，不再跳第三方网盘式文档：
+			// 协议正文与仓库同源，改一次两边一致（地址收口在 SiteLinks）。
+			if (externalLinkService.TryOpen(StartRide.Core.SiteLinks.UserAgreementUrl))
 			{
 				return;
 			}

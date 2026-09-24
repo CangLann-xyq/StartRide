@@ -725,17 +725,14 @@ public sealed class AccountSkinLibraryViewModel : ObservableObject
 		return accountList.Accounts.Any((AccountItemViewModel item) => !item.Account.IsThirdParty && IsAlreadyApplied(item.Account, skin));
 	}
 
+	/// <summary>
+	/// 离线账户是否需要补头像。判断依据只剩"有没有头像来源"——
+	/// 原来还会比对 minotar 的默认 Steve 图，但那是 Minecraft 皮肤服务，
+	/// StartRide 的账户已经只剩 Steam，不再依赖任何第三方皮肤站。
+	/// </summary>
 	private static bool NeedsOfflineAvatarRefresh(LauncherAccount account)
 	{
-		if (account.IsOffline)
-		{
-			if (!string.IsNullOrWhiteSpace(account.AvatarSource))
-			{
-				return string.Equals(account.AvatarSource, "https://minotar.net/avatar/Steve/32.png", StringComparison.OrdinalIgnoreCase);
-			}
-			return true;
-		}
-		return false;
+		return account.IsOffline && string.IsNullOrWhiteSpace(account.AvatarSource);
 	}
 
 	private static string ResolveLocalPath(string source)
