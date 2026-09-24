@@ -45,14 +45,8 @@
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_BackgroundSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="220" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{x:Static res:Strings.Settings_BackgroundSection}" Style="{StaticResource SettingsOptionTextStyle}" />
-            <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource BackgroundEffectOptionTemplate}" SelectionItemTemplate="{StaticResource BackgroundEffectOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding BackgroundEffectOptions}" SelectedItem="{Binding SelectedBackgroundEffectOption, Mode=TwoWay}" />
-          </Grid>
+          <!-- 章节标题就是「启动器背景」，行内不再重复一遍同名标签 -->
+          <controls:AnimatedComboBox Width="220" HorizontalAlignment="Right" ItemTemplate="{StaticResource BackgroundEffectOptionTemplate}" SelectionItemTemplate="{StaticResource BackgroundEffectOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding BackgroundEffectOptions}" SelectedItem="{Binding SelectedBackgroundEffectOption, Mode=TwoWay}" />
           <Grid Margin="0,18,0,0" animation:AnimatedCollapse.Duration="0:0:0.18" animation:AnimatedCollapse.IsExpanded="{Binding IsBackgroundImageSelectionVisible}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

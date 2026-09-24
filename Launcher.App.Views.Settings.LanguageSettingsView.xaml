@@ -11,14 +11,8 @@
     <GroupBox Header="{x:Static res:Strings.Settings_LanguageSection}" Style="{StaticResource RideSectionStyle}">
       <StackPanel>
         <Border Style="{StaticResource RideSectionBodyStyle}">
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="220" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{x:Static res:Strings.Settings_LauncherLanguageLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-            <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource LanguageOptionTemplate}" SelectionItemTemplate="{StaticResource LanguageOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}" />
-          </Grid>
+          <!-- 章节标题就是「启动器语言」，行内不再重复一遍同名标签 -->
+          <controls:AnimatedComboBox Width="220" HorizontalAlignment="Right" ItemTemplate="{StaticResource LanguageOptionTemplate}" SelectionItemTemplate="{StaticResource LanguageOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}" />
         </Border>
         <TextBlock Margin="0,12,0,0" Foreground="{DynamicResource Brush.Text.Danger}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding LanguageRestartNoticeText}" Visibility="{Binding IsLanguageRestartNoticeVisible, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
       </StackPanel>

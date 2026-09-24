@@ -44,14 +44,8 @@
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_MemoryLimitDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-          <Grid Margin="0,14,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{x:Static res:Strings.Settings_MemoryLimitLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LimitGameMemory, Mode=TwoWay}" />
-          </Grid>
+          <!-- 章节标题已经说明了这一项，行内不再重复同名字标签 -->
+          <CheckBox Margin="0,14,0,0" HorizontalAlignment="Right" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LimitGameMemory, Mode=TwoWay}" />
         </StackPanel>
       </Border>
     </GroupBox>
