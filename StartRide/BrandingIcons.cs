@@ -10,7 +10,7 @@ namespace StartRide.Core
     ///   ❌ "assets/branding/xxx.png" —— 相对路径，IconSourceImageLoader 会当成无基准的相对 URI，
     ///      加载失败后图标位就是空白（首页启动卡片曾因此没有图标）
     ///
-    /// 另：StartRide 的 Minecraft 方块图标（/Assets/Icons/block/*.png）在 StartRide 里已经不该出现，
+    /// 另：原版的 Minecraft 方块图标（/Assets/Icons/block/*.png）在 StartRide 里已经不该出现，
     /// 所有"这个游戏"的图标位统一走这里的 BeamNgLogo。
     /// </summary>
     public static class BrandingIcons

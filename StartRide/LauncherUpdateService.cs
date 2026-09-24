@@ -13,10 +13,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace StartRide.Core
 {
     /// <summary>
-    /// StartRide 自己的启动器更新检查，替换掉反编译版里硬编码指向
-    /// https://raw.githubusercontent.com/zqq-699/StartRide-Launcher/update-manifests/... 的实现。
+    /// StartRide 自己的启动器更新检查，替换掉反编译版里那段硬编码指向第三方仓库的更新实现。
     ///
-    /// 以前"检查更新"请求的是 StartRide 的清单，日志里 Source=gitee 就是这么来的——
+    /// 以前"检查更新"请求的是那个项目的清单（日志里 Source=gitee 就是这么来的）——
     /// 既是别人的仓库，也永远不可能有 StartRide 的版本。
     ///
     /// 现在的行为：

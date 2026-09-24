@@ -20,6 +20,9 @@
       <WrapPanel Margin="0,16,0,0">
         <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_ViewProjectHomeButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenProjectHomeCommand}" />
         <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_ViewGithubRepositoryButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenGithubRepositoryCommand}" />
+        <!-- 反馈入口也放这里：设置页左侧的「建议与反馈」是一个分区，用户不一定找得到；
+             关于页本来就是"项目相关的事都在这一页"的地方。 -->
+        <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_SectionFeedback}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenFeedbackCommand}" />
         <Button Name="CheckUpdatesButton" Margin="0,0,10,10" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{Binding CheckUpdatesButtonText}" Command="{Binding CheckUpdatesCommand}" RequestBringIntoView="CheckUpdatesButton_OnRequestBringIntoView" />
       </WrapPanel>
     </StackPanel>

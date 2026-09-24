@@ -84,16 +84,15 @@ python .\tools\check-style-refs.py
 
 本项目以 **GNU General Public License v3.0** 发布，详见 [LICENSE](LICENSE)。
 
-StartRide 是 **StartRide Launcher**（GPL-3.0，界面标的版本 `0.9.15.0`）的二次开发版本。
-原始版权归 StartRide Launcher 作者所有。依照 GPL-3.0，本项目同样以 GPL-3.0 授权，
-完整源代码在 [本仓库](https://github.com/CangLann-xyq/StartRide) 公开。
+StartRide 的界面层基于一个开源 Minecraft 启动器（GPL-3.0）的既有骨架改造而来。
+依照 GPL-3.0，本项目同样以 GPL-3.0 授权，完整源代码在
+[本仓库](https://github.com/CangLann-xyq/StartRide) 公开。
 
 **属于独立实现的部分**：联机会话与中继协议、模组安装与版本校验、BeamNG 启动与运行时
 管理、游玩时长统计、诊断包导出、云端同步、Steam 登录、以及全部车辆/模组/回放的管理界面。
 
-界面层基于 StartRide 的既有骨架改造。StartRide 面向 Minecraft，其 Minecraft 相关的
-实例扫描、加载器选择、皮肤披风、第三方认证等模块在 StartRide 中已不可达或移除；
-被替换为 BeamNG.drive 的对应实现。
+界面层沿用上述骨架。那个启动器面向 Minecraft，其实例扫描、加载器选择、皮肤披风、
+第三方认证等模块在 StartRide 中已不可达或移除；被替换为 BeamNG.drive 的对应实现。
 
 第三方依赖及其许可证可在启动器「设置 → 关于」中查看。
 

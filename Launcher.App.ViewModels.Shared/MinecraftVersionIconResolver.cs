@@ -9,7 +9,7 @@ namespace Launcher.App.ViewModels.Shared;
 /// <summary>
 /// 版本/实例列表项前面那个"这是哪个游戏"的图标。
 ///
-/// StartRide 时代这里按 Minecraft 版本类型返回草方块 / 泥土块 / 工作台图标，
+/// 早期版本这里按 Minecraft 版本类型返回草方块 / 泥土块 / 工作台图标，
 /// 实例没显式指定图标时，首页启动卡片和已装车辆列表就会挂着 MC 方块图。
 /// StartRide 只有一个游戏（BeamNG.drive），所以除了"实例自己指定过图标"这一种情况，
 /// 一律返回 BeamNG 官方 logo。版本类型归一化（正式版/快照版…）仍然保留，

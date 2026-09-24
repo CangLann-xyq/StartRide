@@ -74,6 +74,9 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	private RelayCommand? openProjectHomeCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? openFeedbackCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand<InfoReferenceProjectItem?>? openReferenceProjectCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
@@ -257,6 +260,10 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
+	public IRelayCommand OpenFeedbackCommand => openFeedbackCommand ?? (openFeedbackCommand = new RelayCommand(OpenFeedback));
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	[ExcludeFromCodeCoverage]
 	public IRelayCommand<InfoReferenceProjectItem?> OpenReferenceProjectCommand => openReferenceProjectCommand ?? (openReferenceProjectCommand = new RelayCommand<InfoReferenceProjectItem>(OpenReferenceProject));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
@@ -317,6 +324,27 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		catch (Exception)
 		{
 			statusService.Report(Strings.Status_OpenProjectHomeFailed);
+		}
+	}
+
+	/// <summary>
+	/// 打开反馈入口——本项目仓库的新建 issue 页（带"新功能建议"模板）。
+	/// 这里刻意不直连设置里的"建议与反馈"对话框，而是给出一条可复制的链接：
+	/// 用户可能还没登录 GitHub，先把页面打开比先弹自己写的对话框更有用。
+	/// </summary>
+	[RelayCommand]
+	private void OpenFeedback()
+	{
+		try
+		{
+			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.GitHubNewFeatureRequest))
+			{
+				statusService.Report(Strings.Status_OpenFeedbackPageFailed);
+			}
+		}
+		catch (Exception)
+		{
+			statusService.Report(Strings.Status_OpenFeedbackPageFailed);
 		}
 	}
 

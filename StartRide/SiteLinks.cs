@@ -5,10 +5,9 @@ namespace StartRide.Core
     /// <summary>
     /// StartRide 对外链接的**唯一事实来源**。
     ///
-    /// 背景：这个启动器是从 StartRide Launcher 反编译改造来的，原先界面里到处都是它的
-    /// 痕迹——版权行写 "Copyright © 2026 StartRide Launcher 开发者"、"查看 GitHub 仓库"
-    /// 跳到 zqq-699/StartRide-Launcher、反馈对话框指向它的 discussions/issues、
-    /// 连"检查更新"都在拉它的 raw.githubusercontent 清单。
+    /// 背景：这个启动器是从一个开源 Minecraft 启动器反编译改造来的，原先界面里到处都是
+    /// 它自己的痕迹——版权行署它的名、"查看 GitHub 仓库"跳它的仓库、反馈对话框指向它的
+    /// discussions/issues、连"检查更新"都在拉它的 raw 清单。
     ///
     /// 现在所有对外地址都收敛到这里：换域名/换仓库只改这一个文件，不用满工程找字符串。
     /// </summary>
@@ -35,6 +34,16 @@ namespace StartRide.Core
         public static string GitHubDiscussions => GitHubRepo + "/discussions";
 
         public static string GitHubNewIssue => GitHubRepo + "/issues/new";
+
+        /// <summary>
+        /// 新建"新功能建议"。带 template 参数，GitHub 会直接打开对应表单。
+        /// ⚠️ 用这两个地址的前提是仓库里存在 .github/ISSUE_TEMPLATE/ 下的同名模板，
+        /// 模板缺失时 GitHub 会跳到"找不到模板"的错误页——改模板文件名务必同步这里。
+        /// </summary>
+        public static string GitHubNewFeatureRequest => GitHubNewIssue + "?template=feature_request.md";
+
+        /// <summary>新建"Bug 反馈"（同上，依赖 .github/ISSUE_TEMPLATE/bug_report.md）。</summary>
+        public static string GitHubNewBugReport => GitHubNewIssue + "?template=bug_report.md";
 
         /// <summary>仓库里的许可证文件。</summary>
         public static string LicenseUrl => GitHubRepo + "/blob/" + GitHubBranch + "/LICENSE";

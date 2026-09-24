@@ -1,4 +1,4 @@
-"""把 startride-wpf 的联机服务层搬进 StartRide 反编译工程，并把命名空间改为 StartRide.Core。
+"""把 startride-wpf 的联机服务层搬进反编译得到的启动器工程，并把命名空间改为 StartRide.Core。
 
 用法: python import_services.py [--apply]
 """

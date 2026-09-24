@@ -9,7 +9,7 @@
   </FrameworkElement.Resources>
   <!-- StartRide 自有版式：页头（图标 + 标题 + 说明 + 动作）→ 统计条 → 列表卡面。
        原版这里是「分组框标题 + 又一个大标题」两层重复，中间还夹一个只装一句说明的
-       空分组框，是 StartRide 的套模板痕迹。 -->
+       空分组框，是原版套模板的痕迹。 -->
   <StackPanel Margin="12,62,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
 
     <!-- ① 页头 -->

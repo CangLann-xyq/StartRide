@@ -30,7 +30,7 @@
 <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader><resheader name="version"><value>1.3</value></resheader><resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><data name="Status_LaunchCheckingFiles" xml:space="preserve"><value>正在检查游戏文件...</value></data>
   <data name="Status_LaunchRevalidatingFiles" xml:space="preserve"><value>正在重新检查全部游戏文件...</value></data>
   <data name="Resources_ModProjectsLoadError" xml:space="preserve"><value>加载模组列表失败，请稍后重试。</value></data>
-  <data name="Account_OfflineUuidStandardDescription" xml:space="preserve"><value>根据账户名称自动生成 UUID，兼容多数离线服务器。</value></data>
+  <data name="Account_OfflineUuidStandardDescription" xml:space="preserve"><value>根据昵称生成固定的联机 ID，同一昵称在任何设备上都会得到相同的 ID。</value></data>
   <data name="Resources_ModRequiredDependenciesDialogMessage" xml:space="preserve"><value>当前的模组需要前置模组</value></data>
   <data name="Account_AddSkinButton" xml:space="preserve"><value>添加皮肤</value></data>
   <data name="Resources_WorldVersionsEmpty" xml:space="preserve"><value>没有适用于该游戏的世界版本</value></data>
@@ -127,7 +127,7 @@
   <data name="Status_ModpackProcessingFiles" xml:space="preserve"><value>正在处理整合包文件</value></data>
   <data name="Account_ThirdPartyPlatformFormat" xml:space="preserve"><value>{0} · {1}</value></data>
   <data name="GameSettings_ModManagementOpenFolderButton" xml:space="preserve"><value>打开模组文件夹</value></data>
-  <data name="Account_OfflineUuidManualDescription" xml:space="preserve"><value>使用指定的 UUID，点击“应用”后保存，改名后保持不变。</value></data>
+  <data name="Account_OfflineUuidManualDescription" xml:space="preserve"><value>手动填写联机 ID，点击“应用”后生效，改名后保持不变。</value></data>
   <data name="Dialog_DeleteMultipleBackupsMessageFormat" xml:space="preserve"><value>确认删除这 {0} 个备份吗？将优先移入系统回收站；回收站不可用时将直接删除。</value></data>
   <data name="Download_FabricApiLabel" xml:space="preserve"><value>安装 Fabric API（推荐）</value></data>
   <data name="Nav_DefaultSettings" xml:space="preserve"><value>默认设置</value></data>
@@ -486,7 +486,7 @@
   <data name="Status_LauncherLogsClearedFormat" xml:space="preserve"><value>已清理 {0} 个启动器日志文件。</value></data>
   <data name="Status_OpenResourceDetailsFailed" xml:space="preserve"><value>无法打开资源详情，请稍后重试</value></data>
   <data name="GameSettings_ShaderPackManagementLoading" xml:space="preserve"><value>正在加载光影包...</value></data>
-  <data name="Status_OfflineUuidApplied" xml:space="preserve"><value>离线 UUID 已应用</value></data>
+  <data name="Status_OfflineUuidApplied" xml:space="preserve"><value>联机 ID 已应用</value></data>
   <data name="Status_CustomFileDownloadCompleted" xml:space="preserve"><value>下载完成</value></data>
   <data name="GameSettings_BackupMultiSelectButton" xml:space="preserve"><value>多选</value></data>
   <data name="Dialog_MicrosoftAccountExpiredSubtitle" xml:space="preserve"><value>需要重新验证 Microsoft 账户</value></data>
@@ -618,7 +618,7 @@
   <data name="Resources_ModRequiredDependencyInstalled" xml:space="preserve"><value>已安装</value></data>
   <data name="Apply_Button" xml:space="preserve"><value>应用</value></data>
   <data name="Resources_ModFilterTypeEquipment" xml:space="preserve"><value>装备</value></data>
-  <data name="Account_OfflineUuidStandardTitle" xml:space="preserve"><value>标准</value></data>
+  <data name="Account_OfflineUuidStandardTitle" xml:space="preserve"><value>自动生成</value></data>
   <data name="Settings_OfficialMinecraftDirectoryDisplayName" xml:space="preserve"><value>官方启动器目录</value></data>
   <data name="Download_QuiltLoaderSubtitle" xml:space="preserve"><value>支持选择 Quilt 版本并安装</value></data>
   <data name="Status_RenamingInstance" xml:space="preserve"><value>正在修改版本...</value></data>
@@ -832,7 +832,7 @@
   <data name="MicrosoftLogin_BrowserCompletionMessageFormat" xml:space="preserve"><value>你可以返回 {0}。请关闭此浏览器标签页。</value></data>
   <data name="GameSettings_ModManagementDisableAllButton" xml:space="preserve"><value>全部禁用</value></data>
   <data name="Settings_BackgroundImageSelectionDescription" xml:space="preserve"><value>启动器会读取文件夹内的图片并随机展示</value></data>
-  <data name="Status_OfflineUuidInvalid" xml:space="preserve"><value>UUID 格式不正确，请检查后重试。</value></data>
+  <data name="Status_OfflineUuidInvalid" xml:space="preserve"><value>联机 ID 格式不正确，请检查后重试。</value></data>
   <data name="Status_InstallCheckingFiles" xml:space="preserve"><value>正在检查游戏文件...</value></data>
   <data name="GameSettings_BackupDirectorySection" xml:space="preserve"><value>备份目录</value></data>
   <data name="Status_MinecraftDirectoryChanged" xml:space="preserve"><value>游戏目录已更新。</value></data>
@@ -1193,7 +1193,7 @@
   <data name="Settings_MaximumDownloadThreadsLabel" xml:space="preserve"><value>最大下载线程</value></data>
   <data name="Multiplayer_Join_PasteButton" xml:space="preserve"><value>粘贴</value></data>
   <data name="Download_LocalImportSelectedFileLabel" xml:space="preserve"><value>已选文件</value></data>
-  <data name="Account_OfflineUuidInvalid" xml:space="preserve"><value>UUID 格式不正确</value></data>
+  <data name="Account_OfflineUuidInvalid" xml:space="preserve"><value>联机 ID 格式不正确</value></data>
   <data name="Status_JavaImported" xml:space="preserve"><value>Java 已导入</value></data>
   <data name="Resources_ModVersionsFilterEmpty" xml:space="preserve"><value>没有找到匹配的模组版本</value></data>
   <data name="Resources_ModRequiredDependencyMissing" xml:space="preserve"><value>缺失</value></data>
@@ -1606,6 +1606,6 @@
   <data name="Settings_ProjectHomeLabel" xml:space="preserve"><value>项目主页</value></data>
   <data name="Settings_ProjectHomeValue" xml:space="preserve"><value>startride.top</value></data>
   <data name="Settings_ViewProjectHomeButton" xml:space="preserve"><value>访问项目主页</value></data>
-  <data name="Settings_DerivationNotice" xml:space="preserve"><value>本软件由 肖又祺 在 StartRide Launcher（GPL-3.0）基础上二次开发并持续维护，原始版权归 StartRide Launcher 作者所有；StartRide 的联机、启动、诊断等模块为独立实现。</value></data>
+  <data name="Settings_DerivationNotice" xml:space="preserve"><value>本软件的界面版式参考了一个开源的 Minecraft 启动器，联机、启动、诊断等模块为 StartRide 独立实现。本项目依据 GPL-3.0 发布，原始版权声明保留在仓库中。</value></data>
   <data name="Settings_RuntimeSectionHint" xml:space="preserve"><value>游戏进程、游玩时长与收尾操作都在这里。</value></data>
 </root>

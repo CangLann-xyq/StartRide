@@ -8,15 +8,15 @@ using Launcher.Application.Services;
 using Launcher.Domain.Models;
 using StartRide.Core;
 // StartRide.Core 里也有一个 GameInstance（ApiService 的联机房间模型），
-// 与 StartRide 的实例模型重名。这里用别名钉死，避免 CS0104 歧义。
+// 与原启动器的实例模型重名。这里用别名钉死，避免 CS0104 歧义。
 using GameInstance = Launcher.Domain.Models.GameInstance;
 
 namespace Launcher.App.Services;
 
 /// <summary>
-/// 用「本机 BeamNG.drive」这一个合成实例顶替 StartRide 的 Minecraft 实例扫描。
+/// 用「本机 BeamNG.drive」这一个合成实例顶替原启动器的 Minecraft 实例扫描。
 ///
-/// StartRide 的主页/游戏设置都以 GameInstance 为中心，而 BeamNG 没有"多版本实例"这回事。
+/// 原启动器的主页/游戏设置都以 GameInstance 为中心，而 BeamNG 没有"多版本实例"这回事。
 /// 这里返回一个代表当前机器上 BeamNG.drive 安装的实例，于是：
 ///   主页能显示「BeamNG.drive &lt;版本&gt;」、启动按钮可用、游戏设置页也能挂到它上面。
 ///

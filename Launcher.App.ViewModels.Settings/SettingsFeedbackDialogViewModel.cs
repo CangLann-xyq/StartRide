@@ -87,13 +87,13 @@ public sealed class SettingsFeedbackDialogViewModel : ObservableObject
 	[RelayCommand]
 	private void OpenFeatureSuggestions()
 	{
-		OpenExternalLink(StartRide.Core.SiteLinks.GitHubNewIssue + "?labels=enhancement&template=feature_request.md", "feature-suggestions");
+		OpenExternalLink(StartRide.Core.SiteLinks.GitHubNewFeatureRequest, "feature-suggestions");
 	}
 
 	[RelayCommand]
 	private void OpenBugReports()
 	{
-		OpenExternalLink(StartRide.Core.SiteLinks.GitHubIssues, "bug-reports");
+		OpenExternalLink(StartRide.Core.SiteLinks.GitHubNewBugReport, "bug-reports");
 	}
 
 	private void OpenExternalLink(string url, string target)

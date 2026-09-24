@@ -7,7 +7,7 @@ using Launcher.Domain.Models;
 namespace Launcher.App.Services;
 
 /// <summary>
-/// 顶替 StartRide 原版的 Terracotta 下载器。
+/// 顶替原版的 Terracotta 下载器。
 ///
 /// StartRide 的联机走自建中继，不需要从 GitHub 下载任何第三方穿透模块，
 /// 所以这里直接报告「模块已就绪」，联机页前面那道

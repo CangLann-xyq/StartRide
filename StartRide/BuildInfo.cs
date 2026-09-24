@@ -5,7 +5,7 @@ namespace StartRide.Core
     {
         public const string Version = "2.6.0";
 
-        /// <summary>界面所对标的 StartRide 版本。</summary>
-        public const string StartRideReference = "0.9.15.0";
+        /// <summary>界面版式所参考的那个启动器的版本号（仅留档，运行时不使用）。</summary>
+        public const string UpstreamVersionReference = "0.9.15.0";
     }
 }

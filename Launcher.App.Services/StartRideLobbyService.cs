@@ -10,15 +10,15 @@ using StartRide.Core;
 namespace Launcher.App.Services;
 
 /// <summary>
-/// 把 StartRide 联机页（创建房间 / 加入房间 / 房间码 / 玩家列表）接到 StartRide 的联机后端。
+/// 把原启动器的联机页（创建房间 / 加入房间 / 房间码 / 玩家列表）接到 StartRide 的联机后端。
 ///
-/// StartRide 原版的 IMultiplayerLobbyService 是 Terracotta（Minecraft 局域网穿透），
+/// 原版 IMultiplayerLobbyService 是 Terracotta（Minecraft 局域网穿透），
 /// 这里换成基于自建中继的实现：
 ///   创建房间 -> 生成本地房间码 -> 连中继 -> 顺带把房间登记到大厅（失败不阻断）
 ///   加入房间 -> 凭房间码直连中继（不依赖大厅）
 /// 因此即使 HTTP 后端不可用，只要中继活着，房间码联机依然可用。
 ///
-/// 界面层（MultiplayerPageView / MultiplayerPageViewModel）与 StartRide 原版完全一致，
+/// 界面层（MultiplayerPageView / MultiplayerPageViewModel）与原版完全一致，
 /// 只换这一个实现即可，不需要改动任何 XAML。
 /// </summary>
 public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposable

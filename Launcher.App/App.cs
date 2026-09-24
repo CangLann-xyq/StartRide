@@ -34,6 +34,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using StartRide.Core;
+using StartRide.Services;
 
 namespace Launcher.App;
 
@@ -159,7 +160,7 @@ public partial class App : System.Windows.Application
 			((IServiceCollection)services).AddSingleton((ILauncherLogLevelController)logLevelController);
 			services.AddLauncherApplication();
 			services.AddLauncherInfrastructure();
-			// StartRide：把"检查更新"从 StartRide 的 GitHub 清单换成自有的
+			// StartRide：把"检查更新"从上游启动器的 GitHub 清单换成自有的
 			// （windseek.cloud/update → 本仓库 update/ 两个通道）。
 			// MS.DI 取后注册者，因此必须排在 AddLauncherInfrastructure 之后才顶得掉原实现。
 			services.AddSingleton<ILauncherUpdateService, StartRideLauncherUpdateService>();

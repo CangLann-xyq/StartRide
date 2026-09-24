@@ -222,8 +222,16 @@ public sealed class AccountListViewModel : ObservableObject
 
 	public Task PersistAccountOrderAsync()
 	{
+		// StartRide：账户列表落盘的唯一收敛点，落盘前统一校正联机 ID。
+		// 上游框架在重建账号对象时会按昵称重算联机 ID（用的是继承来的 Minecraft 离线
+		// UUID 算法），而换头像/静默刷新/重命名等多条流程各自都会落一次盘——谁最后落
+		// 谁说了算，只在加载后校正一次会被后面的流程覆盖回去。详见
+		// StartRide/Services/StartRideAccountIdRepair.cs。
+		StartRide.Services.StartRideAccountIdRepair.Normalize(this, logger);
 		selectedAccountId = SelectedItem?.Id;
-		Task persist = accountStore.SaveOrderAsync(selectedAccountId, Accounts.Select((AccountItemViewModel item) => item.Account).ToArray());
+		AccountItemViewModel[] snapshot = Accounts.ToArray();
+		LogAccountSave(snapshot);
+		Task persist = accountStore.SaveOrderAsync(selectedAccountId, snapshot.Select((AccountItemViewModel item) => item.Account).ToArray());
 
 		// 云同步：账户列表（昵称/steamId/头像）实时上报云端
 		try
@@ -242,6 +250,37 @@ public sealed class AccountListViewModel : ObservableObject
 		}
 
 		return persist;
+	}
+
+	/// <summary>
+	/// StartRide：记录每一次账户状态落盘。这里被上游框架的十来处流程调用
+	/// （换头像、改披风、重命名、重选账号……），是"到底是谁把联机 ID 改回 UUID"的
+	/// 唯一收敛观测点，所以日志打在这一层，不打在调用方。
+	/// </summary>
+	private void LogAccountSave(AccountItemViewModel[] snapshot)
+	{
+		try
+		{
+			string callers = string.Join(
+				" <- ",
+				new System.Diagnostics.StackTrace()
+					.GetFrames()
+					.Select(frame => frame.GetMethod())
+					.Where(method => method != null && method.DeclaringType != null)
+					.Select(method => method.DeclaringType.Name + "." + method.Name)
+					.Where(name => !name.StartsWith("LogAccountSave", StringComparison.Ordinal)
+						&& !name.StartsWith("PersistAccountOrderAsync", StringComparison.Ordinal))
+					.Take(3));
+			logger.LogInformation(
+				"ACCOUNT-SAVE selected={Selected} ids=[{Ids}] callers={Callers}",
+				selectedAccountId,
+				string.Join(",", snapshot.Select(item => item.Account.Uuid)),
+				callers);
+		}
+		catch
+		{
+			// 诊断日志不能影响正常落盘
+		}
 	}
 
 	private void UpdateSelectionFlags()
@@ -268,6 +307,10 @@ public sealed class AccountListViewModel : ObservableObject
 		{
 			ClearSelectedAccount();
 		}
+		// StartRide：加载侧的唯一入口。落盘时框架会把 Uuid 按昵称重算成继承来的 Minecraft
+		// 离线 UUID（实测：往文件里塞一个合法 GUID 哨兵，启动一次也被换掉），所以加载后
+		// 必须立刻校正一次，否则界面上会出现一段"显示 MC UUID"的窗口期。
+		StartRide.Services.StartRideAccountIdRepair.Normalize(this, logger);
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]

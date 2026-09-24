@@ -63,7 +63,7 @@ namespace StartRide.Core
     }
 
     /// <summary>
-    /// 下载队列。对应 StartRide 的 InstallPageView —— 那里列的是"资源安装任务"，
+    /// 下载队列。对应原版的 InstallPageView —— 那里列的是"资源安装任务"，
     /// 这里做成通用文件下载：给一个地址 + 目标目录就能跑，带进度与限速。
     /// </summary>
     public sealed class DownloadManager

@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace StartRide.Core
 {
-    /// <summary>一个"游戏"条目（对应 StartRide 的 instance）。</summary>
+    /// <summary>一个"游戏"条目（沿用原版的 instance 模型）。</summary>
     public sealed class GameInstance
     {
         public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];

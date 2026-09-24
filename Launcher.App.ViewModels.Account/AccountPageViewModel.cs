@@ -150,6 +150,9 @@ public sealed class AccountPageViewModel : ObservableObject
 	{
 		await AccountList.InitializeAsync();
 		Appearance.RefreshAccountsSilentlyAsync();
+		// StartRide：联机 ID 校正现在收敛在两个点上，不再需要在这里补一刀——
+		// 加载侧在 AccountListViewModel.ApplyAccounts，落盘侧在 PersistAccountOrderAsync。
+		// 详见 StartRide/Services/StartRideAccountIdRepair.cs。
 	}
 
 	public Task PrimeAsync()

@@ -11,7 +11,7 @@ using GameInstance = Launcher.Domain.Models.GameInstance;
 namespace Launcher.App.Services;
 
 /// <summary>
-/// 用真实启动 BeamNG.drive 顶替 StartRide 的 Minecraft 启动器。
+/// 用真实启动 BeamNG.drive 顶替原启动器的 Minecraft 启动器。
 ///
 /// 主页「启动游戏」按钮 → 这里：
 ///   1. 把界面选中的账户昵称同步成联机昵称

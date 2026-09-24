@@ -104,7 +104,7 @@ namespace StartRide.Core
 
         // ================= 强调色 =================
 
-        /// <summary>八种可选强调色，键与 StartRide 的 Color.AccentOption.* 对应。</summary>
+        /// <summary>八种可选强调色，键与主题资源里的 Color.AccentOption.* 对应。</summary>
         public static readonly IReadOnlyList<(string Key, Color Color, string Display)> AccentOptions =
             new List<(string, Color, string)>
             {
