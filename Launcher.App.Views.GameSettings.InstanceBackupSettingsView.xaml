@@ -6,13 +6,13 @@
         <ResourceDictionary Source="/StartRide;component/Views/GameSettings/GameSettingsSectionResources.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:BackupManagementInfoPanelItem}}" DataType="{x:Type gameSettings:BackupManagementInfoPanelItem}">
-        <GroupBox Header="{x:Static res:Strings.GameSettings_BackupInfoSection}" Margin="0,0,0,12" Style="{StaticResource LauncherContentSectionStyle}">
+        <GroupBox Header="{x:Static res:Strings.GameSettings_BackupInfoSection}" Margin="0,0,0,12" Style="{StaticResource RideSectionStyle}">
           <StackPanel>
-            <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+            <Border Style="{StaticResource RideFieldSurfaceStyle}">
               <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding DataContext.BackupInfoText, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceBackupSettingsView}}}" />
             </Border>
             <TextBlock Margin="0,12,0,8" Text="{x:Static res:Strings.GameSettings_BackupDirectorySection}" Style="{StaticResource ManagementListSectionHeaderTextStyle}" />
-            <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+            <Border Style="{StaticResource RideFieldSurfaceStyle}">
               <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding DataContext.BackupDirectoryText, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceBackupSettingsView}}}" />
             </Border>
             <WrapPanel Margin="0,12,0,0">

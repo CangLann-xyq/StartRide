@@ -13,8 +13,8 @@
   <Grid ClipToBounds="True">
     <ScrollViewer Style="{StaticResource ListPageScrollViewerStyle}">
       <StackPanel Margin="12,132,12,96" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-        <GroupBox Header="{x:Static res:Strings.GameSettings_ExportModpackInfoSection}" Style="{StaticResource LauncherContentSectionStyle}">
-          <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+        <GroupBox Header="{x:Static res:Strings.GameSettings_ExportModpackInfoSection}" Style="{StaticResource RideSectionStyle}">
+          <Border Style="{StaticResource RideSectionBodyStyle}">
             <Grid>
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -55,8 +55,8 @@
             </Grid>
           </Border>
         </GroupBox>
-        <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.GameSettings_ExportSettingsSection}" Style="{StaticResource LauncherContentSectionStyle}">
-          <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+        <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.GameSettings_ExportSettingsSection}" Style="{StaticResource RideSectionStyle}">
+          <Border Style="{StaticResource RideSectionBodyStyle}">
             <StackPanel>
               <Grid>
                 <Grid.ColumnDefinitions>

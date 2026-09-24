@@ -8,19 +8,20 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel>
-    <Border Margin="0,0,0,26" Style="{StaticResource SectionFieldSurfaceStyle}">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="180" />
-        </Grid.ColumnDefinitions>
-        <TextBlock Text="{x:Static res:Strings.GameSettings_LaunchSettingsModeLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-        <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource InstanceJavaSelectionOptionTemplate}" SelectionItemTemplate="{StaticResource InstanceJavaSelectionOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LaunchSettingsModeOptions}" SelectedItem="{Binding SelectedInstanceJavaSettingsModeOption, Mode=TwoWay}" />
-      </Grid>
-    </Border>
-    <GroupBox Header="{x:Static res:Strings.Settings_JavaSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.Settings_JavaSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
+          <!-- 设置方式（跟随全局 / 实例覆盖）管的就是下面这一组 Java 项，因此并进同一张卡，
+               用一道细分隔线分行，而不是再浮一张没有标题的小卡片 -->
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="180" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.GameSettings_LaunchSettingsModeLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource InstanceJavaSelectionOptionTemplate}" SelectionItemTemplate="{StaticResource InstanceJavaSelectionOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LaunchSettingsModeOptions}" SelectedItem="{Binding SelectedInstanceJavaSettingsModeOption, Mode=TwoWay}" />
+          </Grid>
+          <Border Style="{StaticResource RideHairlineStyle}" />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

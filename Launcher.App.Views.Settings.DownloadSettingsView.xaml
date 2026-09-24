@@ -8,8 +8,8 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-    <GroupBox Header="{x:Static res:Strings.Settings_DownloadSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.Settings_DownloadSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <!-- StartRide：BeamNG 只有一个官方下载源（BMCLAPI 是 Minecraft 专用镜像已移除），
                只剩一个选项时不再显示无意义的下拉框。 -->
@@ -50,8 +50,8 @@
         </StackPanel>
       </Border>
     </GroupBox>
-    <GroupBox Margin="0,28,0,0" Header="{x:Static res:Strings.Settings_CustomFileDownloadSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_CustomFileDownloadSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />

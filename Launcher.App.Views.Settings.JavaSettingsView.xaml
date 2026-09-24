@@ -8,8 +8,8 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-    <GroupBox Header="{x:Static res:Strings.Settings_JavaSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.Settings_JavaSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <Grid>
             <Grid.ColumnDefinitions>

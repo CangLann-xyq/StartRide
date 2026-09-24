@@ -109,6 +109,7 @@
   <data name="Status_BackupRestoreFailed" xml:space="preserve"><value>恢复备份失败，请稍后重试。</value></data>
   <data name="GameSettings_ExportSettingsSection" xml:space="preserve"><value>导出设置</value></data>
   <data name="Account_UuidHeader" xml:space="preserve"><value>联机 ID</value></data>
+  <data name="Account_IdentityHeader" xml:space="preserve"><value>账户标识</value></data>
   <data name="Dialog_LaunchAnalysisGameFileIntegrityProcessorRegenerationFailedDetail" xml:space="preserve"><value>Loader 安装程序未能重新生成启动所需文件。</value></data>
   <data name="Resources_WorldVersionsNoMore" xml:space="preserve"><value>没有更多世界版本</value></data>
   <data name="Account_ChangeSkinButton" xml:space="preserve"><value>更换皮肤</value></data>

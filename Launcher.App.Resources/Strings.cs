@@ -1479,6 +1479,8 @@ public static class Strings
 
 	public static string Account_UuidHeader => Get("Account_UuidHeader");
 
+	public static string Account_IdentityHeader => Get("Account_IdentityHeader");
+
 	public static string Account_OfflineUuidModeLabel => Get("Account_OfflineUuidModeLabel");
 
 	public static string Dialog_OfflineUuidModeChangeTitle => Get("Dialog_OfflineUuidModeChangeTitle");

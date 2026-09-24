@@ -51,29 +51,34 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel>
-    <Border Margin="0,0,0,26">
-      <FrameworkElement.Style>
-        <Style BasedOn="{StaticResource SectionFieldSurfaceStyle}" TargetType="{x:Type Border}">
-          <Setter Property="Visibility" Value="Visible" />
-          <Style.Triggers>
-            <DataTrigger Value="False" Binding="{Binding ShowModeSelector, ElementName=Root}">
-              <Setter Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-          </Style.Triggers>
-        </Style>
-      </FrameworkElement.Style>
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="180" />
-        </Grid.ColumnDefinitions>
-        <TextBlock Text="{x:Static res:Strings.GameSettings_LaunchSettingsModeLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-        <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource LaunchSettingsModeOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LaunchSettingsModeOptions, ElementName=Root}" SelectedItem="{Binding SelectedLaunchSettingsModeOption, ElementName=Root, Mode=TwoWay}" />
-      </Grid>
-    </Border>
-    <GroupBox Header="{x:Static res:Strings.GameSettings_LaunchSettingsSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.GameSettings_LaunchSettingsSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
+          <!-- 设置方式管的就是这一组启动项，所以并进同一张卡、用细分隔线分行；
+               没有标题的独立小卡片会看起来像多出来的一块 -->
+          <Border>
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource RideSectionBodyStyle}" TargetType="{x:Type Border}">
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                  <DataTrigger Value="False" Binding="{Binding ShowModeSelector, ElementName=Root}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="180" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Static res:Strings.GameSettings_LaunchSettingsModeLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource LaunchSettingsModeOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding LaunchSettingsModeOptions, ElementName=Root}" SelectedItem="{Binding SelectedLaunchSettingsModeOption, ElementName=Root, Mode=TwoWay}" />
+              </Grid>
+              <Border Margin="0,15,0,0" Style="{StaticResource RideHairlineStyle}" />
+            </StackPanel>
+          </Border>
           <Grid Style="{StaticResource SettingsOptionRowStyle}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
@@ -119,8 +124,8 @@
         </StackPanel>
       </Border>
     </GroupBox>
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_MemorySection}" Style="{StaticResource LauncherContentSectionStyle}" Visibility="{Binding ElementName=Root, Path=ShowMemorySettings, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_MemorySection}" Style="{StaticResource RideSectionStyle}" Visibility="{Binding ElementName=Root, Path=ShowMemorySettings, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <Grid Style="{StaticResource SettingsOptionRowStyle}">
             <Grid.ColumnDefinitions>
@@ -158,8 +163,8 @@
         </StackPanel>
       </Border>
     </GroupBox>
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.GameSettings_AdvancedLaunchSettingsSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.GameSettings_AdvancedLaunchSettingsSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.GameSettings_PreLaunchCommandOption}" Style="{StaticResource SettingsOptionTextStyle}" Margin="0,0,0,8" />
           <Grid>

@@ -45,16 +45,16 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock Style="{StaticResource PageTitleTextStyle}" VerticalAlignment="Center" Text="{Binding AccountList.SelectedAccount.DisplayName}" />
+              <TextBlock Style="{StaticResource RidePageTitleTextStyle}" VerticalAlignment="Center" Text="{Binding AccountList.SelectedAccount.DisplayName}" />
               <Button Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource InlineIconButtonStyle}" IsEnabled="{Binding CanRenameSelectedAccount}" Visibility="{Binding CanRenameSelectedAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" Command="{Binding RequestRenameAccountCommand}">
                 <controls:SvgIcon Width="16" Height="16" IconKey="general/general_edit" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
               </Button>
             </Grid>
-            <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="13" Text="{Binding AccountList.SelectedAccount, Converter={StaticResource AccountKindTextConverter}}" />
+            <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12.5" Text="{Binding AccountList.SelectedAccount, Converter={StaticResource AccountKindTextConverter}}" />
             <StackPanel Margin="0,26,0,0">
-              <GroupBox Header="{x:Static res:Strings.Account_UuidHeader}" Style="{StaticResource LauncherContentSectionStyle}">
+              <GroupBox Header="{x:Static res:Strings.Account_UuidHeader}" Style="{StaticResource RideSectionStyle}">
                 <StackPanel>
-                  <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+                  <Border Style="{StaticResource RideFieldSurfaceStyle}">
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -96,12 +96,7 @@
                 </StackPanel>
               </GroupBox>
               <!-- StartRide：已删除 Minecraft 皮肤/披风管理（BeamNG 联机无需皮肤）。 -->
-              <GroupBox Margin="0,22,0,0" Style="{StaticResource LauncherContentSectionStyle}">
-                <HeaderedContentControl.Header>
-                  <Grid Width="{Binding ActualWidth, ElementName=DetailsContentRoot}">
-                    <TextBlock Text="账户标识" Foreground="{DynamicResource Brush.A8FFFFFF}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                  </Grid>
-                </HeaderedContentControl.Header>
+              <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Account_IdentityHeader}" Style="{StaticResource RideSectionStyle}">
                 <StackPanel>
                   <StackPanel Orientation="Horizontal">
                     <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.0891FE}" VerticalAlignment="Center">

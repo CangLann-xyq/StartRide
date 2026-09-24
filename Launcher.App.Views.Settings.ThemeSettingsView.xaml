@@ -8,8 +8,8 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-    <GroupBox Header="{x:Static res:Strings.Settings_ThemeSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.Settings_ThemeSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <Grid>
             <Grid.ColumnDefinitions>
@@ -30,8 +30,8 @@
         </StackPanel>
       </Border>
     </GroupBox>
-    <GroupBox Margin="0,18,0,0" Header="{x:Static res:Strings.Settings_AccentSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_AccentSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -42,8 +42,8 @@
         </Grid>
       </Border>
     </GroupBox>
-    <GroupBox Margin="0,18,0,0" Header="{x:Static res:Strings.Settings_BackgroundSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_BackgroundSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <Grid>
             <Grid.ColumnDefinitions>

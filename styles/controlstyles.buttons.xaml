@@ -28,6 +28,38 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <!-- StartRide 设置页章节（取代 LauncherContentSectionStyle 的旧骨架）。
+       旧骨架是「裸标题 + 标题下一道线 + 内嵌一张带描边的卡片」，卡片里还套着卡片 —— 盒套盒一眼看出是套模板。
+       新版把整块收成一张极淡的卡片，标题旁边一枚强调竖条，正文左缩进 12px 与标题文字对齐（同一条左轨）。
+       与 Ride* 系列（styles/controlstyles.page.xaml）共用一套版式语言。 -->
+  <Style x:Key="RideSectionStyle" TargetType="{x:Type GroupBox}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type GroupBox}">
+          <Border Padding="18,15,18,17" Background="#0AFFFFFF" BorderBrush="#17FFFFFF" BorderThickness="1" CornerRadius="16" SnapsToDevicePixels="True">
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="3" Height="14" VerticalAlignment="Center" CornerRadius="2" Background="{DynamicResource Brush.Accent.Primary}" />
+                <ContentPresenter Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center" ContentSource="Header" RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Control.Foreground}" TextElement.FontSize="15" TextElement.FontWeight="{TemplateBinding Control.FontWeight}" />
+              </Grid>
+              <Border Height="1" Margin="12,11,0,0" Background="#12FFFFFF" SnapsToDevicePixels="True" />
+              <ContentPresenter Margin="12,15,0,0" ContentSource="Content" />
+            </StackPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style x:Key="ListPageItemButtonStyle" TargetType="{x:Type Button}">
     <Setter Property="MinHeight" Value="58" />
     <Setter Property="Padding" Value="14,9" />

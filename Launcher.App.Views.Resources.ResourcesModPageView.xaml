@@ -106,8 +106,8 @@
           </UIElement.RenderTransform>
           <ScrollViewer Margin="0,0,12,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{StaticResource ListPageScrollViewerStyle}" behaviors:SmoothScrollBehavior.IsEnabled="True" behaviors:SmoothScrollBehavior.ScrollAmount="92" behaviors:SmoothScrollBehavior.WheelAnimationDurationMilliseconds="130">
             <StackPanel MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch" Margin="12,82,0,64">
-              <GroupBox Style="{StaticResource LauncherContentSectionStyle}" Header="{Binding DataContext.Details.InfoSectionText, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}">
-                <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+              <GroupBox Style="{StaticResource RideSectionStyle}" Header="{Binding DataContext.Details.InfoSectionText, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}">
+                <Border Style="{StaticResource RideSectionBodyStyle}">
                   <StackPanel>
                     <Grid>
                       <Grid.ColumnDefinitions>
@@ -255,7 +255,7 @@
                   </StackPanel>
                 </Border>
               </GroupBox>
-              <GroupBox Margin="0,16,0,0" Style="{StaticResource LauncherContentSectionStyle}" Header="{Binding DataContext.Versions.InstallTargetSectionText, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}">
+              <GroupBox Margin="0,14,0,0" Style="{StaticResource RideSectionStyle}" Header="{Binding DataContext.Versions.InstallTargetSectionText, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}">
                 <StackPanel>
                   <TextBlock Style="{StaticResource ResourcesModInstallTargetStateTextStyle}" Text="{Binding DataContext.Versions.InstallTargetsLoadingMessage, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}" Visibility="{Binding DataContext.Versions.CanShowTargetsLoadingState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type views:ResourcesModPageView}}}" />
                   <controls:DeferredListContentHost DataContext="{Binding DataContext, ElementName=Root}" IsListVisible="{Binding Versions.HasInstallTargets}">

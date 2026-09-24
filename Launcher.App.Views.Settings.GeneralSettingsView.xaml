@@ -12,11 +12,11 @@
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
     <!-- 游戏安装目录：StartRide 只有一份 BeamNG.drive，靠自动识别而不是手填 -->
-    <GroupBox Header="{x:Static res:Strings.Settings_GameInstallSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Header="{x:Static res:Strings.Settings_GameInstallSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_GameInstallLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-          <Border Margin="0,10,0,0" Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Margin="0,10,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding BeamNgDirectory}" />
           </Border>
           <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Text="{Binding BeamNgStatusText}">
@@ -41,12 +41,12 @@
     </GroupBox>
 
     <!-- 必需配置文件：损坏/丢失时从云端模板补全 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_GameConfigSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameConfigSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_GameConfigDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,14,0,0" Text="{x:Static res:Strings.Settings_GameConfigPathLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
-          <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameConfigPathText}" />
           </Border>
           <TextBlock Margin="0,10,0,0" Text="{Binding GameConfigStatusText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
@@ -95,11 +95,11 @@
       </Border>
     </GroupBox>
 
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_LauncherLogDirectoryLabel}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LauncherLogDirectoryLabel}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Margin="0,0,0,12" Text="{x:Static res:Strings.Settings_LauncherLogDirectoryDescription}" Style="{StaticResource SettingsOptionTextStyle}" />
-          <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding LauncherLogDirectory}" />
           </Border>
           <WrapPanel Margin="0,16,0,0">
@@ -119,16 +119,16 @@
     </GroupBox>
 
     <!-- 运行状态：游戏在不在跑 / 累计游玩 / 一键结束残留进程 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_RuntimeSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RuntimeSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_RuntimeDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,14,0,0" Text="{x:Static res:Strings.Settings_RuntimeGameStatusLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
-          <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameRuntimeStatusText}" />
           </Border>
           <TextBlock Margin="0,12,0,0" Text="{x:Static res:Strings.Settings_RuntimePlaytimeLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
-          <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding PlaytimeSummaryText}" />
           </Border>
           <WrapPanel Margin="0,16,0,0">
@@ -140,8 +140,8 @@
     </GroupBox>
 
     <!-- 诊断包：日志 + 设置 + 体检结果 + 环境信息打包，出问题直接发出去 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_DiagnosticsSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_DiagnosticsSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_DiagnosticsDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,10,0,0" Text="{Binding DiagnosticsStatusText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
@@ -154,8 +154,8 @@
     </GroupBox>
 
     <!-- 启动行为：每一项都会真的拼进 BeamNG.drive.exe 的命令行，下面实时显示结果 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_LaunchBehaviorSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LaunchBehaviorSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_LaunchBehaviorDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
 
@@ -261,7 +261,7 @@
 
           <!-- 实际启动命令：设置到底有没有生效，看这一行就知道 -->
           <TextBlock Margin="0,18,0,0" Text="{x:Static res:Strings.Settings_LaunchArgsPreviewLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
-          <Border Margin="0,8,0,0" Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Margin="0,8,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12" Text="{Binding LaunchArgsPreviewText}" />
           </Border>
           <WrapPanel Margin="0,10,0,0">
@@ -289,8 +289,8 @@
     </GroupBox>
 
     <!-- 启动器启动时 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_StartupSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StartupSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_StartupDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <Grid Margin="0,18,0,0">
@@ -322,11 +322,11 @@
     </GroupBox>
 
     <!-- 游戏日志：按 D/I/W/E 精确分级，不用自己翻目录 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_GameLogSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameLogSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_GameLogDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-          <Border Margin="0,14,0,0" Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+          <Border Margin="0,14,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameLogPathText}" />
           </Border>
           <TextBlock Margin="0,10,0,0" Text="{Binding GameLogSummaryText}" Style="{StaticResource SettingsOptionTextStyle}" />
@@ -373,8 +373,8 @@
     </GroupBox>
 
     <!-- 配置备份 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_BackupSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_BackupSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_BackupDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,10,0,0" Text="{Binding BackupStatusText}" Style="{StaticResource SettingsOptionTextStyle}" />
@@ -409,8 +409,8 @@
     </GroupBox>
 
     <!-- 磁盘占用 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_StorageSection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StorageSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_StorageDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,10,0,0" Text="{Binding StorageSummaryText}" Style="{StaticResource SettingsOptionTextStyle}" />
@@ -444,8 +444,8 @@
     </GroupBox>
 
     <!-- 联机延迟 -->
-    <GroupBox Margin="0,26,0,0" Header="{x:Static res:Strings.Settings_RelaySection}" Style="{StaticResource LauncherContentSectionStyle}">
-      <Border Style="{StaticResource SectionFieldSurfaceStyle}">
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RelaySection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_RelayDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
           <TextBlock Margin="0,10,0,0" Text="{Binding RelayStatusText}" Style="{StaticResource SettingsOptionTextStyle}" />

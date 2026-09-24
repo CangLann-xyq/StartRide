@@ -18,9 +18,9 @@
         </Style.Triggers>
       </Style>
       <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:ModManagementInfoPanelItem}}" DataType="{x:Type gameSettings:ModManagementInfoPanelItem}">
-        <GroupBox Header="{x:Static res:Strings.GameSettings_ModManagementInfoSection}" Margin="0,0,0,12" Style="{StaticResource LauncherContentSectionStyle}">
+        <GroupBox Header="{x:Static res:Strings.GameSettings_ModManagementInfoSection}" Margin="0,0,0,12" Style="{StaticResource RideSectionStyle}">
           <StackPanel>
-            <Border Style="{StaticResource ReadOnlyFieldSurfaceStyle}">
+            <Border Style="{StaticResource RideFieldSurfaceStyle}">
               <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding DataContext.InstalledSummaryText, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
             </Border>
             <WrapPanel Margin="0,12,0,0">
