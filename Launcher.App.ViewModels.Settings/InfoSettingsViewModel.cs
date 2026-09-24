@@ -61,6 +61,9 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	[ObservableProperty]
 	private string updateDialogMessage = string.Empty;
 
+	/// <summary>更新弹窗里的更新说明文本（来自清单的 changelog）。</summary>
+	private string updateDialogChangelog = string.Empty;
+
 	[ObservableProperty]
 	private bool isCheckingUpdates;
 
@@ -229,6 +232,34 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 			}
 		}
 	}
+
+	/// <summary>
+	/// 更新弹窗里的「本次更新内容」。
+	///
+	/// 之前这个弹窗只有一个「打开更新日志」按钮，点了跳 GitHub Releases ——
+	/// 国内基本打不开，等于用户永远看不到改了什么。清单里本来就有 changelog 字段，
+	/// 直接显示出来，按钮只作为「想看详情」的补充入口。
+	/// </summary>
+	public string UpdateDialogChangelog
+	{
+		get
+		{
+			return updateDialogChangelog;
+		}
+		private set
+		{
+			if (!EqualityComparer<string>.Default.Equals(updateDialogChangelog, value))
+			{
+				OnPropertyChanging("UpdateDialogChangelog");
+				updateDialogChangelog = value;
+				OnPropertyChanged("UpdateDialogChangelog");
+				OnPropertyChanged("HasUpdateDialogChangelog");
+			}
+		}
+	}
+
+	/// <summary>清单没给更新说明时，那块区域整体收起。</summary>
+	public bool HasUpdateDialogChangelog => !string.IsNullOrWhiteSpace(updateDialogChangelog);
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -443,7 +474,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 			ReportVisibleStatus(Strings.Status_OpenUpdatePageFailed);
 			return;
 		}
-		if (!availableUpdate.CanAutoInstall)
+		if (!availableUpdate.CanAutoInstall && !StartRide.Services.StartRideSelfUpdateService.CanAutoInstall(availableUpdate))
 		{
 			ReportVisibleStatus(Strings.Status_UpdateAutoInstallPackageNotFound);
 			return;
@@ -520,6 +551,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		availableUpdate = update;
 		UpdateDialogVersionText = update.DisplayVersion;
 		UpdateDialogMessage = string.Format(Strings.Dialog_UpdateAvailableVersionFormat, update.DisplayVersion);
+		UpdateDialogChangelog = (update.Changelog ?? string.Empty).Trim();
 		updateDialogReleasePageUrl = update.ReleasePageUrl;
 		updateDialogDownloadUrl = (string.IsNullOrWhiteSpace(update.DownloadUrl) ? update.ReleasePageUrl : update.DownloadUrl);
 		IsUpdateAvailableDialogOpen = true;

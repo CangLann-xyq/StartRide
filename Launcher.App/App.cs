@@ -164,6 +164,11 @@ public partial class App : System.Windows.Application
 			// （windseek.cloud/update → 本仓库 update/ 两个通道）。
 			// MS.DI 取后注册者，因此必须排在 AddLauncherInfrastructure 之后才顶得掉原实现。
 			services.AddSingleton<ILauncherUpdateService, StartRideLauncherUpdateService>();
+			// StartRide：自有的在线更新（zip 整包下载 → 校验 → 替换安装目录 → 自动重启）。
+			// 框架层那套只支持"下载一个 exe 覆盖当前 exe"，而本工程界面全在 StartRide.dll 里
+			// （exe 只有 200 KB），只换 exe 没有任何意义；且它的 CanAutoInstall 对 zip 包直接返回
+			// false，导致「更新」按钮点了只会报"未找到可自动安装的更新包"。
+			services.AddSingleton<ILauncherSelfUpdateService, StartRideSelfUpdateService>();
 			// StartRide：联机页改用自建中继（房间码）实现顶替原 Terracotta。
 			// MS.DI 取后注册者，因此这一行必须排在 AddLauncherApplication 之后。
 			services.AddSingleton<IMultiplayerLobbyService, StartRideLobbyService>();

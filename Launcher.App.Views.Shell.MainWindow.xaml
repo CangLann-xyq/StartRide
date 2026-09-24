@@ -543,10 +543,15 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
           <TextBlock Text="{x:Static res:Strings.Dialog_UpdateAvailableTitle}" Style="{StaticResource DialogTitleTextStyle}" />
-          <TextBlock Grid.Row="1" Margin="0,16,0,24" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogMessage}" />
-          <Grid Row="2">
+          <TextBlock Grid.Row="1" Margin="0,16,0,12" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogMessage}" />
+          <ScrollViewer Grid.Row="2" Margin="0,0,0,20" MaxHeight="200" VerticalScrollBarVisibility="Auto"
+                        Visibility="{Binding HasUpdateDialogChangelog, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+            <TextBlock Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogChangelog}" />
+          </ScrollViewer>
+          <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
