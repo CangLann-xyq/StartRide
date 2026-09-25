@@ -1604,4 +1604,17 @@
 <data name="Settings_ViewProjectHomeButton" xml:space="preserve"><value>プロジェクトホームにアクセス</value></data>
 <data name="Settings_DerivationNotice" xml:space="preserve"><value>このソフトウェアのUIレイアウトはオープンソースのMinecraftランチャーを参考にしています。オンライン、起動、診断などのモジュールはStartRideが独自に実装しています。本プロジェクトはGPL-3.0のもとで公開されており、元の著作権表示はリポジトリに保持されています。</value></data>
 <data name="Settings_RuntimeSectionHint" xml:space="preserve"><value>ゲームプロセス、プレイ時間および終了操作はここで行います。</value></data>
+  <data name="Status_UpdateDownloadingFormat" xml:space="preserve"><value>更新パッケージをダウンロード中 {0} / {1}</value></data>
+  <data name="Status_UpdateVerifying" xml:space="preserve"><value>更新パッケージを検証しています...</value></data>
+  <data name="Status_UpdateExtracting" xml:space="preserve"><value>更新パッケージを展開しています...</value></data>
+  <data name="Status_UpdateReadyRestarting" xml:space="preserve"><value>パッケージの準備ができました。再起動してインストールを完了します</value></data>
+  <data name="Dialog_UpdateProgressTitle" xml:space="preserve"><value>更新をインストールしています</value></data>
+  <data name="Dialog_UpdateProgressHint" xml:space="preserve"><value>インストール中はランチャーを手動で起動しないでください。完了すると自動で再起動します。</value></data>
+  <data name="Status_UpdateReasonNoRecord" xml:space="preserve"><value>更新プログラムの実行記録が見つかりません（システムやセキュリティソフトに止められた可能性があります）</value></data>
+  <data name="Dialog_UpdateResultSuccessTitle" xml:space="preserve"><value>更新が完了しました</value></data>
+  <data name="Dialog_UpdateResultSuccessFormat" xml:space="preserve"><value>ランチャーを v{0} に更新しました。</value></data>
+  <data name="Dialog_UpdateResultFailureTitle" xml:space="preserve"><value>更新が完了しませんでした</value></data>
+  <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>ランチャーはまだ v{0} です。今回の更新は適用できませんでした。&#10;{1}</value></data>
+  <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>更新を再試行</value></data>
+  <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>了解しました</value></data>
 </root>

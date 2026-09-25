@@ -24,7 +24,11 @@ public partial class ModsPageView : UserControl
 		}
 	}
 
-	/// <summary>在线列表滚动到底（剩余不足 320px）自动续拉下一波页面。搜索过滤时跳过（避免短列表连环触发）。</summary>
+	/// <summary>
+	/// 在线列表滚动到底（剩余不足 480px）自动续拉下一波页面。
+	/// ⚠️ 全库共 ~89 页 / 8800+ 条，一屏只显示十几条，所以这个阈值要留得宽一点，
+	/// 否则用户要一路拖到底部才会触发。搜索过滤时跳过（避免短列表连环触发）。
+	/// </summary>
 	private void OnRepositoryScrollChanged(object sender, ScrollChangedEventArgs e)
 	{
 		if (e.ExtentHeight <= 0 || DataContext is not ModsPageViewModel vm)
@@ -35,7 +39,7 @@ public partial class ModsPageView : UserControl
 		{
 			return;
 		}
-		if (e.VerticalOffset + e.ViewportHeight >= e.ExtentHeight - 320)
+		if (e.VerticalOffset + e.ViewportHeight >= e.ExtentHeight - 480)
 		{
 			_ = vm.TryLoadMoreAsync();
 		}

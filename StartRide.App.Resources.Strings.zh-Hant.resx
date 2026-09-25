@@ -1604,4 +1604,17 @@
 <data name="Settings_ViewProjectHomeButton" xml:space="preserve"><value>訪問項目首頁</value></data>
 <data name="Settings_DerivationNotice" xml:space="preserve"><value>本軟體的介面版式參考了一個開源的 Minecraft 啟動器，聯機、啟動、診斷等模組為 StartRide 獨立實現。本項目依據 GPL-3.0 發布，原始版權聲明保留在倉庫中。</value></data>
 <data name="Settings_RuntimeSectionHint" xml:space="preserve"><value>遊戲進程、遊玩時長與收尾操作都在這裡。</value></data>
+  <data name="Status_UpdateDownloadingFormat" xml:space="preserve"><value>正在下載更新包 {0} / {1}</value></data>
+  <data name="Status_UpdateVerifying" xml:space="preserve"><value>正在校驗更新包…</value></data>
+  <data name="Status_UpdateExtracting" xml:space="preserve"><value>正在解壓縮更新包…</value></data>
+  <data name="Status_UpdateReadyRestarting" xml:space="preserve"><value>更新包已就緒，啟動器將自動重新啟動完成安裝</value></data>
+  <data name="Dialog_UpdateProgressTitle" xml:space="preserve"><value>正在安裝更新</value></data>
+  <data name="Dialog_UpdateProgressHint" xml:space="preserve"><value>安裝期間請不要手動開啟啟動器，完成後會自動重新啟動。</value></data>
+  <data name="Status_UpdateReasonNoRecord" xml:space="preserve"><value>沒有找到更新程式的執行記錄（可能被系統或安全軟體攔下了）</value></data>
+  <data name="Dialog_UpdateResultSuccessTitle" xml:space="preserve"><value>更新完成</value></data>
+  <data name="Dialog_UpdateResultSuccessFormat" xml:space="preserve"><value>啟動器已更新至 v{0}。</value></data>
+  <data name="Dialog_UpdateResultFailureTitle" xml:space="preserve"><value>更新未完成</value></data>
+  <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>啟動器目前仍是 v{0}，這次更新沒能安裝成功。&#10;{1}</value></data>
+  <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>重新更新</value></data>
+  <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>知道了</value></data>
 </root>

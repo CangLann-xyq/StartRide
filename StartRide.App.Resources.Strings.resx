@@ -1610,4 +1610,17 @@
   <data name="Settings_ViewProjectHomeButton" xml:space="preserve"><value>访问项目主页</value></data>
   <data name="Settings_DerivationNotice" xml:space="preserve"><value>本软件的界面版式参考了一个开源的 Minecraft 启动器，联机、启动、诊断等模块为 StartRide 独立实现。本项目依据 GPL-3.0 发布，原始版权声明保留在仓库中。</value></data>
   <data name="Settings_RuntimeSectionHint" xml:space="preserve"><value>游戏进程、游玩时长与收尾操作都在这里。</value></data>
+  <data name="Status_UpdateDownloadingFormat" xml:space="preserve"><value>正在下载更新包 {0} / {1}</value></data>
+  <data name="Status_UpdateVerifying" xml:space="preserve"><value>正在校验更新包…</value></data>
+  <data name="Status_UpdateExtracting" xml:space="preserve"><value>正在解压更新包…</value></data>
+  <data name="Status_UpdateReadyRestarting" xml:space="preserve"><value>更新包已就绪，启动器将自动重启完成安装</value></data>
+  <data name="Dialog_UpdateProgressTitle" xml:space="preserve"><value>正在安装更新</value></data>
+  <data name="Dialog_UpdateProgressHint" xml:space="preserve"><value>安装期间请不要手动打开启动器，完成后它会自动重启。</value></data>
+  <data name="Status_UpdateReasonNoRecord" xml:space="preserve"><value>没有找到更新程序的执行记录（可能被系统或安全软件拦下了）</value></data>
+  <data name="Dialog_UpdateResultSuccessTitle" xml:space="preserve"><value>更新完成</value></data>
+  <data name="Dialog_UpdateResultSuccessFormat" xml:space="preserve"><value>启动器已更新到 v{0}。</value></data>
+  <data name="Dialog_UpdateResultFailureTitle" xml:space="preserve"><value>更新未完成</value></data>
+  <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>启动器当前仍是 v{0}，这次更新没能装成功。&#10;{1}</value></data>
+  <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>重新更新</value></data>
+  <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>知道了</value></data>
 </root>

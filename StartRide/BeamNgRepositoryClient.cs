@@ -74,40 +74,137 @@ namespace StartRide.Core
     {
         private const string BaseUrl = "https://www.beamng.com/resources/";
 
-        // 列表拉取客户端（短超时）
-        private static readonly HttpClient Http = CreateListHttp();
+        // ── HTTP 通道：代理 + 直连，两条都准备，逐次尝试交替使用 ──────────────
+        // ⚠️ 为什么必须这样：beamng.com 在国内直连极不稳（实测同一台机器：10:34 还能 200，
+        // 10:45 就变成 WinError 10060 连接超时，整批 12 页全废、耗时 213s），而本机代理
+        // （Clash 之类：环境变量 http_proxy=http://127.0.0.1:1786 / Windows 系统代理）往往能通。
+        // 旧代码写死 `UseProxy = false`，等于把唯一可用的那条路砍掉 —— 用户看到的就是
+        // "拉取失败 / 剩下的拉不出来"。现在两条通道轮流试，谁通用谁，并记住上次成功的。
+        private static readonly HttpClient[] ListChannels = BuildChannels(list: true);
+        private static readonly HttpClient[] DownloadChannels = BuildChannels(list: false);
+        private static volatile int preferredListChannel;
+        private static volatile int preferredDownloadChannel;
 
-        // 下载客户端（流式长任务 → 不设总超时，仅连接超时）
-        private static readonly HttpClient DownloadHttp = CreateDownloadHttp();
+        /// <summary>
+        /// 解析一个「端口确实连得上」的本机代理；没有可用代理时返回 null（表示直连）。
+        /// 探测很重要：环境变量里常常留着已经关掉的代理地址，直接拿来用只会白等超时。
+        /// </summary>
+        private static IWebProxy? ResolveUsableProxy()
+        {
+            Uri? proxyUri = null;
+            foreach (string name in new[] { "https_proxy", "HTTPS_PROXY", "http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY" })
+            {
+                string? v = Environment.GetEnvironmentVariable(name);
+                if (!string.IsNullOrWhiteSpace(v)
+                    && Uri.TryCreate(v, UriKind.Absolute, out Uri? pu)
+                    && pu.Port > 0)
+                {
+                    proxyUri = pu;
+                    break;
+                }
+            }
+            if (proxyUri != null && TcpReachable(proxyUri.Host, proxyUri.Port, 1500))
+            {
+                return new WebProxy(proxyUri);
+            }
 
-        private static HttpClient CreateListHttp()
+            // 兜底：Windows 系统代理（WinINET）。IsBypassed 为 true 说明系统代理没启用
+            // 或对本站不生效 —— 那就等价于直连，不必再多开一条通道。
+            try
+            {
+                IWebProxy dp = HttpClient.DefaultProxy;
+                if (!dp.IsBypassed(new Uri(BaseUrl)))
+                {
+                    return dp;
+                }
+            }
+            catch
+            {
+            }
+            return null;
+        }
+
+        private static bool TcpReachable(string host, int port, int timeoutMs)
+        {
+            try
+            {
+                using var tcp = new System.Net.Sockets.TcpClient();
+                if (!tcp.ConnectAsync(host, port).Wait(timeoutMs))
+                {
+                    return false;
+                }
+                return tcp.Connected;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>构建通道数组：有可用代理 → [代理, 直连]；否则 → [直连]。</summary>
+        private static HttpClient[] BuildChannels(bool list)
+        {
+            IWebProxy? proxy = ResolveUsableProxy();
+            if (proxy == null)
+            {
+                return new[] { list ? CreateListHttp(null) : CreateDownloadHttp(null) };
+            }
+            return new[]
+            {
+                list ? CreateListHttp(proxy) : CreateDownloadHttp(proxy),
+                list ? CreateListHttp(null) : CreateDownloadHttp(null),
+            };
+        }
+
+        /// <summary>取第 attempt 次尝试要用的列表通道（首选通道优先）。</summary>
+        private static HttpClient ListChannelFor(int attempt)
+        {
+            HttpClient[] ch = ListChannels;
+            return ch.Length == 1 ? ch[0] : ch[(preferredListChannel + attempt) % ch.Length];
+        }
+
+        /// <summary>某次尝试成功了 → 记住这条通道，下次先用它。</summary>
+        private static void MarkListChannelOk(int attempt)
+        {
+            HttpClient[] ch = ListChannels;
+            if (ch.Length > 1)
+            {
+                preferredListChannel = (preferredListChannel + attempt) % ch.Length;
+            }
+        }
+
+        private static HttpClient CreateListHttp(IWebProxy? proxy)
         {
             var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = DecompressionMethods.All,
                 UseCookies = false,
-                UseProxy = false,
-                ConnectTimeout = TimeSpan.FromSeconds(10),
+                UseProxy = proxy != null,
+                Proxy = proxy,
+                // ⚠️ 不能设太小：冷连接（DNS + TLS 握手）实测要 12.9s，之前设 10s 会让
+                // **首次请求必然超时**（超时又抛 TaskCanceledException，被误当取消 → 首屏直接失败）。
+                ConnectTimeout = TimeSpan.FromSeconds(25),
                 // 首屏要并发拉多页；默认不限制，但显式给出更利于连接复用。
                 MaxConnectionsPerServer = 16,
                 // 站点走 Cloudflare，长连接复用能省掉 TLS 握手（实测首包 12.9s、复用后每页 ~0.7s）
                 PooledConnectionLifetime = TimeSpan.FromMinutes(5),
                 PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             };
-            var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+            var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(35) };
             ApplyBrowserHeaders(client);
             return client;
         }
 
-        private static HttpClient CreateDownloadHttp()
+        private static HttpClient CreateDownloadHttp(IWebProxy? proxy)
         {
             var handler = new SocketsHttpHandler
             {
                 // 下载是原始 zip 字节流，不要自动解压（Range 场景也无 gzip）
                 AutomaticDecompression = DecompressionMethods.None,
                 UseCookies = false,
-                UseProxy = false,
-                ConnectTimeout = TimeSpan.FromSeconds(15),
+                UseProxy = proxy != null,
+                Proxy = proxy,
+                ConnectTimeout = TimeSpan.FromSeconds(25),
                 // R2 单连接也很快；多路复用由分段请求天然达成
                 MaxConnectionsPerServer = 16,
             };
@@ -164,8 +261,14 @@ namespace StartRide.Core
         }
 
         /// <summary>
-        /// 拉取第 1 页并解析全库总页数（页码导航里 data-last="N"）。
-        /// 返回首页条目 + 总页数（解析失败时给保守值 1）。
+        /// 拉取第 1 页，并顺带解析 pageNav 里的 data-last 当作「总页数」。
+        ///
+        /// ⚠️ 这个总页数**不可信**，只能当软上限：实测全库 data-last=1577（≈157700 条），
+        /// 而第 89 页就已经返回 0 条，真实只有 88 页 / 8834 条。若把它当真，客户端会一直
+        /// 往空页拉，状态栏永远显示"已加载 8834 / 约 157700"，用户看到的就是
+        /// 「剩下的永远拉不出来」。所以真正的到底判定只能靠「某页解析出 0 条」
+        /// （见 ListPageBatch.ReachedEnd），这里返回的值仅用于显示与粗略夹逼。
+        ///
         /// 走同一套页面缓存 —— 预热/切换分类来回点都能直接命中。
         /// </summary>
         public static async Task<(List<BeamNgModInfo> Items, int TotalPages)> FetchFirstPageAsync(string? categorySlug, CancellationToken ct)
@@ -193,19 +296,57 @@ namespace StartRide.Core
         }
 
         /// <summary>
-        /// 并发拉取 [fromPage, toPage] 页（信号量限流 6 并发，单页失败重试 1 次），
-        /// 返回按页序拼接、按 Id 全局去重的条目列表。解析在线程池完成，不占 UI 线程。
+        /// 一批列表页的拉取结果。
+        ///
+        /// ⚠️ 必须逐页容错，绝不能让整批共用一个 Task.WhenAll：只要有一页请求彻底失败，
+        /// 整批 10 页就全部作废、调用方的 nextPage 不推进 → 用户再滚到底又重拉同样 10 页、
+        /// 又失败，表现就是「后面的一直拉不出来」。所以失败页单独记账、成功的照常返回。
+        ///
+        /// ⚠️ 与「真实末页」相关的两个字段：站点 pageNav 里的 data-last 完全不可信
+        /// （实测全库 data-last=1577，而第 89 页就已经空了，真实只有 88 页 / 8834 条）。
+        /// 唯一的真信号是「某一页解析出 0 条」——那就是越过了末页。
         /// </summary>
-        public static async Task<List<BeamNgModInfo>> FetchPageRangeAsync(string? categorySlug, int fromPage, int toPage, CancellationToken ct)
+        public sealed class ListPageBatch
         {
+            public List<BeamNgModInfo> Items { get; } = new();
+
+            /// <summary>批内在线上真的解析到条目的最大页号；0 表示本批一页都没内容。</summary>
+            public int LastNonEmptyPage { get; set; }
+
+            /// <summary>批内第一个空页（= 已越过真实末页）；0 表示本批没有空页。</summary>
+            public int FirstEmptyPage { get; set; }
+
+            /// <summary>批内请求彻底失败的页号（已重试仍失败）。</summary>
+            public List<int> FailedPages { get; } = new();
+
+            public int RequestedFrom { get; set; }
+
+            public int RequestedTo { get; set; }
+
+            /// <summary>确认已经拉到全库末尾（有空页且没有失败页需要补拉）。</summary>
+            public bool ReachedEnd => FirstEmptyPage > 0 && FailedPages.Count == 0;
+        }
+
+        /// <summary>列表页并发度。实测单页 1.8-2.5s，偶发 9s+ 慢页；4 并发比 6 并发更少触发慢页。</summary>
+        private const int ListPageParallelism = 4;
+
+        /// <summary>
+        /// 并发拉取 [fromPage, toPage] 页，返回带「真实末页/失败页」信息的批次结果。
+        /// 单页最多尝试 3 次（退避 400ms/800ms），仍失败只记入 FailedPages，不影响其它页。
+        /// </summary>
+        public static async Task<ListPageBatch> FetchPageRangeAsync(string? categorySlug, int fromPage, int toPage, CancellationToken ct)
+        {
+            var batch = new ListPageBatch { RequestedFrom = fromPage, RequestedTo = toPage };
             if (toPage < fromPage)
             {
-                return new List<BeamNgModInfo>();
+                return batch;
             }
 
-            var pages = new Dictionary<int, List<BeamNgModInfo>>();
+            var perPage = new Dictionary<int, List<BeamNgModInfo>>();
+            var emptyPages = new List<int>();
+            var failedPages = new List<int>();
             var seen = new HashSet<long>();
-            var gate = new SemaphoreSlim(6);
+            var gate = new SemaphoreSlim(ListPageParallelism);
             var tasks = new List<Task>(toPage - fromPage + 1);
 
             for (int page = fromPage; page <= toPage; page++)
@@ -219,8 +360,13 @@ namespace StartRide.Core
                         string html = await FetchPageWithRetryAsync(categorySlug, p, ct).ConfigureAwait(false);
                         var pageItems = new List<BeamNgModInfo>();
                         ParseListPage(html, pageItems, new HashSet<long>());
-                        lock (pages)
+                        lock (perPage)
                         {
+                            if (pageItems.Count == 0)
+                            {
+                                emptyPages.Add(p);
+                                return;
+                            }
                             var merged = new List<BeamNgModInfo>(pageItems.Count);
                             foreach (BeamNgModInfo item in pageItems)
                             {
@@ -229,7 +375,23 @@ namespace StartRide.Core
                                     merged.Add(item);
                                 }
                             }
-                            pages[p] = merged;
+                            perPage[p] = merged;
+                        }
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        // 只有"真的被取消"才往外抛
+                        throw;
+                    }
+                    catch
+                    {
+                        // ⚠️ 必须能接住超时：HttpClient 的连接/请求超时抛的是 TaskCanceledException，
+                        // 而它**继承自 OperationCanceledException**。之前写成 `catch (OperationCanceledException){throw;}`
+                        // 就把超时当成用户取消抛了出去 → Task.WhenAll 整批炸 → 12 页全废、nextPage 不推进
+                        // → 用户看到"剩下的永远拉不出来"。现在按普通失败记账，其它页照常返回。
+                        lock (perPage)
+                        {
+                            failedPages.Add(p);
                         }
                     }
                     finally
@@ -239,14 +401,36 @@ namespace StartRide.Core
                 }, ct));
             }
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            var result = new List<BeamNgModInfo>();
-            foreach (KeyValuePair<int, List<BeamNgModInfo>> kv in pages.OrderBy(kv => kv.Key))
+            // 双保险：逐页 catch 已经兜住了常规异常，这里再拦一层，
+            // 保证任何残留异常都不会让整批结果作废（只有真取消才往上抛）。
+            try
             {
-                result.AddRange(kv.Value);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
-            return result;
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // 忽略：失败页已记在 failedPages 里
+            }
+
+            foreach (KeyValuePair<int, List<BeamNgModInfo>> kv in perPage.OrderBy(kv => kv.Key))
+            {
+                batch.Items.AddRange(kv.Value);
+            }
+            if (perPage.Count > 0)
+            {
+                batch.LastNonEmptyPage = perPage.Keys.Max();
+            }
+            if (emptyPages.Count > 0)
+            {
+                batch.FirstEmptyPage = emptyPages.Min();
+            }
+            failedPages.Sort();
+            batch.FailedPages.AddRange(failedPages);
+            return batch;
         }
 
         private static async Task<string> FetchPageWithRetryAsync(string? categorySlug, int page, CancellationToken ct)
@@ -258,19 +442,27 @@ namespace StartRide.Core
             }
             for (int attempt = 0; ; attempt++)
             {
+                HttpClient http = ListChannelFor(attempt);
                 try
                 {
-                    string html = await Http.GetStringAsync(url, ct).ConfigureAwait(false);
+                    string html = await http.GetStringAsync(url, ct).ConfigureAwait(false);
+                    MarkListChannelOk(attempt);
                     PutCachedPage(url, html);
                     return html;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
                     throw;
                 }
-                catch when (attempt < 1)
+                catch when (attempt < ListChannels.Length)
                 {
-                    await Task.Delay(400, ct).ConfigureAwait(false);
+                    // 每条通道各试一次：首选通道不通就换另一条（代理↔直连），这样无论
+                    // 用户是"只能走代理"还是"代理已关只能直连"都能拉到数据。
+                    // ⚠️ 这个 catch 必须能接住**超时**：HttpClient 的连接/请求超时抛的是
+                    // TaskCanceledException（继承 OperationCanceledException）。若上面那行漏了
+                    // `when (ct.IsCancellationRequested)`，超时会被当成用户取消直接抛出 ——
+                    // 一次重试都不做，而冷连接实测要 12.9s，超时是常态不是异常路径。
+                    await Task.Delay(400 * (attempt + 1), ct).ConfigureAwait(false);
                 }
             }
         }
@@ -350,20 +542,31 @@ namespace StartRide.Core
         /// </summary>
         public static async Task<BeamNgResourceDetail?> FetchResourceDetailAsync(string pageUrl, CancellationToken ct)
         {
-            string html;
-            try
+            for (int attempt = 0; ; attempt++)
             {
-                html = await Http.GetStringAsync(pageUrl, ct).ConfigureAwait(false);
+                HttpClient http = ListChannelFor(attempt);
+                try
+                {
+                    string html = await http.GetStringAsync(pageUrl, ct).ConfigureAwait(false);
+                    MarkListChannelOk(attempt);
+                    return ParseDetailPage(html);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch when (attempt < ListChannels.Length)
+                {
+                    // 换另一条通道再试（代理↔直连）
+                    await Task.Delay(300 * (attempt + 1), ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ⚠️ 超时（HttpClient 抛的 TaskCanceledException）也会落到这里 → 返回 null，
+                    // 界面降级成"读取失败，可稍后重试"，而不是被误当取消卡在"正在读取该模组的介绍…"。
+                    return null;
+                }
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch
-            {
-                return null;
-            }
-            return ParseDetailPage(html);
         }
 
         private static BeamNgResourceDetail ParseDetailPage(string html)
@@ -502,13 +705,13 @@ namespace StartRide.Core
                         await VerifyDownloadedAsync(targetPath, reportedTotal, probe.Headers.ETag?.Tag, ct).ConfigureAwait(false);
                         return;
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
                     {
                         throw;
                     }
                     catch
                     {
-                        // 分段失败（网络波动/Range 被拒）→ 落回单流完整下载
+                        // 分段失败（网络波动/超时/Range 被拒）→ 落回单流完整下载
                         TryDelete(targetPath);
                     }
                 }
@@ -664,13 +867,13 @@ namespace StartRide.Core
                     }
                     return;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
                     throw;
                 }
                 catch when (attempt < 1 && reused == null)
                 {
-                    // 单段失败重试一次
+                    // 单段失败重试一次（超时也算失败 —— 见上面 FetchPageWithRetryAsync 的说明）
                     await Task.Delay(300, ct).ConfigureAwait(false);
                 }
                 finally
@@ -694,7 +897,7 @@ namespace StartRide.Core
             }
         }
 
-        private static async Task<HttpResponseMessage> SendDownloadAsync(string downloadUrl, (long Start, long End)? range, CancellationToken ct)
+        private static async Task<HttpResponseMessage> SendDownloadAsync(string downloadUrl, (long Start, long End)? range, CancellationToken ct, int channelAttempt = 0)
         {
             using HttpRequestMessage req = new(HttpMethod.Get, downloadUrl);
             if (range.HasValue)
@@ -702,7 +905,14 @@ namespace StartRide.Core
                 req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(range.Value.Start, range.Value.End);
             }
             // await 必须在 using 作用域内完成：302→R2 重定向跟随期间不能提前释放 request
-            return await DownloadHttp.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            HttpClient[] ch = DownloadChannels;
+            HttpClient http = ch.Length == 1 ? ch[0] : ch[(preferredDownloadChannel + channelAttempt) % ch.Length];
+            HttpResponseMessage resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            if (ch.Length > 1)
+            {
+                preferredDownloadChannel = (preferredDownloadChannel + channelAttempt) % ch.Length;
+            }
+            return resp;
         }
 
         private static void ParseListPage(string html, List<BeamNgModInfo> sink, HashSet<long> seen)

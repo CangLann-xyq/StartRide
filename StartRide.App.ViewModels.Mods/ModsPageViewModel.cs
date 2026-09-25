@@ -38,6 +38,8 @@ public sealed class ModItem : ObservableObject
 public sealed class RepositoryModItem : ObservableObject
 {
 	private ImageSource? iconSource;
+	private readonly Action<RepositoryModItem>? requestIcon;
+	private bool iconRequested;
 	private string fullDescription = "";
 	private string exactDownloadsText = "";
 	private string fileSizeText = "";
@@ -83,10 +85,25 @@ public sealed class RepositoryModItem : ObservableObject
 		PageUrl = info.PageUrl;
 	}
 
-	/// <summary>作者上传的图标位图（异步填充；为空时界面显示默认图标）。</summary>
+	/// <summary>
+	/// 作者上传的图标位图（异步填充；为空时界面显示默认图标）。
+	///
+	/// ⚠️ 这里是**懒加载**：只有当界面真的绑定到这一项（进了列表可视区/缓冲区）时才去下载。
+	/// 旧实现在 AppendItems 里对每一条都 `_ = LoadIconAsync(item)`，全库 8800+ 条就会打出
+	/// 8800+ 个图标请求，既拖慢列表又抢走列表页本身的带宽。虚拟化列表只会实例化可视区
+	/// 那十几个容器，所以懒加载后图标请求量下降两个数量级。
+	/// </summary>
 	public ImageSource? IconSource
 	{
-		get => iconSource;
+		get
+		{
+			if (iconSource == null && !iconRequested && IconUrl.Length > 0 && requestIcon != null)
+			{
+				iconRequested = true;
+				requestIcon(this);
+			}
+			return iconSource;
+		}
 		set
 		{
 			if (SetProperty(ref iconSource, value))
@@ -96,6 +113,9 @@ public sealed class RepositoryModItem : ObservableObject
 			}
 		}
 	}
+
+	/// <summary>图标没取到时允许下次绑定再试一次（避免一次网络抖动就永久没图标）。</summary>
+	internal void AllowIconRetry() => iconRequested = false;
 
 	public bool HasIcon => iconSource != null;
 
@@ -250,11 +270,20 @@ public sealed class ModsPageViewModel : ObservableObject
 	private CancellationTokenSource? loadCts;
 	private readonly CancellationTokenSource lifetimeCts = new();
 	private int nextPage = 1;
+
+	/// <summary>
+	/// 站点 pageNav 给的 data-last（**不可信**，实测全库给 1577 而真实只有 88 页）。
+	/// 只用来做粗略夹逼与文案，绝不用它判定"拉完了"。
+	/// </summary>
 	private int totalPages;
+
+	/// <summary>已经确认拉到全库末尾（某页解析出 0 条）。到位置位后不再发任何续拉请求。</summary>
+	private bool reachedRepositoryEnd;
+
 	private bool restoredFromDisk;
 
-	/// <summary>续拉每批页数。</summary>
-	private const int LoadMorePages = 10;
+	/// <summary>续拉每批页数。共 ~89 页，12 页/批 ≈ 8 批拉完全库。</summary>
+	private const int LoadMorePages = 12;
 
 	/// <summary>图标下载并发上限（图标很小，但别把仓库列表的带宽抢光）。</summary>
 	private static readonly SemaphoreSlim IconGate = new(6);
@@ -269,6 +298,9 @@ public sealed class ModsPageViewModel : ObservableObject
 	public bool HasMods => Mods.Count > 0;
 
 	public bool HasRepositoryMods => RepositoryMods.Count > 0;
+
+	/// <summary>在线列表还没到全库末尾（用来隐藏/禁用「加载更多」按钮）。</summary>
+	public bool HasMoreRepositoryPages => !reachedRepositoryEnd && RepositoryMods.Count > 0;
 
 	public string ModsDirectory { get; }
 
@@ -468,7 +500,8 @@ public sealed class ModsPageViewModel : ObservableObject
 			if (detail != null)
 			{
 				item.ApplyDetail(detail);
-				if (!string.IsNullOrEmpty(detail.IconUrl) && item.IconSource == null)
+				// 用 HasIcon（读字段）而不是 IconSource（getter 会触发一次懒加载请求）
+				if (!string.IsNullOrEmpty(detail.IconUrl) && !item.HasIcon)
 				{
 					ImageSource? icon = await ModIconCache.GetAsync(item.ResourceId, detail.IconUrl, ct).ConfigureAwait(true);
 					if (icon != null)
@@ -514,13 +547,41 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 		catch (OperationCanceledException)
 		{
+			// ⚠️ HttpClient 的**超时**抛的也是 TaskCanceledException，所以这里不能一吞了之：
+			// 否则状态栏会永远停在"正在拉取…"，表现就是"拉不出来"。
 			IsLoadingRepository = false;
+			if (RepositoryStatusText.StartsWith("正在拉取", StringComparison.Ordinal))
+			{
+				RepositoryStatusText = "拉取官方仓库超时（网络不稳或被限流）· 点「刷新」重试";
+			}
 		}
 		catch (Exception ex)
 		{
 			IsLoadingRepository = false;
-			RepositoryStatusText = "拉取官方仓库失败：" + ex.Message;
+			RepositoryStatusText = "无法连接 BeamNG 官方仓库：" + FriendlyNetworkError(ex) + " · 点「刷新」重试";
 		}
+	}
+
+	/// <summary>
+	/// 把网络异常翻译成人话。
+	/// 真实例子：`The proxy tunnel request to proxy 'http://127.0.0.1:1786/' failed with status code '502'`
+	/// —— 直接甩给用户等于没提示，所以在这里归类成可操作的说明。
+	/// </summary>
+	private static string FriendlyNetworkError(Exception ex)
+	{
+		string msg = ex.InnerException?.Message ?? ex.Message;
+		if (msg.Contains("502", StringComparison.Ordinal) || msg.Contains("proxy", StringComparison.OrdinalIgnoreCase))
+		{
+			return "代理返回 502（代理节点已失效，或代理规则把 beamng.com 判成了直连）";
+		}
+		if (ex is OperationCanceledException
+			|| msg.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("Timeout", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("10060"))
+		{
+			return "连接超时（BeamNG 官网在国内直连很不稳定，建议开启代理后重试）";
+		}
+		return msg;
 	}
 
 	/// <summary>本机已有模组的文件名集合（用于判断在线条目是否已下载）。</summary>
@@ -550,6 +611,7 @@ public sealed class ModsPageViewModel : ObservableObject
 		IsLoadingMore = false;
 		nextPage = 1;
 		totalPages = 0;
+		reachedRepositoryEnd = false;
 		allRepositoryMods.Clear();
 		RepositoryMods.Clear();
 		OnPropertyChanged(nameof(HasRepositoryMods));
@@ -560,7 +622,7 @@ public sealed class ModsPageViewModel : ObservableObject
 		{
 			restoredFromDisk = true;
 			IsLoadingRepository = false;
-			RepositoryStatusText = $"已从本地缓存载入 {RepositoryMods.Count} 个模组（滚到底或点「加载更多」继续拉，点「刷新」取最新）";
+			UpdateRepositoryStatus();
 			return;
 		}
 
@@ -578,8 +640,9 @@ public sealed class ModsPageViewModel : ObservableObject
 			// 首屏渲染后再自动续拉一波，之后由滚动触发。
 			// 注意先解除 IsLoadingRepository 守卫，否则续拉会被防重入检查直接拦掉。
 			IsLoadingRepository = false;
-			if (nextPage <= totalPages && IsOnlineView)
+			if (IsOnlineView && !reachedRepositoryEnd)
 			{
+				// 首屏只自动拉一波，其余交给滚动/「加载更多」，免得一进页面就朝站点打满
 				_ = TryLoadMoreAsync();
 			}
 		}
@@ -591,25 +654,36 @@ public sealed class ModsPageViewModel : ObservableObject
 
 	private void UpdateRepositoryStatus()
 	{
+		if (reachedRepositoryEnd)
+		{
+			// 文案里绝不出现 totalPages * 100 那种估算 —— 站点给的 data-last 是假的
+			//（1577 页 / 157700 条），显示出来只会让用户以为"还剩十几万拉不完"。
+			RepositoryStatusText = $"已加载全部 {FormatCount(allRepositoryMods.Count)} 个模组（已到官方仓库末尾）";
+			OnPropertyChanged(nameof(HasMoreRepositoryPages));
+			return;
+		}
 		if (restoredFromDisk)
 		{
 			RepositoryStatusText = $"已从本地缓存载入 {RepositoryMods.Count} 个模组（滚到底或点「加载更多」继续拉，点「刷新」取最新）";
 			return;
 		}
-		if (totalPages <= 1 || nextPage > totalPages)
-		{
-			RepositoryStatusText = $"已从 BeamNG 官方仓库拉取 {allRepositoryMods.Count} 个模组";
-			return;
-		}
 		RepositoryStatusText =
-			$"已加载 {allRepositoryMods.Count} / 约 {FormatCount(totalPages * 100L)} 个模组 · 下拉到底自动继续加载";
+			$"已加载 {FormatCount(allRepositoryMods.Count)} 个 · 滚到底或点「加载更多」继续（每批 {LoadMorePages * 100} 个）";
+		OnPropertyChanged(nameof(HasMoreRepositoryPages));
 	}
 
-	/// <summary>续拉下一波页面（滚动到底触发）。返回是否真的启动了加载。</summary>
+	/// <summary>续拉下一波页面（滚动到底 / 点「加载更多」触发）。返回是否真的启动了加载。</summary>
 	public async Task<bool> TryLoadMoreAsync()
 	{
 		if (!IsOnlineView || IsLoadingRepository || IsLoadingMore || IsDownloading)
 		{
+			return false;
+		}
+		if (reachedRepositoryEnd)
+		{
+			// 已经拉到全库末尾：不要静默什么都不做（用户会以为按钮坏了），
+			// 明确告诉他到底了、想看有没有新增请点「刷新」。
+			RepositoryStatusText = $"已加载全部 {FormatCount(allRepositoryMods.Count)} 个模组 · 点「刷新」检查官方仓库有没有新增";
 			return false;
 		}
 		CancellationTokenSource? cts = loadCts;
@@ -623,7 +697,7 @@ public sealed class ModsPageViewModel : ObservableObject
 		{
 			// ⚠️ 本地缓存模式下用户仍要更多时：只回线上锚一次总页数（第 1 页很便宜），
 			// 再从缓存覆盖到的下一页续拉——绝不能因为 restoredFromDisk 就静默什么都不做，
-			// 否则用户点「加载更多」/滚到底毫无反应，只能靠「刷新」把 150+ 页整套重拉。
+			// 否则用户点「加载更多」/滚到底毫无反应，只能靠「刷新」把 89 页整套重拉。
 			if (restoredFromDisk)
 			{
 				RepositoryStatusText = "正在回到线上继续加载…";
@@ -641,23 +715,53 @@ public sealed class ModsPageViewModel : ObservableObject
 				restoredFromDisk = false;
 			}
 
-			if (nextPage > totalPages || totalPages <= 0)
+			if (nextPage < 1)
 			{
-				UpdateRepositoryStatus();
-				return false;
+				nextPage = 1;
 			}
 
+			// ⚠️ 绝不拿 totalPages 当硬门：它来自站点 pageNav 的 data-last，实测全库给 1577
+			// 而真实只有 88 页（8834 条）。以它为上限就会出现"拉到第 89 页后一直往空页拉"，
+			// 状态栏永远显示"已加载 8834 / 约 157700"——用户看到的就是「剩下的拉不出来」。
+			// 真正的终点只有一个信号：某一页解析出 0 条（ListPageBatch.ReachedEnd）。
 			int from = nextPage;
-			int to = Math.Min(from + LoadMorePages - 1, totalPages);
-			RepositoryStatusText = $"正在加载第 {from}-{to} 页（共 {totalPages} 页）…";
+			int to = from + LoadMorePages - 1;
+			RepositoryStatusText = $"正在加载第 {from}-{to} 页…";
 			string? slug = BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory);
-			List<BeamNgModInfo> items = await BeamNgRepositoryClient.FetchPageRangeAsync(slug, from, to, cts.Token).ConfigureAwait(true);
+			BeamNgRepositoryClient.ListPageBatch batch = await BeamNgRepositoryClient
+				.FetchPageRangeAsync(slug, from, to, cts.Token)
+				.ConfigureAwait(true);
 			cts.Token.ThrowIfCancellationRequested();
-			AppendItems(items);
-			nextPage = to + 1;
+
+			AppendItems(batch.Items);
+			SaveCacheToDisk(); // 每批落一次盘：下次启动就能秒开（只存列表页字段）
+
+			if (batch.ReachedEnd)
+			{
+				// 已越过全库末尾：钉住终点，之后一个请求都不再发
+				reachedRepositoryEnd = true;
+				nextPage = batch.LastNonEmptyPage + 1;
+				UpdateRepositoryStatus();
+				return true;
+			}
+
+			if (batch.LastNonEmptyPage == 0)
+			{
+				// 整批 12 页全部请求失败（网络波动）：原地重试，
+				// 绝不能把 nextPage 推走，否则这一段数据永久缺失、且看起来"再也拉不出来"。
+				nextPage = from;
+				RepositoryStatusText = $"第 {from}-{to} 页暂时没取到（网络波动，已自动重试）· 再滚一次继续";
+				return true;
+			}
+
+			// 有失败页时不能越过它；重复拉是幂等的，AppendItems 会按 ResourceId 去重
+			int advance = batch.LastNonEmptyPage + 1;
+			if (batch.FailedPages.Count > 0)
+			{
+				advance = Math.Min(advance, batch.FailedPages[0]);
+			}
+			nextPage = Math.Max(from, advance);
 			UpdateRepositoryStatus();
-			// 每批落一次盘：下次启动就能秒开（只存列表页字段）
-			SaveCacheToDisk();
 			return true;
 		}
 		catch (OperationCanceledException)
@@ -666,7 +770,7 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 		catch (Exception ex)
 		{
-			RepositoryStatusText = "继续加载失败：" + (ex.InnerException?.Message ?? ex.Message) + "（下拉可重试）";
+			RepositoryStatusText = "继续加载失败：" + FriendlyNetworkError(ex) + " · 滚到底或点「加载更多」可重试";
 			return false;
 		}
 		finally
@@ -709,10 +813,13 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>图标懒加载回调：条目首次被界面绑定时调用（滚动时按需触发，限额 6 并发）。</summary>
+	private void QueueIconLoad(RepositoryModItem item) => _ = LoadIconAsync(item);
+
 	/// <summary>拉作者上传的图标（本地已有缓存则直接命中）。</summary>
 	private async Task LoadIconAsync(RepositoryModItem item)
 	{
-		if (string.IsNullOrWhiteSpace(item.IconUrl) || item.IconSource != null)
+		if (string.IsNullOrWhiteSpace(item.IconUrl) || item.HasIcon)
 		{
 			return;
 		}
@@ -722,13 +829,15 @@ public sealed class ModsPageViewModel : ObservableObject
 			ImageSource? icon = await ModIconCache.GetAsync(item.ResourceId, item.IconUrl, lifetimeCts.Token).ConfigureAwait(false);
 			if (icon == null)
 			{
+				item.AllowIconRetry();
 				return;
 			}
 			System.Windows.Application.Current?.Dispatcher?.BeginInvoke(() => item.IconSource = icon);
 		}
 		catch
 		{
-			// 图标拿不到就用默认图标，不打扰用户
+			// 图标拿不到就用默认图标，不打扰用户；下次重新绑定时再试一次
+			item.AllowIconRetry();
 		}
 		finally
 		{
@@ -777,6 +886,10 @@ public sealed class ModsPageViewModel : ObservableObject
 	private sealed class RepoCacheDto
 	{
 		public int TotalPages { get; set; }
+
+		/// <summary>上次拉取时是否已确认到全库末尾 —— 是的话下次载入直接显示"已加载全部"，不再空跑一批。</summary>
+		public bool ReachedEnd { get; set; }
+
 		public List<RepoCacheRow> Items { get; set; } = new();
 	}
 
@@ -815,6 +928,7 @@ public sealed class ModsPageViewModel : ObservableObject
 			}
 			totalPages = Math.Max(dto.TotalPages, 1);
 			nextPage = dto.Items.Count / 100 + 1;
+			reachedRepositoryEnd = dto.ReachedEnd;
 			var infos = dto.Items.Select(r => new BeamNgModInfo
 			{
 				Id = r.Id,
@@ -829,6 +943,7 @@ public sealed class ModsPageViewModel : ObservableObject
 				IconUrl = r.Icon,
 			});
 			AppendItems(infos);
+			UpdateRepositoryStatus();
 			return RepositoryMods.Count > 0;
 		}
 		catch
@@ -848,6 +963,7 @@ public sealed class ModsPageViewModel : ObservableObject
 			var dto = new RepoCacheDto
 			{
 				TotalPages = totalPages,
+				ReachedEnd = reachedRepositoryEnd,
 				Items = allRepositoryMods.Select(m => new RepoCacheRow
 				{
 					Id = m.ResourceId,

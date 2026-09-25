@@ -3,8 +3,10 @@ using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel.__Internals;
@@ -63,6 +65,27 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	/// <summary>更新弹窗里的更新说明文本（来自清单的 changelog）。</summary>
 	private string updateDialogChangelog = string.Empty;
+
+	/// <summary>更新过程中的阶段文案（下载 3.2 MB / 5.1 MB 之类）。</summary>
+	private string updateProgressText = string.Empty;
+
+	/// <summary>更新进度百分比（0-100）。</summary>
+	private double updateProgressPercent;
+
+	/// <summary>上一次更新结果的弹窗（下次启动时结算，见 StartRideUpdateJournal）。</summary>
+	private bool isUpdateResultDialogOpen;
+
+	private string updateResultTitle = string.Empty;
+
+	private string updateResultMessage = string.Empty;
+
+	private bool updateResultIsFailure;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? closeUpdateResultCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private AsyncRelayCommand? retryUpdateCommand;
 
 	[ObservableProperty]
 	private bool isCheckingUpdates;
@@ -129,9 +152,69 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 			{
 				return Strings.Dialog_UpdateButton;
 			}
-			return Strings.Status_DownloadingLauncherUpdate;
+			return string.IsNullOrEmpty(updateProgressText) ? Strings.Status_DownloadingLauncherUpdate : updateProgressText;
 		}
 	}
+
+	private string updateDialogTitle = string.Empty;
+
+	/// <summary>更新弹窗标题：平时是「有可用更新」，点下去后换成「正在安装更新」。</summary>
+	public string UpdateDialogTitle
+	{
+		get => updateDialogTitle;
+		set => SetProperty(ref updateDialogTitle, value);
+	}
+
+	/// <summary>更新阶段文案（更新期间对话框里实时显示）。</summary>
+	public string UpdateProgressText
+	{
+		get => updateProgressText;
+		set
+		{
+			if (SetProperty(ref updateProgressText, value))
+			{
+				// 更新按钮上的字也跟着阶段走，避免整块界面在下载期间毫无变化
+				OnPropertyChanged("ConfirmUpdateButtonText");
+			}
+		}
+	}
+
+	/// <summary>更新进度百分比（下载阶段按已收字节算；总大小未知时保持 0）。</summary>
+	public double UpdateProgressPercent
+	{
+		get => updateProgressPercent;
+		set => SetProperty(ref updateProgressPercent, value);
+	}
+
+	/// <summary>是否弹出「上次更新结果」提示。</summary>
+	public bool IsUpdateResultDialogOpen
+	{
+		get => isUpdateResultDialogOpen;
+		set => SetProperty(ref isUpdateResultDialogOpen, value);
+	}
+
+	public string UpdateResultTitle
+	{
+		get => updateResultTitle;
+		set => SetProperty(ref updateResultTitle, value);
+	}
+
+	public string UpdateResultMessage
+	{
+		get => updateResultMessage;
+		set => SetProperty(ref updateResultMessage, value);
+	}
+
+	/// <summary>上次更新是否失败（失败时才给「重新更新」按钮）。</summary>
+	public bool UpdateResultIsFailure
+	{
+		get => updateResultIsFailure;
+		set => SetProperty(ref updateResultIsFailure, value);
+	}
+
+	public IRelayCommand CloseUpdateResultCommand => closeUpdateResultCommand ?? (closeUpdateResultCommand = new RelayCommand(CloseUpdateResult));
+
+	public IAsyncRelayCommand RetryUpdateCommand => retryUpdateCommand ?? (retryUpdateCommand = new AsyncRelayCommand(RetryUpdateAsync));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -453,6 +536,9 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	public Task CheckUpdatesOnStartupAsync()
 	{
+		// 先结算上一次自更新的结果：成功要告诉用户「已更新到 vX」，
+		// 失败更要说明白（否则用户只会看到"还是旧版本"，却不知道更新没装上）。
+		ReportUpdateJournalResult();
 		return CheckUpdatesCoreAsync(UpdateCheckPresentation.StartupSilent);
 	}
 
@@ -489,16 +575,35 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 			return;
 		}
 		IsStartingUpdate = true;
-		ReportStatus(Strings.Status_DownloadingLauncherUpdate);
+		UpdateDialogTitle = Strings.Dialog_UpdateProgressTitle;
+		UpdateProgressPercent = 0;
+		UpdateProgressText = Strings.Status_DownloadingLauncherUpdate;
+		ReportStatus(UpdateProgressText);
 		try
 		{
-			if (!(await launcherSelfUpdateService.StartUpdateAsync(availableUpdate)).Succeeded)
+			LauncherSelfUpdateStartResult startResult;
+			var progress = new Progress<StartRide.Services.StartRideUpdateProgress>(OnUpdateProgress);
+			if (launcherSelfUpdateService is StartRide.Services.StartRideSelfUpdateService selfUpdate)
+			{
+				startResult = await selfUpdate.StartUpdateWithProgressAsync(availableUpdate, progress, CancellationToken.None);
+			}
+			else
+			{
+				startResult = await launcherSelfUpdateService.StartUpdateAsync(availableUpdate);
+			}
+			if (!startResult.Succeeded)
 			{
 				ReportVisibleStatus(Strings.Status_LauncherUpdateStartFailed);
 				return;
 			}
+			// 走到这里 = 包已解包好、替换脚本正在后台等本进程退出。
+			// 对话框保持打开、明说「已就绪、马上自动重启」，再留一小会儿让用户看清：
+			// 以前是直接消失 + 退进程，用户会以为更新失败了（实测被投诉过）。
+			UpdateProgressPercent = 100;
+			UpdateProgressText = Strings.Status_UpdateReadyRestarting;
+			ReportStatus(UpdateProgressText);
+			await Task.Delay(1600);
 			IsUpdateAvailableDialogOpen = false;
-			ReportVisibleStatus(Strings.Status_LauncherUpdateRestarting);
 			applicationExitService.Shutdown();
 		}
 		catch (Exception)
@@ -508,6 +613,115 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		finally
 		{
 			IsStartingUpdate = false;
+		}
+	}
+
+	/// <summary>把自更新进度翻成界面文案（Progress&lt;T&gt; 保证回到 UI 线程）。</summary>
+	private void OnUpdateProgress(StartRide.Services.StartRideUpdateProgress progress)
+	{
+		if (!IsStartingUpdate)
+		{
+			return;
+		}
+
+		switch (progress.Stage)
+		{
+		case StartRide.Services.StartRideUpdateStage.Preparing:
+			UpdateProgressText = Strings.Status_DownloadingLauncherUpdate;
+			break;
+		case StartRide.Services.StartRideUpdateStage.Downloading:
+			UpdateProgressText = string.Format(
+				Strings.Status_UpdateDownloadingFormat,
+				FormatBytes(progress.Received),
+				progress.Total > 0 ? FormatBytes(progress.Total) : "?");
+			if (progress.Total > 0)
+			{
+				UpdateProgressPercent = Math.Clamp(progress.Received * 100.0 / progress.Total, 0, 100);
+			}
+			break;
+		case StartRide.Services.StartRideUpdateStage.Verifying:
+			UpdateProgressText = Strings.Status_UpdateVerifying;
+			break;
+		case StartRide.Services.StartRideUpdateStage.Extracting:
+			UpdateProgressText = Strings.Status_UpdateExtracting;
+			break;
+		case StartRide.Services.StartRideUpdateStage.Ready:
+			UpdateProgressPercent = 100;
+			UpdateProgressText = Strings.Status_UpdateReadyRestarting;
+			break;
+		}
+		ReportStatus(UpdateProgressText);
+	}
+
+	private static string FormatBytes(long bytes)
+	{
+		if (bytes < 1024)
+		{
+			return bytes.ToString(CultureInfo.InvariantCulture) + " B";
+		}
+		double kilobytes = bytes / 1024.0;
+		if (kilobytes < 1024)
+		{
+			return kilobytes.ToString("0.#", CultureInfo.InvariantCulture) + " KB";
+		}
+		return (kilobytes / 1024.0).ToString("0.##", CultureInfo.InvariantCulture) + " MB";
+	}
+
+	private void CloseUpdateResult()
+	{
+		IsUpdateResultDialogOpen = false;
+	}
+
+	/// <summary>「重新更新」：关掉结果弹窗，立刻重查一次（有更新就直接弹更新框）。</summary>
+	private async Task RetryUpdateAsync()
+	{
+		IsUpdateResultDialogOpen = false;
+		await CheckUpdatesCoreAsync(UpdateCheckPresentation.Manual);
+	}
+
+	/// <summary>
+	/// 结算上一次自更新的结果。
+	/// 单靠版本号无法判断「刚才那次更新到底成没成」，所以安装前会留下一张交接条，
+	/// 由这里对照实际版本给用户一个明确答复（成功 / 失败 + 卡在哪）。
+	/// </summary>
+	private void ReportUpdateJournalResult()
+	{
+		try
+		{
+			StartRide.Services.StartRideUpdateStatus result =
+				StartRide.Services.StartRideUpdateJournal.Consume(LauncherVersionText);
+			if (!result.HasResult)
+			{
+				return;
+			}
+
+			if (!result.IsFailure)
+			{
+				UpdateResultIsFailure = false;
+				UpdateResultTitle = Strings.Dialog_UpdateResultSuccessTitle;
+				UpdateResultMessage = string.Format(Strings.Dialog_UpdateResultSuccessFormat, result.TargetVersion);
+				IsUpdateResultDialogOpen = true;
+				floatingMessageService.Show(UpdateResultMessage);
+				logger.LogInformation(
+					"Previous launcher update was applied. CurrentVersion={CurrentVersion} TargetVersion={TargetVersion}",
+					result.CurrentVersion, result.TargetVersion);
+				return;
+			}
+
+			UpdateResultIsFailure = true;
+			UpdateResultTitle = Strings.Dialog_UpdateResultFailureTitle;
+			string reason = string.IsNullOrWhiteSpace(result.Reason) ? Strings.Status_UpdateReasonNoRecord : result.Reason;
+			UpdateResultMessage = string.Format(Strings.Dialog_UpdateResultFailureFormat, result.CurrentVersion, reason);
+			IsUpdateResultDialogOpen = true;
+			floatingMessageService.Show(UpdateResultTitle);
+			logger.LogWarning(
+				"Previous launcher update was NOT applied. CurrentVersion={CurrentVersion} TargetVersion={TargetVersion} Reason={Reason}",
+				result.CurrentVersion, result.TargetVersion, reason);
+		}
+		catch (Exception exception)
+		{
+			// 结算失败绝不能拖累启动流程
+			logger.LogWarning(exception, "Failed to settle the previous launcher update result.");
 		}
 	}
 
@@ -558,6 +772,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	private void ShowUpdateAvailableDialog(LauncherUpdateInfo update)
 	{
 		availableUpdate = update;
+		UpdateDialogTitle = Strings.Dialog_UpdateAvailableTitle;
 		UpdateDialogVersionText = update.DisplayVersion;
 		UpdateDialogMessage = string.Format(Strings.Dialog_UpdateAvailableVersionFormat, update.DisplayVersion);
 		UpdateDialogChangelog = (update.Changelog ?? string.Empty).Trim();

@@ -3151,5 +3151,18 @@ The current game folder will be automatically backed up before restoration.</val
 
 <data name="Settings_RuntimeSectionHint" xml:space="preserve"><value>Game progress, playtime, and finishing operations are all here.</value></data>
 
+  <data name="Status_UpdateDownloadingFormat" xml:space="preserve"><value>Downloading update package {0} / {1}</value></data>
+  <data name="Status_UpdateVerifying" xml:space="preserve"><value>Verifying the update package...</value></data>
+  <data name="Status_UpdateExtracting" xml:space="preserve"><value>Extracting the update package...</value></data>
+  <data name="Status_UpdateReadyRestarting" xml:space="preserve"><value>The package is ready; the launcher will restart to finish installing</value></data>
+  <data name="Dialog_UpdateProgressTitle" xml:space="preserve"><value>Installing update</value></data>
+  <data name="Dialog_UpdateProgressHint" xml:space="preserve"><value>Do not open the launcher manually while installing; it restarts automatically when finished.</value></data>
+  <data name="Status_UpdateReasonNoRecord" xml:space="preserve"><value>No trace of the updater was found (it may have been blocked by the system or antivirus)</value></data>
+  <data name="Dialog_UpdateResultSuccessTitle" xml:space="preserve"><value>Update complete</value></data>
+  <data name="Dialog_UpdateResultSuccessFormat" xml:space="preserve"><value>The launcher has been updated to v{0}.</value></data>
+  <data name="Dialog_UpdateResultFailureTitle" xml:space="preserve"><value>Update not completed</value></data>
+  <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>The launcher is still v{0}; this update could not be applied.&#10;{1}</value></data>
+  <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>Retry update</value></data>
+  <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>Got it</value></data>
 </root>
 

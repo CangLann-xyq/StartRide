@@ -3111,4 +3111,17 @@ public static class Strings
 	public static string Settings_ViewProjectHomeButton => Get("Settings_ViewProjectHomeButton");
 	public static string Settings_DerivationNotice => Get("Settings_DerivationNotice");
 	public static string Settings_RuntimeSectionHint => Get("Settings_RuntimeSectionHint");
+	public static string Status_UpdateDownloadingFormat => Get("Status_UpdateDownloadingFormat");
+	public static string Status_UpdateVerifying => Get("Status_UpdateVerifying");
+	public static string Status_UpdateExtracting => Get("Status_UpdateExtracting");
+	public static string Status_UpdateReadyRestarting => Get("Status_UpdateReadyRestarting");
+	public static string Dialog_UpdateProgressTitle => Get("Dialog_UpdateProgressTitle");
+	public static string Dialog_UpdateProgressHint => Get("Dialog_UpdateProgressHint");
+	public static string Status_UpdateReasonNoRecord => Get("Status_UpdateReasonNoRecord");
+	public static string Dialog_UpdateResultSuccessTitle => Get("Dialog_UpdateResultSuccessTitle");
+	public static string Dialog_UpdateResultSuccessFormat => Get("Dialog_UpdateResultSuccessFormat");
+	public static string Dialog_UpdateResultFailureTitle => Get("Dialog_UpdateResultFailureTitle");
+	public static string Dialog_UpdateResultFailureFormat => Get("Dialog_UpdateResultFailureFormat");
+	public static string Dialog_UpdateResultRetry => Get("Dialog_UpdateResultRetry");
+	public static string Dialog_UpdateResultClose => Get("Dialog_UpdateResultClose");
 }

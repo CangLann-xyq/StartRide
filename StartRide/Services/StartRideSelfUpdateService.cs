@@ -18,6 +18,32 @@ using StartRide.Core;
 namespace StartRide.Services
 {
     /// <summary>
+    /// 自更新的阶段。界面据此显示「在干什么」——
+    /// 以前这里什么都不报，5 MB 的包下载二十多秒里界面一片死寂，
+    /// 用户只能看到对话框突然消失、程序退出（实测被投诉「不知完成没有」）。
+    /// </summary>
+    public enum StartRideUpdateStage
+    {
+        /// <summary>准备中（还没开始传字节）。</summary>
+        Preparing,
+
+        /// <summary>下载更新包。</summary>
+        Downloading,
+
+        /// <summary>校验大小 / SHA-256。</summary>
+        Verifying,
+
+        /// <summary>解压到 staging 目录。</summary>
+        Extracting,
+
+        /// <summary>已就绪：替换脚本已在后台等待本进程退出。</summary>
+        Ready,
+    }
+
+    /// <summary>自更新进度。Total 为 0 表示总大小未知。</summary>
+    public readonly record struct StartRideUpdateProgress(StartRideUpdateStage Stage, long Received, long Total);
+
+    /// <summary>
     /// StartRide 的在线更新（下载 → 替换 → 重启）。
     ///
     /// 为什么需要自己写一个
@@ -292,13 +318,26 @@ namespace StartRide.Services
 
         // ------------------------------------------------------------------ 执行
 
-        public async Task<LauncherSelfUpdateStartResult> StartUpdateAsync(
+        public Task<LauncherSelfUpdateStartResult> StartUpdateAsync(
             LauncherUpdateInfo update, CancellationToken cancellationToken)
+        {
+            return StartUpdateWithProgressAsync(update, null, cancellationToken);
+        }
+
+        /// <summary>
+        /// 带进度的自更新（框架接口只给了不带进度的那个重载，界面走这个）。
+        /// progress 由 StartRideSelfUpdateService 报告阶段与字节数，文案由界面负责。
+        /// </summary>
+        public async Task<LauncherSelfUpdateStartResult> StartUpdateWithProgressAsync(
+            LauncherUpdateInfo update, IProgress<StartRideUpdateProgress>? progress,
+            CancellationToken cancellationToken)
         {
             if (!CanAutoInstall(update))
             {
                 return LauncherSelfUpdateStartResult.Failed("更新清单里没有可用的安装包地址。");
             }
+
+            Report(progress, StartRideUpdateStage.Preparing, 0, 0);
 
             string? executablePath = Environment.ProcessPath;
             if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
@@ -348,7 +387,7 @@ namespace StartRide.Services
                     _logger.LogInformation(
                         "StartRide update download started. Version={Version} Source={Source} Url={Url}",
                         version, candidate.Name, candidate.Url);
-                    await DownloadAsync(candidate.Url, packagePath, cancellationToken).ConfigureAwait(false);
+                    await DownloadAsync(candidate.Url, packagePath, update.SizeBytes, progress, cancellationToken).ConfigureAwait(false);
                     downloaded = true;
                     break;
                 }
@@ -369,6 +408,7 @@ namespace StartRide.Services
             }
 
             // ---- 2) 校验 ----------------------------------------------------
+            Report(progress, StartRideUpdateStage.Verifying, 0, 0);
             long actualSize = new FileInfo(packagePath).Length;
             if (update.SizeBytes > 0 && actualSize != update.SizeBytes)
             {
@@ -392,6 +432,7 @@ namespace StartRide.Services
             }
 
             // ---- 3) 解包（剥掉顶层文件夹）-----------------------------------
+            Report(progress, StartRideUpdateStage.Extracting, 0, 0);
             try
             {
                 ExtractPackage(packagePath, stageDirectory);
@@ -433,20 +474,57 @@ namespace StartRide.Services
                 "StartRide update staged. Version={Version} Install={Install} Stage={Stage} Script={Script} Log={Log}",
                 version, installDirectory, stageDirectory, scriptPath, logPath);
 
+            // ⚠️ 必须在退出前登记：进程一退，apply.ps1 就会覆盖安装目录，
+            // 新进程只能靠这条「交接条」才知道要不要提示「更新成功/失败」。
+            StartRideUpdateJournal.Begin(BuildInfo.Version, version, logPath);
+            Report(progress, StartRideUpdateStage.Ready, 1, 1);
+
             return LauncherSelfUpdateStartResult.Success(packagePath);
         }
 
-        private static async Task DownloadAsync(string url, string destinationPath, CancellationToken cancellationToken)
+        private static void Report(IProgress<StartRideUpdateProgress>? progress, StartRideUpdateStage stage, long received, long total)
+        {
+            if (progress == null)
+            {
+                return;
+            }
+
+            try
+            {
+                progress.Report(new StartRideUpdateProgress(stage, received, total));
+            }
+            catch
+            {
+                // 进度只是好看，报不出去也不能影响更新
+            }
+        }
+
+        private static async Task DownloadAsync(
+            string url, string destinationPath, long expectedSize,
+            IProgress<StartRideUpdateProgress>? progress, CancellationToken cancellationToken)
         {
             using HttpResponseMessage response = await Http
                 .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
+            long total = expectedSize > 0 ? expectedSize : (response.Content.Headers.ContentLength ?? 0L);
+            Report(progress, StartRideUpdateStage.Downloading, 0, total);
+
             await using Stream source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             await using var target = new FileStream(
                 destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            await source.CopyToAsync(target, 81920, cancellationToken).ConfigureAwait(false);
+
+            var buffer = new byte[81920];
+            long received = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                received += read;
+                Report(progress, StartRideUpdateStage.Downloading, received, total);
+            }
+
             await target.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -606,14 +684,21 @@ function Write-UpdateLog([string]$Message) {
 
 function Copy-FileWithRetry([string]$Source, [string]$Destination) {
     for ($attempt = 1; $attempt -le 20; $attempt++) {
+        $partial = $Destination + '.srnew'
         try {
-            Copy-Item -LiteralPath $Source -Destination $Destination -Force -ErrorAction Stop
+            Copy-Item -LiteralPath $Source -Destination $partial -Force -ErrorAction Stop
+            # Commit by rename. Writing straight to $Destination leaves a few seconds where
+            # the target file is half-written: a user who double-clicks the shortcut during
+            # that window launches a broken exe (or the old one) and concludes the update
+            # failed. Rename-over-existing is atomic on NTFS, so the target is never partial.
+            Move-Item -LiteralPath $partial -Destination $Destination -Force -ErrorAction Stop
             return $true
         } catch {
             if ($attempt -eq 20) {
                 Write-UpdateLog ('COPY FAILED  ' + $Destination + '  ' + $_.Exception.Message)
                 return $false
             }
+            Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
             Start-Sleep -Milliseconds 500
         }
     }
@@ -653,6 +738,11 @@ foreach ($file in (Get-ChildItem -LiteralPath $stage -Recurse -File -Force)) {
 }
 
 Write-UpdateLog ('copied=' + $copied + ' failed=' + $failed)
+
+# Sweep leftover partials: a copy killed mid-flight (reboot, taskkill) leaves *.srnew behind.
+Get-ChildItem -LiteralPath $InstallDirectory -Filter '*.srnew' -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+}
 
 if ($ObsoleteNames -ne '') {
     foreach ($name in $ObsoleteNames.Split(';')) {

@@ -49,14 +49,17 @@
       <!-- 状态行：拉取状态 + 加载更多 + 刷新 -->
       <DockPanel Grid.Row="1" Margin="0,4,0,8" LastChildFill="True">
         <Button DockPanel.Dock="Right" Height="32" MinWidth="76" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="刷新" ToolTip="清掉页缓存后重新拉取第 1 页" Command="{Binding RefreshRepositoryCommand}" />
-        <Button DockPanel.Dock="Right" Height="32" MinWidth="88" Margin="0,0,8,0" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="加载更多" ToolTip="不等滚动到底，直接再拉一批" Command="{Binding LoadMoreCommand}" />
+        <Button DockPanel.Dock="Right" Height="32" MinWidth="88" Margin="0,0,8,0" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="加载更多" ToolTip="不等滚动到底，直接再拉一批（每批 1200 个）" Command="{Binding LoadMoreCommand}" Visibility="{Binding HasMoreRepositoryPages, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
         <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="12" Text="{Binding RepositoryStatusText}" TextTrimming="CharacterEllipsis" />
       </DockPanel>
 
       <!-- 在线列表：虚拟化 ListBox（上万条目也只渲染可见卡片），
            滚动到底自动续拉下一波页面，直到拉完全库 -->
       <Grid Grid.Row="2">
-        <ListBox x:Name="RepositoryListBox" ScrollViewer.ScrollChanged="OnRepositoryScrollChanged" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" Background="{x:Null}" BorderThickness="0" Padding="0" ItemsSource="{Binding RepositoryMods}">
+        <!-- 全库 8000+ 条的长列表：必须用 RideWideListBoxStyle（常显可拖的滚动条）。
+             默认那套滚动条是"鼠标悬停才显形、悬停前连点击都不接受"的，
+             在这种长度的列表里根本看不见、拖不到。 -->
+        <ListBox x:Name="RepositoryListBox" ScrollViewer.ScrollChanged="OnRepositoryScrollChanged" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource RideWideListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" Background="{x:Null}" BorderThickness="0" Padding="0" ItemsSource="{Binding RepositoryMods}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <VirtualizingStackPanel Margin="0,0,0,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
@@ -93,7 +96,7 @@
                   </Border>
 
                   <!-- ② 文字信息 -->
-                  <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                  <StackPanel Grid.Column="1" Margin="12,0,0,0">
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="14.5" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="380" />
                       <Border Margin="8,0,0,0" Padding="8,3" VerticalAlignment="Center" Background="#1EFFFFFF" CornerRadius="9">
