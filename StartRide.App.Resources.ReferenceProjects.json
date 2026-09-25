@@ -8,37 +8,37 @@
   {
     "name": "Microsoft.Extensions.DependencyInjection",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
     "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
     "name": "Microsoft.Extensions.Logging",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
     "name": "Microsoft.Extensions.Logging.Abstractions",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
     "name": "Microsoft.Extensions.Options",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
     "name": "Microsoft.Extensions.Primitives",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/dotnet/dotnet",
+    "projectUrl": "https://github.com/dotnet/runtime",
     "licenseText": "MIT License"
   },
   {
@@ -63,54 +63,6 @@
     "name": "System.Management",
     "copyrightNotice": "Copyright (c) .NET Foundation and Contributors. All rights reserved.",
     "projectUrl": "https://github.com/dotnet/runtime",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "CmlLib.Core",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/CmlLib/CmlLib.Core",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "CmlLib.Core.Commons",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/CmlLib/CmlLib.Core",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "CmlLib.Core.Auth.Microsoft",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/CmlLib/CmlLib.Core.Auth.Microsoft",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "XboxAuthNet",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/AlphaBs/XboxAuthNet",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "XboxAuthNet.Game",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/AlphaBs/XboxAuthNet",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "XboxAuthNet.Game.Msal",
-    "copyrightNotice": "Copyright (c) 2023 AlphaBs",
-    "projectUrl": "https://github.com/AlphaBs/XboxAuthNet",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "Microsoft.Identity.Client",
-    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/AzureAD/microsoft-authentication-library-for-dotnet",
-    "licenseText": "MIT License"
-  },
-  {
-    "name": "Microsoft.IdentityModel.Abstractions",
-    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
-    "projectUrl": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
     "licenseText": "MIT License"
   },
   {

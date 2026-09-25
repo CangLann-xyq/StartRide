@@ -89,7 +89,12 @@
     </GroupBox>
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_ReferenceProjectsSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
-        <ItemsControl ItemsSource="{Binding ReferenceProjects}">
+        <StackPanel>
+          <!-- 这一节列的是「界面与服务层直接使用的第三方库」。加一句说明有两个作用：
+               ① 让用户明白这不是"本项目的下游/上游"，而是标准的三方致谢；
+               ② 联机、游戏集成、更新这些真正属于 StartRide 的部分是自研的，说明里点出来。 -->
+          <TextBlock Margin="0,0,0,16" Text="{x:Static res:Strings.Settings_ReferenceProjectsDescription}" TextWrapping="Wrap" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <ItemsControl ItemsSource="{Binding ReferenceProjects}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
               <Grid Margin="0,0,0,18" HorizontalAlignment="Stretch">
@@ -106,7 +111,8 @@
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
-        </ItemsControl>
+          </ItemsControl>
+        </StackPanel>
       </Border>
     </GroupBox>
   </StackPanel>

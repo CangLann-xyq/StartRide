@@ -57,6 +57,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		session = new MultiplayerSession(settings);
 		session.StateChanged += OnSessionStateChanged;
 		session.Notice += OnSessionNotice;
+		session.Log += PluginLog;
 
 		// 启动本地桥：游戏内模组走 127.0.0.1:4444 接到这里，再经中继转发出去。
 		try
@@ -495,11 +496,25 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 	private static string DescribeError(string error) =>
 		string.IsNullOrWhiteSpace(error) ? "无响应" : error;
 
+	/// <summary>
+	/// 联机侧日志。原来只写 Debug.WriteLine —— Release 下没有调试器就是空操作，
+	/// 于是"进房后看不到对方的车"这种问题在用户机器上一条痕迹都不留，
+	/// 只能靠猜。现在统一落到启动器日志文件（%APPDATA%\StartRide\Log\launcher-*.log）。
+	/// </summary>
 	private static void PluginLog(string message)
 	{
 		try
 		{
 			System.Diagnostics.Debug.WriteLine("[StartRide] " + message);
+		}
+		catch
+		{
+			// 日志失败不影响流程
+		}
+
+		try
+		{
+			AppState.Current.Log("[联机] " + message);
 		}
 		catch
 		{

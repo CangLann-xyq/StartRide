@@ -330,6 +330,9 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	{
 		try
 		{
+			// 关于页四个按钮的目标地址都记一行日志 —— 「点了按钮跳到别人仓库」这种反馈，
+			// 有这行日志就能一秒分辨是旧包（日志里的 URL 是上游地址）还是真的改错了。
+			logger.LogInformation("About page external link. Target=source-repository Url={Url}", StartRide.Core.SiteLinks.GitHubRepo);
 			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.GitHubRepo))
 			{
 				statusService.Report(Strings.Status_OpenGithubRepositoryFailed);
@@ -347,6 +350,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	{
 		try
 		{
+			logger.LogInformation("About page external link. Target=project-home Url={Url}", StartRide.Core.SiteLinks.ProjectHome);
 			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.ProjectHome))
 			{
 				statusService.Report(Strings.Status_OpenProjectHomeFailed);
@@ -359,16 +363,21 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	}
 
 	/// <summary>
-	/// 打开反馈入口——本项目仓库的新建 issue 页（带"新功能建议"模板）。
-	/// 这里刻意不直连设置里的"建议与反馈"对话框，而是给出一条可复制的链接：
-	/// 用户可能还没登录 GitHub，先把页面打开比先弹自己写的对话框更有用。
+	/// 打开反馈入口——自有反馈页（startride.top/feedback.html?type=feature&amp;v=版本号）。
+	///
+	/// ⚠️ 这里原先指 GitHub 的新建 issue 页（带 feature_request.md 模板）。改掉的原因有两个：
+	///   1) GitHub 在国内直连打不开，用户点开等于没有反馈入口；
+	///   2) 关于页上「查看源码仓库」本来就已经是 GitHub，反馈入口再指 GitHub 会让人以为
+	///      反馈是提到别人的仓库里去 —— 关于页的四个按钮里，只有「查看源码仓库」该出去。
+	/// 反馈页与设置里的「建议与反馈」对话框现在同源（都走 SiteLinks.FeedbackUrl）。
 	/// </summary>
 	[RelayCommand]
 	private void OpenFeedback()
 	{
 		try
 		{
-			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.GitHubNewFeatureRequest))
+			logger.LogInformation("About page external link. Target=feedback Url={Url}", StartRide.Core.SiteLinks.FeedbackUrl("feature"));
+			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.FeedbackUrl("feature")))
 			{
 				statusService.Report(Strings.Status_OpenFeedbackPageFailed);
 			}

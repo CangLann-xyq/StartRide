@@ -43,6 +43,13 @@ namespace StartRide.Core
         public string CurrentRoomId { get; private set; } = "";
         public string LastError { get; private set; } = "";
 
+        /// <summary>
+        /// 中继下行帧数（**不含心跳**）。给游戏内 F8 面板的「中继下行 /10秒」
+        /// 和启动器日志用——把心跳算进去的话，"这一栏是 0" 就永远不成立，
+        /// 那条判据也就废了。
+        /// </summary>
+        public long FramesIn;
+
         public event Action<string>? Log;
         public event Action<bool, string>? ConnectionChanged;    // (connected, detail)
         public event Action<JsonElement>? VehicleReceived;
@@ -295,6 +302,8 @@ namespace StartRide.Core
                 // 首包诊断：每个类型第一次到达时记一条，排障时能看清链路到底通了哪些。
                 if (typeName is { Length: > 0 } && _seenTypes.Add(typeName))
                     Log?.Invoke($"中继首包：{typeName}");
+
+                if (typeName != "ping") Interlocked.Increment(ref FramesIn);
 
                 switch (typeName)
                 {

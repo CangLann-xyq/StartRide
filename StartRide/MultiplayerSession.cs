@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StartRide.Core
@@ -56,8 +57,18 @@ namespace StartRide.Core
 
             _bridge.GameReady += OnGameReady;
             _bridge.VehicleReceived += OnGameVehicle;
-            _bridge.VehCfgReceived += p => _relay.ForwardToRelay(p);
-            _bridge.ChatReceived += p => _relay.ForwardToRelay(p);
+            _bridge.VehCfgReceived += p =>
+            {
+                Interlocked.Increment(ref _statGameIn);
+                Interlocked.Increment(ref _statRelayOut);
+                _relay.ForwardToRelay(p);
+            };
+            _bridge.ChatReceived += p =>
+            {
+                Interlocked.Increment(ref _statGameIn);
+                Interlocked.Increment(ref _statRelayOut);
+                _relay.ForwardToRelay(p);
+            };
             _bridge.GameDisconnected += () =>
             {
                 State.GameConnected = false;
@@ -78,6 +89,8 @@ namespace StartRide.Core
             _relay.SystemReceived += OnRelaySystem;
             _relay.RoomClosed += OnRoomClosed;
             _relay.PlayersReceived += OnPlayers;
+
+            EnsureStatsTimer();
         }
 
         /// <summary>启动本地桥（进程启动时调用一次）。</summary>
@@ -188,6 +201,8 @@ namespace StartRide.Core
         private void OnGameVehicle(JsonElement packet)
         {
             State.VehiclePackets++;
+            Interlocked.Increment(ref _statGameIn);
+            Interlocked.Increment(ref _statRelayOut);
             if (!_loggedFirstOutboundVehicle)
             {
                 _loggedFirstOutboundVehicle = true;
@@ -199,6 +214,76 @@ namespace StartRide.Core
 
         private bool _loggedFirstOutboundVehicle;
         private bool _loggedFirstInboundVehicle;
+
+        // ==================== 数据流统计 ====================
+        //
+        // 游戏里 F8 面板那一节「数据流（哪一项为 0 就是哪里断了）」就是靠这里推下去的。
+        // 每个值是**最近一个统计周期的增量**，不是累计值——面板标题写的是「/10秒」。
+
+        private const int StatsIntervalSeconds = 10;
+
+        private long _statGameIn;          // 游戏 -> 本地桥
+        private long _statRelayOut;        // 本地桥 -> 中继
+        private long _statRelayVehicle;    // 中继 -> 本地桥 的车辆包
+        private long _lastGameIn;
+        private long _lastRelayOut;
+        private long _lastRelayIn;
+        private long _lastRelayVehicle;
+        private Timer? _statsTimer;
+
+        private void EnsureStatsTimer()
+        {
+            if (_statsTimer != null) return;
+            _statsTimer = new Timer(_ => PushStats(), null,
+                TimeSpan.FromSeconds(StatsIntervalSeconds),
+                TimeSpan.FromSeconds(StatsIntervalSeconds));
+        }
+
+        private void PushStats()
+        {
+            try
+            {
+                long gameIn = Interlocked.Read(ref _statGameIn);
+                long relayOut = Interlocked.Read(ref _statRelayOut);
+                long relayIn = _relay.FramesIn;
+                long relayVehicle = Interlocked.Read(ref _statRelayVehicle);
+
+                long dGameIn = gameIn - _lastGameIn;
+                long dRelayOut = relayOut - _lastRelayOut;
+                long dRelayIn = relayIn - _lastRelayIn;
+                long dRelayVehicle = relayVehicle - _lastRelayVehicle;
+
+                _lastGameIn = gameIn;
+                _lastRelayOut = relayOut;
+                _lastRelayIn = relayIn;
+                _lastRelayVehicle = relayVehicle;
+
+                _bridge.Send(new
+                {
+                    type = "stats",
+                    gameIn = (int)dGameIn,
+                    relayOut = (int)dRelayOut,
+                    relayIn = (int)dRelayIn,
+                    relayVehicle = (int)dRelayVehicle,
+                    relayConnected = _relay.IsConnected ? 1 : 0,
+                });
+
+                // 只有「人在房间里、游戏也在线」的那个会话才写日志。
+                // AppState 里还有一个从不连游戏的空会话，不过滤就会每 10 秒刷一行全 0。
+                if (State.RoomId.Length > 0 && _bridge.IsGameConnected)
+                {
+                    Log?.Invoke(
+                        $"数据流/10s 本地上报={dGameIn} 转中继={dRelayOut} 中继下行={dRelayIn} 远程车包={dRelayVehicle} "
+                        + $"| 累计 远程车包={relayVehicle} 远程车={State.RemoteVehicles} "
+                        + $"桥={(State.GameConnected ? "已连接" : "未连接")} "
+                        + $"中继={(_relay.IsConnected ? "已连接" : _relay.Transport)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke("数据流统计失败：" + ex.Message);
+            }
+        }
 
         private void PushRelayStateToGame()
         {
@@ -216,6 +301,7 @@ namespace StartRide.Core
         private void OnRelayVehicle(JsonElement packet)
         {
             State.RemoteVehicles++;
+            Interlocked.Increment(ref _statRelayVehicle);
             if (!_loggedFirstInboundVehicle)
             {
                 _loggedFirstInboundVehicle = true;
@@ -271,6 +357,7 @@ namespace StartRide.Core
 
         public void Dispose()
         {
+            try { _statsTimer?.Dispose(); } catch { }
             _bridge.Dispose();
             _relay.Dispose();
         }

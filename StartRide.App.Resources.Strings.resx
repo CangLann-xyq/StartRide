@@ -60,6 +60,7 @@
   <data name="Status_ShaderPackDownloadedFormat" xml:space="preserve"><value>{0} 已下载</value></data>
   <data name="GameSettings_ModLoaderCategory" xml:space="preserve"><value>可装模组</value></data>
   <data name="Settings_ReferenceProjectsSection" xml:space="preserve"><value>引用的项目</value></data>
+  <data name="Settings_ReferenceProjectsDescription" xml:space="preserve"><value>StartRide 的界面与服务层直接使用的第三方开源库，版权与许可归各自作者所有。联机中继、游戏集成、更新等模块均为本项目自行实现，不在此列。</value></data>
   <data name="Download_QuiltLibraryLatestTag" xml:space="preserve"><value>最新</value></data>
   <data name="Status_CapeRemoved" xml:space="preserve"><value>已移除当前披风</value></data>
   <data name="Status_ResourcePackDownloadingFormat" xml:space="preserve"><value>正在下载 {0}</value></data>

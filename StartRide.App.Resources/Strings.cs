@@ -651,6 +651,8 @@ public static class Strings
 
 	public static string Settings_ReferenceProjectsSection => Get("Settings_ReferenceProjectsSection");
 
+	public static string Settings_ReferenceProjectsDescription => Get("Settings_ReferenceProjectsDescription");
+
 	public static string Settings_LegalSection => Get("Settings_LegalSection");
 
 	public static string Settings_CopyrightNotice => Get("Settings_CopyrightNotice");
