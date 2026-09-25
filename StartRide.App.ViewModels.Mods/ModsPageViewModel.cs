@@ -70,8 +70,9 @@ public sealed class RepositoryModItem : ObservableObject
 
 	public string PageUrl { get; }
 
-	public RepositoryModItem(BeamNgModInfo info)
+	public RepositoryModItem(BeamNgModInfo info, Action<RepositoryModItem>? requestIcon = null)
 	{
+		this.requestIcon = requestIcon;
 		ResourceId = info.Id;
 		Slug = info.Slug;
 		Name = info.Name;
@@ -285,6 +286,14 @@ public sealed class ModsPageViewModel : ObservableObject
 	/// <summary>续拉每批页数。共 ~89 页，12 页/批 ≈ 8 批拉完全库。</summary>
 	private const int LoadMorePages = 12;
 
+	/// <summary>
+	/// 一次往界面集合里加多少条就让出一次 UI 线程。
+	/// 一批 1200 条、每条一次 CollectionChanged，一口气加完窗口会几百毫秒~数秒不响应
+	/// （用户看到的"程序未响应"）。分批 + Dispatcher.Yield(Background) 之后，
+	/// 渲染与输入始终优先，列表是"一条条长出来"的。
+	/// </summary>
+	private const int UiChunkSize = 120;
+
 	/// <summary>图标下载并发上限（图标很小，但别把仓库列表的带宽抢光）。</summary>
 	private static readonly SemaphoreSlim IconGate = new(6);
 
@@ -367,14 +376,32 @@ public sealed class ModsPageViewModel : ObservableObject
 	public bool IsLoadingRepository
 	{
 		get => isLoadingRepository;
-		private set => SetProperty(ref isLoadingRepository, value);
+		private set
+		{
+			if (SetProperty(ref isLoadingRepository, value))
+			{
+				OnPropertyChanged(nameof(IsRepositoryBusy));
+			}
+		}
 	}
 
 	public bool IsLoadingMore
 	{
 		get => isLoadingMore;
-		private set => SetProperty(ref isLoadingMore, value);
+		private set
+		{
+			if (SetProperty(ref isLoadingMore, value))
+			{
+				OnPropertyChanged(nameof(IsRepositoryBusy));
+			}
+		}
 	}
+
+	/// <summary>
+	/// 在线仓库正在忙（首次拉取 / 续拉）—— 加载动画唯一的绑定源。
+	/// 单独立一个属性是为了让 XAML 只盯一个信号：上面两个 bool 变化时都会通知它。
+	/// </summary>
+	public bool IsRepositoryBusy => IsLoadingRepository || IsLoadingMore;
 
 	public double DownloadProgress
 	{
@@ -617,8 +644,8 @@ public sealed class ModsPageViewModel : ObservableObject
 		OnPropertyChanged(nameof(HasRepositoryMods));
 		restoredFromDisk = false;
 
-		// ① 有本地缓存先秒开
-		if (TryRestoreFromDisk())
+		// ① 有本地缓存先秒开（读盘 + 反序列化都在后台线程，见 TryRestoreFromDiskAsync）
+		if (await TryRestoreFromDiskAsync(ct).ConfigureAwait(true))
 		{
 			restoredFromDisk = true;
 			IsLoadingRepository = false;
@@ -633,7 +660,7 @@ public sealed class ModsPageViewModel : ObservableObject
 			var (firstPage, total) = await BeamNgRepositoryClient.FetchFirstPageAsync(slug, ct).ConfigureAwait(true);
 			ct.ThrowIfCancellationRequested();
 			totalPages = Math.Max(total, 1);
-			AppendItems(firstPage);
+			await AppendItemsAsync(firstPage, ct).ConfigureAwait(true);
 			nextPage = 2;
 			UpdateRepositoryStatus();
 
@@ -710,7 +737,7 @@ public sealed class ModsPageViewModel : ObservableObject
 				nextPage = Math.Max(2, allRepositoryMods.Count / 100 + 1);
 				if (head.Count > 0)
 				{
-					AppendItems(head); // 按 ResourceId 去重，重复的不会进列表
+					await AppendItemsAsync(head, cts.Token).ConfigureAwait(true); // 按 ResourceId 去重，重复的不会进列表
 				}
 				restoredFromDisk = false;
 			}
@@ -733,8 +760,8 @@ public sealed class ModsPageViewModel : ObservableObject
 				.ConfigureAwait(true);
 			cts.Token.ThrowIfCancellationRequested();
 
-			AppendItems(batch.Items);
-			SaveCacheToDisk(); // 每批落一次盘：下次启动就能秒开（只存列表页字段）
+			await AppendItemsAsync(batch.Items, cts.Token).ConfigureAwait(true);
+			SaveCacheToDisk(); // 每批落一次盘（写盘在后台，不占 UI 线程）：下次启动就能秒开
 
 			if (batch.ReachedEnd)
 			{
@@ -784,19 +811,30 @@ public sealed class ModsPageViewModel : ObservableObject
 	/// 旧实现只写前者，于是状态栏"已加载 1087 个"而列表永远停在 100 条
 	/// （用户报的"拉取第一页后其他页拉取不出来"就是这个）。
 	/// 用增量 Add 而不是 Clear+重建，避免每次续拉都把滚动位置弹回顶部。
+	///
+	/// ⚠️ 必须分批 + 让出 UI 线程：一批 1200 条、每条一次 CollectionChanged，
+	/// 一口气加完窗口会几百毫秒~数秒不响应（用户看到的"程序未响应"）。
+	/// 每 UiChunkSize 条 await 一次 Dispatcher.Yield(Background)：渲染与输入优先。
+	///
+	/// ⚠️ 图标**不在这里预取**：交给 RepositoryModItem.IconSource 的懒加载
+	/// （虚拟化列表只实例化可视区那十几个容器，图标请求量下降两个数量级）。
+	/// 旧实现在这里对每一条都 `_ = LoadIconAsync(item)`，把 8800+ 条全打出去，
+	/// 既拖慢列表又抢走列表页本身的带宽 —— 用户感觉到的"拉取慢"有一部分就是它。
 	/// </summary>
-	private void AppendItems(IEnumerable<BeamNgModInfo> items)
+	private async Task AppendItemsAsync(IEnumerable<BeamNgModInfo> items, CancellationToken ct)
 	{
 		var existing = new HashSet<long>(allRepositoryMods.Select(m => m.ResourceId));
 		HashSet<string> local = LocalModFileNames();
 		int added = 0;
+		int sinceYield = 0;
 		foreach (BeamNgModInfo info in items)
 		{
+			ct.ThrowIfCancellationRequested();
 			if (!existing.Add(info.Id))
 			{
 				continue;
 			}
-			var item = new RepositoryModItem(info);
+			var item = new RepositoryModItem(info, QueueIconLoad);
 			item.IsDownloaded = local.Contains(item.Slug + ".zip") || local.Contains(item.Slug);
 			allRepositoryMods.Add(item);
 
@@ -805,7 +843,12 @@ public sealed class ModsPageViewModel : ObservableObject
 				RepositoryMods.Add(item);
 				added++;
 			}
-			_ = LoadIconAsync(item);
+			if (++sinceYield >= UiChunkSize)
+			{
+				sinceYield = 0;
+				await System.Windows.Threading.Dispatcher
+						.Yield(System.Windows.Threading.DispatcherPriority.Background);
+			}
 		}
 		if (added > 0)
 		{
@@ -907,21 +950,39 @@ public sealed class ModsPageViewModel : ObservableObject
 		public string Icon { get; set; } = "";
 	}
 
-	private bool TryRestoreFromDisk()
+	/// <summary>
+	/// 从磁盘缓存恢复列表。
+	/// ⚠️ 读盘 + 反序列化必须离开 UI 线程：12 小时内的缓存实测 1 MB 量级、1000+ 条，
+	/// 在 UI 线程做 `File.ReadAllText` + `JsonSerializer.Deserialize` 就是
+	/// "点进在线仓库先卡一下"（和"程序未响应"是同一类问题）。
+	/// 这里只把"读 + 解"丢给线程池，真正要碰界面集合的 AppendItemsAsync 仍在 UI 线程跑。
+	/// </summary>
+	private async Task<bool> TryRestoreFromDiskAsync(CancellationToken ct)
 	{
 		try
 		{
 			string path = RepoCachePath(BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory));
-			if (!File.Exists(path))
+			RepoCacheDto? dto = await Task.Run(() =>
 			{
-				return false;
-			}
-			// 只认 12 小时内的缓存，太旧就别拿出来误导人
-			if (DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > TimeSpan.FromHours(12))
-			{
-				return false;
-			}
-			RepoCacheDto? dto = JsonSerializer.Deserialize<RepoCacheDto>(File.ReadAllText(path));
+				try
+				{
+					if (!File.Exists(path))
+					{
+						return null;
+					}
+					// 只认 12 小时内的缓存，太旧就别拿出来误导人
+					if (DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > TimeSpan.FromHours(12))
+					{
+						return null;
+					}
+					RepoCacheDto? d = JsonSerializer.Deserialize<RepoCacheDto>(File.ReadAllText(path));
+					return d?.Items == null || d.Items.Count == 0 ? null : d;
+				}
+				catch
+				{
+					return null;
+				}
+			}, ct).ConfigureAwait(true);
 			if (dto?.Items == null || dto.Items.Count == 0)
 			{
 				return false;
@@ -929,7 +990,7 @@ public sealed class ModsPageViewModel : ObservableObject
 			totalPages = Math.Max(dto.TotalPages, 1);
 			nextPage = dto.Items.Count / 100 + 1;
 			reachedRepositoryEnd = dto.ReachedEnd;
-			var infos = dto.Items.Select(r => new BeamNgModInfo
+			await AppendItemsAsync(dto.Items.Select(r => new BeamNgModInfo
 			{
 				Id = r.Id,
 				Slug = r.Slug,
@@ -941,10 +1002,13 @@ public sealed class ModsPageViewModel : ObservableObject
 				RatingText = r.Rating,
 				DownloadsText = r.Downloads,
 				IconUrl = r.Icon,
-			});
-			AppendItems(infos);
+			}), ct).ConfigureAwait(true);
 			UpdateRepositoryStatus();
 			return RepositoryMods.Count > 0;
+		}
+		catch (OperationCanceledException)
+		{
+			throw;   // 切分类/刷新导致的取消要照常向上抛，别当成"没有缓存"
 		}
 		catch
 		{
@@ -952,6 +1016,13 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>
+	/// 把当前列表落盘（下次启动秒开）。
+	/// ⚠️ 序列化 + 写盘同样必须离开 UI 线程：1000+ 条每批序列化一次是几十毫秒，
+	/// 再加写 1 MB 文件，每批都这么干 = 每批卡一下。
+	/// 这里只在 UI 线程取"快照"（读属性），序列化与磁盘 IO 丢给线程池；
+	/// 用递增序号保证"只有最新快照才落盘"，避免后台写乱序互相覆盖。
+	/// </summary>
 	private void SaveCacheToDisk()
 	{
 		try
@@ -978,15 +1049,41 @@ public sealed class ModsPageViewModel : ObservableObject
 					Icon = m.IconUrl,
 				}).ToList(),
 			};
-			Directory.CreateDirectory(CacheRoot);
 			string path = RepoCachePath(BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory));
-			string tmp = path + ".part";
-			File.WriteAllText(tmp, JsonSerializer.Serialize(dto));
-			File.Move(tmp, path, overwrite: true);
+			int seq = ++cacheSnapshotSeq;
+			_ = Task.Run(() => WriteCacheFile(path, dto, seq));
 		}
 		catch
 		{
 			// 缓存写失败不影响使用
+		}
+	}
+
+	private static readonly object CacheWriteGate = new();
+	private int cacheSnapshotSeq;
+	private int cacheWrittenSeq;
+
+	/// <summary>后台写缓存（顺序保护见 SaveCacheToDisk）。</summary>
+	private void WriteCacheFile(string path, RepoCacheDto dto, int seq)
+	{
+		lock (CacheWriteGate)
+		{
+			if (seq < cacheWrittenSeq)
+			{
+				return; // 已经有更新的快照落过盘了
+			}
+			try
+			{
+				Directory.CreateDirectory(CacheRoot);
+				string tmp = path + ".part";
+				File.WriteAllText(tmp, JsonSerializer.Serialize(dto));
+				File.Move(tmp, path, overwrite: true);
+				cacheWrittenSeq = seq;
+			}
+			catch
+			{
+				// 缓存写失败不影响使用
+			}
 		}
 	}
 
@@ -1135,11 +1232,38 @@ public sealed class ModsPageViewModel : ObservableObject
 	/// <summary>按搜索词过滤在线列表（搜索作用于已加载条目，不重新拉取）。</summary>
 	private void ApplyFilter()
 	{
-		IList<RepositoryModItem> filtered = allRepositoryMods.Where(PassesFilter).ToList();
+		// ⚠️ 这里也是"卡一下"的来源：全库 1000+ 条时 Clear + 逐条 Add 全在 UI 线程做，
+		// 每敲一个字就重建一次列表。改成后台算 + 分批让出 UI 线程（见 ApplyFilterAsync）。
+		int version = ++filterVersion;
+		_ = ApplyFilterAsync(version);
+	}
+
+	private int filterVersion;
+
+	/// <summary>过滤的实际执行体：筛选在后台算，界面集合改动分批回 UI 线程。</summary>
+	private async Task ApplyFilterAsync(int version)
+	{
+		List<RepositoryModItem> filtered = await Task.Run(
+			() => allRepositoryMods.Where(PassesFilter).ToList()).ConfigureAwait(true);
+		if (version != filterVersion)
+		{
+			return; // 用户又敲了一个字，这一轮作废
+		}
 		RepositoryMods.Clear();
+		int sinceYield = 0;
 		foreach (RepositoryModItem m in filtered)
 		{
+			if (version != filterVersion)
+			{
+				return;
+			}
 			RepositoryMods.Add(m);
+			if (++sinceYield >= UiChunkSize)
+			{
+				sinceYield = 0;
+				await System.Windows.Threading.Dispatcher
+						.Yield(System.Windows.Threading.DispatcherPriority.Background);
+			}
 		}
 		OnPropertyChanged(nameof(HasRepositoryMods));
 	}

@@ -86,17 +86,29 @@ namespace StartRide.Core
         // （几百字节）就够，下载仍由本机直连 CDN。服务器带宽不会被拖垮。
         private const string RelayBase = "https://windseek.cloud/api/startride/repo";
 
-        // ⚠️ 下面两个字段**必须声明在 ListChannels/DownloadChannels 之前**：
-        // C# 的静态字段初始化器是**按代码书写顺序**执行的，而 BuildChannels() 在
-        // ListChannels 的初始化器里就会读到 DirectBeamNgReachableLazy ——
-        // 声明在后面的话那一刻它还是 null，静态构造直接 NullReferenceException
-        // （整个在线仓库功能全挂）。实测踩过：TypeInitializationException。
+        // ── 本机可达性探测：**必须异步**，绝不能在静态初始化器里做 ──────────────
+        // ⚠️ 2026-09-25 修「点开在线仓库，窗口卡住显示『程序未响应』几秒，然后自己又好了」：
+        // 旧实现在静态字段初始化器里同步探测 —— `TcpReachable(…).Wait(2500)`（直连）
+        // 加上 `ResolveUsableProxy()` 里的 `.Wait(1500)`（代理），于是**类第一次被触达的
+        // 那条线程**要白等最多 4 秒。而第一次触达往往正是 UI 线程（点「刷新」的第一句
+        // `InvalidatePageCache()`；或「在线仓库」按钮 setter 里同步跑的那段加载）。
+        // 现在：探测丢进线程池，**探完之前通道里只有中继** —— 那本来也是国内唯一可靠的
+        // 一条（见类顶部注释），探完再把代理/直连无缝加进来。任何调用点都不再等它。
+        // 约束：静态字段初始化器仍按书写顺序执行，这里只允许放「纯分配、不联网」的初始化。
 
-        /// <summary>beamng.com 是否本机可达（TCP 443 探一次，结果缓存）。</summary>
-        private static readonly Lazy<bool> DirectBeamNgReachableLazy =
-            new(() => TcpReachable("www.beamng.com", 443, 2500), isThreadSafe: true);
+        /// <summary>beamng.com 是否本机可达（后台探一次；探到之前一律当作不可达）。</summary>
+        private static volatile bool directBeamNgReachable;
 
-        private static bool DirectBeamNgReachable => DirectBeamNgReachableLazy.Value;
+        /// <summary>探测到的本机可用代理（null = 没探到 / 没有），只在探测任务里赋值。</summary>
+        private static IWebProxy? usableProxy;
+
+        private static int channelProbeStarted;
+
+        /// <summary>探测完成后重建的通道表；为 null 表示探测还没跑完（此时只用中继）。</summary>
+        private static volatile HttpClient[]? probedListChannels;
+        private static volatile HttpClient[]? probedDownloadChannels;
+
+        private static bool DirectBeamNgReachable => directBeamNgReachable;
 
         /// <summary>中继专用小客户端（访问自有服务器，强制直连、不走本机代理）。</summary>
         private static readonly HttpClient RelayHttp = CreateRelayHttp();
@@ -107,11 +119,71 @@ namespace StartRide.Core
         // （Clash 之类：环境变量 http_proxy=http://127.0.0.1:1786 / Windows 系统代理）往往能通。
         // 旧代码写死 `UseProxy = false`，等于把唯一可用的那条路砍掉 —— 用户看到的就是
         // "拉取失败 / 剩下的拉不出来"。现在多条通道轮流试，谁通用谁，并记住上次成功的。
-        // 注意：中继只用于列表/详情页（网页），下载通道里没有它（见 BuildChannels）。
-        private static readonly HttpClient[] ListChannels = BuildChannels(list: true);
-        private static readonly HttpClient[] DownloadChannels = BuildChannels(list: false);
+        // 注意：中继只用于列表/详情页（网页），下载通道里没有它（见 BuildChannelSet）。
+        // ⚠️ 下面这几个 HttpClient **只是分配对象、不联网**（连 DNS 都不查），
+        // 放静态初始化器里是安全的；真正联网的探测见 EnsureChannelProbeStarted()。
+        private static readonly HttpClient DirectListHttp = CreateListHttp(null, relay: false);
+        private static readonly HttpClient DirectDownloadHttp = CreateDownloadHttp(null);
+        private static readonly HttpClient RelayListHttp = CreateListHttp(null, relay: true);
+
+        /// <summary>探测完成前的兜底：只有中继这一条（国内唯一稳定可达的通道）。</summary>
+        private static readonly HttpClient[] RelayOnlyListChannels = { RelayListHttp };
+
+        /// <summary>探测完成前的下载兜底：直连（下载只认本机网络，不经服务器）。</summary>
+        private static readonly HttpClient[] DirectOnlyDownloadChannels = { DirectDownloadHttp };
+
         private static volatile int preferredListChannel;
         private static volatile int preferredDownloadChannel;
+
+        /// <summary>列表/详情用的通道表（探测完成后自动换成含代理/直连的完整表）。</summary>
+        private static HttpClient[] ListChannels => probedListChannels ?? RelayOnlyListChannels;
+
+        /// <summary>下载用的通道表（**永远不含中继**：字节流不经服务器）。</summary>
+        private static HttpClient[] DownloadChannels => probedDownloadChannels ?? DirectOnlyDownloadChannels;
+
+        /// <summary>
+        /// 启动一次后台探测（幂等），填好 probedListChannels / probedDownloadChannels。
+        /// 它只做"起个线程池任务"这一件事，**绝不阻塞调用线程** ——
+        /// 这正是"程序未响应"的根治点，别改回同步探测。
+        /// </summary>
+        private static void EnsureChannelProbeStarted()
+        {
+            if (Interlocked.CompareExchange(ref channelProbeStarted, 1, 0) != 0)
+            {
+                return;
+            }
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    directBeamNgReachable = TcpReachable("www.beamng.com", 443, 2500);
+                }
+                catch
+                {
+                    directBeamNgReachable = false;
+                }
+                try
+                {
+                    usableProxy = ResolveUsableProxy();
+                }
+                catch
+                {
+                    usableProxy = null;
+                }
+                try
+                {
+                    probedListChannels = BuildChannelSet(list: true, usableProxy, directBeamNgReachable);
+                    probedDownloadChannels = BuildChannelSet(list: false, usableProxy, directBeamNgReachable);
+                    // 通道表换了，之前记住的下标可能指向另一条通道 → 归零重新学习
+                    preferredListChannel = 0;
+                    preferredDownloadChannel = 0;
+                }
+                catch
+                {
+                    // 极端情况下保持"只有中继/直连"也能用
+                }
+            });
+        }
 
         /// <summary>
         /// 把发往 www.beamng.com 的请求改写到自有服务器的只读中继。
@@ -192,7 +264,8 @@ namespace StartRide.Core
         }
 
         /// <summary>
-        /// 构建通道数组。顺序 = 优先尝试顺序，失败会自动换下一条（见 ListChannelFor）。
+        /// 构建通道数组（**纯函数，不联网**）。顺序 = 优先尝试顺序，失败自动换下一条（见 ListChannelFor）。
+        /// 只在 EnsureChannelProbeStarted() 的后台任务里调用，参数是探测结果。
         ///
         /// 列表/详情（list=true）：
         ///   [本机代理?] → [直连（仅当探测到 beamng.com 可达）] → [服务器中继]
@@ -203,24 +276,22 @@ namespace StartRide.Core
         ///   只有 [本机代理?] → [直连]。**不放中继** —— 字节流不经服务器，
         ///   下载前会先把 beamng 的 download 直链解析成 CDN 地址（见 ResolveDirectCdnUrlAsync）。
         /// </summary>
-        private static HttpClient[] BuildChannels(bool list)
+        private static HttpClient[] BuildChannelSet(bool list, IWebProxy? proxy, bool directReachable)
         {
-            IWebProxy? proxy = ResolveUsableProxy();
             var channels = new List<HttpClient>(3);
-
             if (proxy != null)
             {
                 channels.Add(list ? CreateListHttp(proxy, relay: false) : CreateDownloadHttp(proxy));
             }
-            if (proxy == null || DirectBeamNgReachable)
+            if (proxy == null || directReachable)
             {
-                channels.Add(list ? CreateListHttp(null, relay: false) : CreateDownloadHttp(null));
+                channels.Add(list ? DirectListHttp : DirectDownloadHttp);
             }
             if (list)
             {
                 // 中继通道**强制直连**（不借用本机代理）：windseek.cloud 是国内服务器，
                 // 直连一定通；借道代理反而可能因为代理规则/失效把唯一可靠的通道弄没。
-                channels.Add(CreateListHttp(null, relay: true));
+                channels.Add(RelayListHttp);
             }
             return channels.ToArray();
         }
@@ -228,8 +299,19 @@ namespace StartRide.Core
         /// <summary>取第 attempt 次尝试要用的列表通道（首选通道优先）。</summary>
         private static HttpClient ListChannelFor(int attempt)
         {
+            // ⚠️ 通道表是可以在运行中被后台探测换掉的（1 条 → 2~3 条），
+            // 所以这里每次都重新取、并把下标夹到合法范围，别缓存 ch.Length。
             HttpClient[] ch = ListChannels;
-            return ch.Length == 1 ? ch[0] : ch[(preferredListChannel + attempt) % ch.Length];
+            if (ch.Length <= 1)
+            {
+                return ch[0];
+            }
+            int start = preferredListChannel;
+            if (start < 0 || start >= ch.Length)
+            {
+                start = 0;
+            }
+            return ch[(start + attempt) % ch.Length];
         }
 
         /// <summary>某次尝试成功了 → 记住这条通道，下次先用它。</summary>
@@ -238,7 +320,12 @@ namespace StartRide.Core
             HttpClient[] ch = ListChannels;
             if (ch.Length > 1)
             {
-                preferredListChannel = (preferredListChannel + attempt) % ch.Length;
+                int start = preferredListChannel;
+                if (start < 0 || start >= ch.Length)
+                {
+                    start = 0;
+                }
+                preferredListChannel = (start + attempt) % ch.Length;
             }
         }
 
@@ -295,6 +382,7 @@ namespace StartRide.Core
         /// </summary>
         private static async Task<string> ResolveDirectCdnUrlAsync(string url, CancellationToken ct)
         {
+            EnsureChannelProbeStarted();
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? u))
             {
                 return url;
@@ -332,7 +420,7 @@ namespace StartRide.Core
         }
 
         /// <summary>中继专用小客户端（访问自有服务器，强制直连、不走本机代理）。</summary>
-        /// <remarks>声明位置见类顶部的说明：必须早于 ListChannels/DownloadChannels。</remarks>
+        /// <remarks>中继客户端不进通道表（RelayListHttp 才是表里那个），这里只给 /resolve 用。</remarks>
         private static HttpClient CreateRelayHttp()
         {
             var handler = new SocketsHttpHandler
@@ -568,6 +656,7 @@ namespace StartRide.Core
 
         private static async Task<string> FetchPageWithRetryAsync(string? categorySlug, int page, CancellationToken ct)
         {
+            EnsureChannelProbeStarted();
             string url = PageUrl(categorySlug, page);
             if (TryGetCachedPage(url, out string cached))
             {
@@ -675,6 +764,7 @@ namespace StartRide.Core
         /// </summary>
         public static async Task<BeamNgResourceDetail?> FetchResourceDetailAsync(string pageUrl, CancellationToken ct)
         {
+            EnsureChannelProbeStarted();
             for (int attempt = 0; ; attempt++)
             {
                 HttpClient http = ListChannelFor(attempt);
@@ -821,6 +911,7 @@ namespace StartRide.Core
         /// <param name="maxSegments">分段上限；&lt;=0 表示按体积自动（设置页的「下载线程数」传进来）。</param>
         public static async Task DownloadToFileAsync(string downloadUrl, string targetPath, Action<BeamNgDownloadProgress>? progress, CancellationToken ct, int maxSegments = 0)
         {
+            EnsureChannelProbeStarted();
             // beamng 的 download 地址会 302 到 Cloudflare R2。国内 www.beamng.com 不通但 R2 通
             // （实测本机 R2 HTTP 206 / 1.0s），所以先请服务器把跳转目标解出来（几百字节），
             // 几百 MB 的包仍由本机直连 CDN —— 服务器带宽不参与大流量。
@@ -1044,11 +1135,16 @@ namespace StartRide.Core
             }
             // await 必须在 using 作用域内完成：302→R2 重定向跟随期间不能提前释放 request
             HttpClient[] ch = DownloadChannels;
-            HttpClient http = ch.Length == 1 ? ch[0] : ch[(preferredDownloadChannel + channelAttempt) % ch.Length];
+            int start = preferredDownloadChannel;
+            if (start < 0 || start >= ch.Length)
+            {
+                start = 0;
+            }
+            HttpClient http = ch.Length == 1 ? ch[0] : ch[(start + channelAttempt) % ch.Length];
             HttpResponseMessage resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             if (ch.Length > 1)
             {
-                preferredDownloadChannel = (preferredDownloadChannel + channelAttempt) % ch.Length;
+                preferredDownloadChannel = (start + channelAttempt) % ch.Length;
             }
             return resp;
         }
