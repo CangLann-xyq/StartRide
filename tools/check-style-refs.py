@@ -84,7 +84,7 @@ def main():
 
     # 2) App.xaml 里 styles 之前合并的字典（主题色/共享资源）
     app_paths = []
-    for cand in ("Launcher.App.App.xaml", "Launcher.App.xaml", "App.xaml"):
+    for cand in ("StartRide.App.App.xaml", "StartRide.App.xaml", "App.xaml"):
         p = os.path.join(ROOT, cand)
         if os.path.exists(p):
             app_paths.append(p)

@@ -21,6 +21,11 @@ namespace StartRide.Core
     {
         private static readonly IReadOnlyList<LauncherSkinRecord> Empty = Array.Empty<LauncherSkinRecord>();
 
+        public StartRideSkinLibraryService()
+        {
+            Serilog.Log.Information("StartRide: StartRideSkinLibraryService 已构造（自有皮肤库生效）");
+        }
+
         public IReadOnlyList<LauncherSkinRecord> GetAvailableSkins(LauncherAccount account) => Empty;
 
         public IReadOnlyList<LauncherSkinRecord> GetSharedSkins() => Empty;

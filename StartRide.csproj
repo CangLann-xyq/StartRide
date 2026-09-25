@@ -19,8 +19,8 @@
   <ItemGroup>
     <!-- App 的入口 Main 由 WPF 从 ApplicationDefinition 的 XAML 生成；
          反编译出的文件名不是约定的 App.xaml，所以要显式声明，否则报 CS5001。 -->
-    <Page Remove="Launcher.App.App.xaml" />
-    <ApplicationDefinition Include="Launcher.App.App.xaml" />
+    <Page Remove="StartRide.App.App.xaml" />
+    <ApplicationDefinition Include="StartRide.App.App.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="assets\icons\block\forge_logo.svg" />
@@ -107,7 +107,7 @@
     <None Remove="assets\icons\block\redstone_block.png" />
     <None Remove="assets\icons\account_page\third_party_login.svg" />
     <None Remove="assets\icons\block\diamond_block.png" />
-    <None Remove="Launcher.App.Resources.ReferenceProjects.json" />
+    <None Remove="StartRide.App.Resources.ReferenceProjects.json" />
     <Resource Include="assets\icons\beamng\beamng.svg" />
     <Resource Include="assets\icons\block\forge_logo.svg" />
     <Resource Include="effects\shaders\progressivegaussianblur.ps" />
@@ -193,7 +193,7 @@
     <Resource Include="assets\icons\block\redstone_block.png" />
     <Resource Include="assets\icons\account_page\third_party_login.svg" />
     <Resource Include="assets\icons\block\diamond_block.png" />
-    <EmbeddedResource Include="Launcher.App.Resources.ReferenceProjects.json" LogicalName="Launcher.App.Resources.ReferenceProjects.json" />
+    <EmbeddedResource Include="StartRide.App.Resources.ReferenceProjects.json" LogicalName="StartRide.App.Resources.ReferenceProjects.json" />
     <!-- StartRide：BeamNG 语境图标 -->
     <Resource Include="assets\icons\beamng\car.svg" />
     <Resource Include="assets\icons\beamng\map.svg" />

@@ -208,15 +208,15 @@ namespace StartRide.Core
             switch (item.State)
             {
                 case GameFileState.Ok:
-                    return Launcher.App.Resources.Strings.Settings_GameConfigStatusOk;
+                    return StartRide.App.Resources.Strings.Settings_GameConfigStatusOk;
                 case GameFileState.Fixed:
-                    return Launcher.App.Resources.Strings.Settings_GameHealthStatusFixed;
+                    return StartRide.App.Resources.Strings.Settings_GameHealthStatusFixed;
                 case GameFileState.NeedsSteam:
-                    return Launcher.App.Resources.Strings.Settings_GameHealthStatusNeedSteam;
+                    return StartRide.App.Resources.Strings.Settings_GameHealthStatusNeedSteam;
                 case GameFileState.Failed:
-                    return Launcher.App.Resources.Strings.Settings_GameHealthStatusFailed;
+                    return StartRide.App.Resources.Strings.Settings_GameHealthStatusFailed;
                 default:
-                    return Launcher.App.Resources.Strings.Settings_GameHealthStatusNotApplicable;
+                    return StartRide.App.Resources.Strings.Settings_GameHealthStatusNotApplicable;
             }
         }
 

@@ -9,7 +9,7 @@
 import re
 import sys
 
-RESX = r"D:\code\all\_bh_xaml\Launcher.App.Resources.Strings.resx"
+RESX = r"D:\code\all\_bh_xaml\StartRide.App.Resources.Strings.resx"
 
 # ---------- 第一层：术语替换（按顺序，先长后短） ----------
 TERMS = [

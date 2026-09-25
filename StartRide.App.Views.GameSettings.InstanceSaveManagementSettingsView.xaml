@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.GameSettings.InstanceSaveManagementSettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:gameSettings="clr-namespace:StartRide.App.ViewModels.GameSettings" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:views="clr-namespace:StartRide.App.Views.GameSettings" x:Name="Root" Focusable="False">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/StartRide;component/Views/GameSettings/GameSettingsSectionResources.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:SaveManagementInfoPanelItem}}" DataType="{x:Type gameSettings:SaveManagementInfoPanelItem}">
+        <GroupBox Header="{x:Static res:Strings.GameSettings_SaveManagementInfoSection}" Margin="0,0,0,12" Style="{StaticResource RideSectionStyle}">
+          <StackPanel>
+            <Border Style="{StaticResource RideFieldSurfaceStyle}">
+              <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding DataContext.InstalledSummaryText, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" />
+            </Border>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Margin="0,0,8,4" Content="{x:Static res:Strings.GameSettings_SaveManagementOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.OpenSaveFolderCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" />
+              <Button Margin="0,0,8,4" Content="{x:Static res:Strings.GameSettings_SaveManagementLocalImportButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.ImportLocalSaveCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" />
+            </WrapPanel>
+          </StackPanel>
+        </GroupBox>
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:SaveManagementListSectionItem}}" DataType="{x:Type gameSettings:SaveManagementListSectionItem}">
+        <TextBlock Text="{x:Static res:Strings.GameSettings_SaveManagementSaveListSection}" Style="{StaticResource ManagementListSectionHeaderTextStyle}" />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:SaveManagementSaveItemViewModel}}" DataType="{x:Type gameSettings:SaveManagementSaveItemViewModel}">
+        <controls:ListPageItemButton Style="{StaticResource ListPageItemButtonEntranceStyle}" Title="{Binding Title}" Subtitle="{Binding Subtitle}" TrailingText="{Binding TrailingText}" IconSource="{Binding IconSource}" IconKey="{Binding IconKey}" IsSelected="{Binding IsSelected}" IsFirstVisible="{Binding Tag.IsFirstVisible, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" IsLastVisible="{Binding Tag.IsLastVisible, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" IsPreviousItemHighlighted="{Binding Tag.IsPreviousItemHighlighted, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" ShouldPlayEnterAnimation="{Binding Tag.ShouldPlayEnterAnimation, Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" EnterAnimationIndex="{Binding Tag.EnterAnimationIndex, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Command="{Binding DataContext.SelectSaveCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" CommandParameter="{Binding}">
+          <controls:ListPageItemButton.TrailingContent>
+            <StackPanel Orientation="Horizontal">
+              <Button ToolTip="{x:Static res:Strings.GameSettings_OpenInstanceFolderTooltip}" Style="{StaticResource InlineIconButtonStyle}" Command="{Binding DataContext.OpenSaveLocationCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" CommandParameter="{Binding}">
+                <controls:SvgIcon Width="16" Height="16" IconKey="general/general_folder" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+              </Button>
+              <Button Margin="4,0,0,0" ToolTip="{x:Static res:Strings.Delete_Button}" Style="{StaticResource SecondaryMenuDeleteButtonStyle}" Command="{Binding DataContext.RequestDeleteSaveCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceSaveManagementSettingsView}}}" CommandParameter="{Binding}">
+                <controls:SvgIcon Width="16" Height="16" IconKey="general/general_delete" Style="{StaticResource DangerActionSvgIconStyle}" />
+              </Button>
+            </StackPanel>
+          </controls:ListPageItemButton.TrailingContent>
+        </controls:ListPageItemButton>
+      </DataTemplate>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Grid ClipToBounds="True">
+    <controls:DeferredListContentHost IsListVisible="{Binding CanShowSaveScrollableContent}">
+      <ListBox ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" behaviors:VirtualizedListItemStateBehavior.IsEnabled="True" behaviors:VirtualizedListItemStateBehavior.ContentTopOffset="132" ItemsSource="{Binding VisibleSaveListItems}" SelectedItem="{Binding SelectedSave, Mode=OneWay}" behaviors:VirtualizedListItemStateBehavior.EntranceAnimationToken="{Binding ListEntranceAnimationToken}" behaviors:VirtualizedListItemStateBehavior.ScrollResetToken="{Binding ListEntranceAnimationToken}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel Margin="12,132,12,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ListBox>
+    </controls:DeferredListContentHost>
+    <TextBlock Margin="12,260,12,0" Text="{x:Static res:Strings.GameSettings_SaveManagementLoading}" Style="{StaticResource PageEmptyStateTextStyle}" Visibility="{Binding CanShowSaveLoadingState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+    <TextBlock Margin="12,260,12,0" Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding SaveEmptyMessage}" Visibility="{Binding CanShowSaveEmptyState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+    <TextBlock Margin="12,260,12,0" Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding SaveEmptyMessage}" Visibility="{Binding CanShowNoSavesEmptyState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+  </Grid>
+</UserControl>

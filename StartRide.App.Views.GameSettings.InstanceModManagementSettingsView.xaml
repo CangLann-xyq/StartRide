@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.GameSettings.InstanceModManagementSettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:gameSettings="clr-namespace:StartRide.App.ViewModels.GameSettings" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:views="clr-namespace:StartRide.App.Views.GameSettings" x:Name="Root" Focusable="False">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/StartRide;component/Views/GameSettings/GameSettingsSectionResources.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <Style x:Key="ModManagementFilterButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource LauncherDialogButtonStyle}">
+        <Setter Property="Margin" Value="0,0,8,6" />
+        <Setter Property="MinWidth" Value="74" />
+        <Style.Triggers>
+          <DataTrigger Value="True" Binding="{Binding Tag, RelativeSource={RelativeSource Self}}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.FFFFFF}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.0891FE}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.0891FE}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:ModManagementInfoPanelItem}}" DataType="{x:Type gameSettings:ModManagementInfoPanelItem}">
+        <GroupBox Header="{x:Static res:Strings.GameSettings_ModManagementInfoSection}" Margin="0,0,0,12" Style="{StaticResource RideSectionStyle}">
+          <StackPanel>
+            <Border Style="{StaticResource RideFieldSurfaceStyle}">
+              <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding DataContext.InstalledSummaryText, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+            </Border>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Margin="0,0,8,4" Content="{x:Static res:Strings.GameSettings_ModManagementOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.OpenModFolderCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+              <Button Margin="0,0,8,4" Content="{x:Static res:Strings.GameSettings_ModManagementLocalImportButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.ImportLocalModCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+              <Button Margin="0,0,8,4" Content="{x:Static res:Strings.GameSettings_ModManagementOnlineInstallButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.InstallOnlineModCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+            </WrapPanel>
+          </StackPanel>
+        </GroupBox>
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:ModManagementListSectionItem}}" DataType="{x:Type gameSettings:ModManagementListSectionItem}">
+        <Grid Margin="0,0,0,10">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Margin="0" Text="{x:Static res:Strings.GameSettings_ModManagementFilterLabel}" Style="{StaticResource ManagementListSectionHeaderTextStyle}" />
+          <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+            <Button Margin="0,0,8,0" Content="{x:Static res:Strings.GameSettings_ModManagementFilterAllButton}" CommandParameter="{x:Static gameSettings:ModManagementFilter.All}" Style="{StaticResource ModManagementFilterButtonStyle}" Command="{Binding DataContext.SetModFilterCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" Tag="{Binding DataContext.IsAllModsFilterSelected, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+            <Button Margin="0,0,8,0" Content="{x:Static res:Strings.GameSettings_ModManagementFilterEnabledButton}" CommandParameter="{x:Static gameSettings:ModManagementFilter.Enabled}" Style="{StaticResource ModManagementFilterButtonStyle}" Command="{Binding DataContext.SetModFilterCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" Tag="{Binding DataContext.IsEnabledModsFilterSelected, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+            <Button Margin="0" Content="{x:Static res:Strings.GameSettings_ModManagementFilterDisabledButton}" CommandParameter="{x:Static gameSettings:ModManagementFilter.Disabled}" Style="{StaticResource ModManagementFilterButtonStyle}" Command="{Binding DataContext.SetModFilterCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" Tag="{Binding DataContext.IsDisabledModsFilterSelected, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" />
+          </WrapPanel>
+        </Grid>
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:ModManagementModItemViewModel}}" DataType="{x:Type gameSettings:ModManagementModItemViewModel}">
+        <controls:ListPageItemButton x:Name="ModListItemButton" Style="{StaticResource ListPageItemButtonEntranceStyle}" Title="{Binding Title}" Subtitle="{Binding Subtitle}" TrailingText="{Binding TrailingText}" IconSource="{Binding IconSource}" IconKey="{Binding IconKey}" IsSelected="{Binding IsSelected}" IsFirstVisible="{Binding Tag.IsFirstVisible, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" IsLastVisible="{Binding Tag.IsLastVisible, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" IsPreviousItemHighlighted="{Binding Tag.IsPreviousItemHighlighted, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" ShouldPlayEnterAnimation="{Binding Tag.ShouldPlayEnterAnimation, Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" EnterAnimationIndex="{Binding Tag.EnterAnimationIndex, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Command="{Binding DataContext.SelectModCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" CommandParameter="{Binding}">
+          <controls:ListPageItemButton.TitleTrailingContent>
+            <controls:AdaptiveTagList ItemsSource="{Binding TitleTags}" Visibility="{Binding HasTitleTags, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+          </controls:ListPageItemButton.TitleTrailingContent>
+          <controls:ListPageItemButton.TrailingContent>
+            <StackPanel Orientation="Horizontal">
+              <Button ToolTip="{x:Static res:Strings.GameSettings_OpenResourceDetailsTooltip}" Style="{StaticResource InlineIconButtonStyle}" IsEnabled="{Binding HasProjectDetails}" Command="{Binding DataContext.OpenResourceDetailsCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" CommandParameter="{Binding}">
+                <controls:SvgIcon Width="16" Height="16" IconKey="instance_setting_page/info" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+              </Button>
+              <Button Margin="4,0,0,0" Command="{Binding DataContext.ToggleModEnabledCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" CommandParameter="{Binding}">
+                <FrameworkElement.Style>
+                  <Style TargetType="{x:Type Button}" BasedOn="{StaticResource InlineIconButtonStyle}">
+                    <Setter Property="FrameworkElement.ToolTip" Value="{x:Static res:Strings.GameSettings_ModManagementDisableButton}" />
+                    <Style.Triggers>
+                      <DataTrigger Value="False" Binding="{Binding IsEnabled}">
+                        <Setter Property="FrameworkElement.ToolTip" Value="{x:Static res:Strings.GameSettings_ModManagementEnableButton}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </FrameworkElement.Style>
+                <controls:SvgIcon Width="16" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}">
+                  <FrameworkElement.Style>
+                    <Style TargetType="{x:Type controls:SvgIcon}">
+                      <Setter Property="controls:SvgIcon.IconKey" Value="account_page/account_page_forbid" />
+                      <Style.Triggers>
+                        <DataTrigger Value="False" Binding="{Binding IsEnabled}">
+                          <Setter Property="controls:SvgIcon.IconKey" Value="general/general_passed" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </FrameworkElement.Style>
+                </controls:SvgIcon>
+              </Button>
+              <Button Margin="4,0,0,0" ToolTip="{x:Static res:Strings.GameSettings_OpenInstanceFolderTooltip}" Style="{StaticResource InlineIconButtonStyle}" Command="{Binding DataContext.OpenModFileLocationCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" CommandParameter="{Binding}">
+                <controls:SvgIcon Width="16" Height="16" IconKey="general/general_folder" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+              </Button>
+              <Button Margin="4,0,0,0" ToolTip="{x:Static res:Strings.Delete_Button}" Style="{StaticResource SecondaryMenuDeleteButtonStyle}" Command="{Binding DataContext.RequestDeleteModCommand, RelativeSource={RelativeSource AncestorType={x:Type views:InstanceModManagementSettingsView}}}" CommandParameter="{Binding}">
+                <controls:SvgIcon Width="16" Height="16" IconKey="general/general_delete" Style="{StaticResource DangerActionSvgIconStyle}" />
+              </Button>
+            </StackPanel>
+          </controls:ListPageItemButton.TrailingContent>
+        </controls:ListPageItemButton>
+        <DataTemplate.Triggers>
+          <DataTrigger Value="False" Binding="{Binding IsEnabled}">
+            <Setter TargetName="ModListItemButton" Value="{DynamicResource Brush.Text.Subtle}" Property="controls:ListPageItemButton.TitleForeground" />
+            <Setter TargetName="ModListItemButton" Property="controls:ListPageItemButton.IconOpacity" Value="0.42" />
+            <Setter TargetName="ModListItemButton" Property="controls:ListPageItemButton.IconOverlayKey" Value="account_page/account_page_forbid" />
+          </DataTrigger>
+        </DataTemplate.Triggers>
+      </DataTemplate>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Grid ClipToBounds="True">
+    <controls:DeferredListContentHost IsListVisible="{Binding CanShowModScrollableContent}">
+      <ListBox ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" behaviors:VirtualizedListItemStateBehavior.IsEnabled="True" behaviors:VirtualizedListItemStateBehavior.ContentTopOffset="132" ItemsSource="{Binding VisibleModListItems}" SelectedItem="{Binding SelectedMod, Mode=OneWay}" behaviors:VirtualizedListItemStateBehavior.EntranceAnimationToken="{Binding ListEntranceAnimationToken}" behaviors:VirtualizedListItemStateBehavior.ScrollResetToken="{Binding ListEntranceAnimationToken}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel Margin="12,132,12,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ListBox>
+    </controls:DeferredListContentHost>
+    <TextBlock Margin="12,260,12,0" Text="{x:Static res:Strings.GameSettings_ModManagementLoading}" Style="{StaticResource PageEmptyStateTextStyle}" Visibility="{Binding CanShowModLoadingState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+    <TextBlock Margin="12,260,12,0" Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding ModEmptyMessage}" Visibility="{Binding CanShowModEmptyState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+    <TextBlock Margin="12,260,12,0" Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding ModEmptyMessage}" Visibility="{Binding CanShowNoModsEmptyState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+    <TextBlock Margin="12,122,12,0" Style="{StaticResource PageEmptyStateTextStyle}" Text="{Binding ModUnavailableMessage}" Visibility="{Binding CanShowModUnavailableState, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+  </Grid>
+</UserControl>

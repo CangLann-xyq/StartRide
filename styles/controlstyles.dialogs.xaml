@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:behaviors="clr-namespace:Launcher.App.Behaviors" xmlns:converters="clr-namespace:Launcher.App.Converters" xmlns:res="clr-namespace:Launcher.App.Resources">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:converters="clr-namespace:StartRide.App.Converters" xmlns:res="clr-namespace:StartRide.App.Resources">
   <ResourceDictionary.MergedDictionaries>
     <ResourceDictionary Source="pack://application:,,,/StartRide;component/Styles/ControlStyles.Scroll.xaml" />
   </ResourceDictionary.MergedDictionaries>

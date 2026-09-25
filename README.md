@@ -76,7 +76,7 @@ python .\tools\check-style-refs.py
 | `resources/themes/` | 主题与配色（深色 / 浅色 / 强调色） |
 | `Assets/branding/` | 品牌图标与 Logo |
 | `tools/` | 开发辅助脚本（样式引用检查等） |
-| `Launcher.App.*` | 界面、视图模型与服务层 |
+| `StartRide.App.*` | 界面、视图模型与服务层 |
 
 ---
 

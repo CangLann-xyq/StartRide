@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Launcher.Application.Accounts;
-using Launcher.App.ViewModels.Account;
+using StartRide.App.ViewModels.Account;
 using Launcher.Domain.Models;
 using Microsoft.Extensions.Logging;
 using StartRide.Core;

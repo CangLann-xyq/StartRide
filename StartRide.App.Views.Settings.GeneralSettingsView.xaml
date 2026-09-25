@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.Settings.GeneralSettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:res="clr-namespace:StartRide.App.Resources" Focusable="False" xmlns:settings="clr-namespace:StartRide.App.Views.Settings">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/StartRide;component/Views/Settings/SettingsSectionResources.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <DataTemplate x:Key="SRL_GraphicsBackendTemplate">
+        <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" FontWeight="Normal" VerticalAlignment="Center" Text="{Binding Title}" />
+      </DataTemplate>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
+    <!-- 游戏安装目录：StartRide 只有一份 BeamNG.drive，靠自动识别而不是手填 -->
+    <GroupBox Header="{x:Static res:Strings.Settings_GameInstallSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_GameInstallLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <Border Margin="0,10,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding BeamNgDirectory}" />
+          </Border>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Text="{Binding BeamNgStatusText}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
+                <Style.Triggers>
+                  <DataTrigger Value="False" Binding="{Binding IsBeamNgDirectoryValid}">
+                    <Setter Property="Foreground" Value="{DynamicResource LauncherDangerBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameInstallAutoDetectButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding AutoDetectBeamNgDirectoryCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameInstallBrowseButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding BrowseBeamNgDirectoryCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameInstallOpenButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenBeamNgDirectoryCommand}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 必需配置文件：损坏/丢失时从云端模板补全 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameConfigSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_GameConfigDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,14,0,0" Text="{x:Static res:Strings.Settings_GameConfigPathLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameConfigPathText}" />
+          </Border>
+          <TextBlock Margin="0,10,0,0" Text="{Binding GameConfigStatusText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding GameConfigFiles}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" Text="{Binding DisplayName}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="11" Text="{Binding RelativePath}" />
+                    <TextBlock Margin="0,2,0,0" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="11" Text="{Binding Detail}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" Text="{Binding StateText}">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
+                        <Style.Triggers>
+                          <DataTrigger Value="True" Binding="{Binding IsProblem}">
+                            <Setter Property="Foreground" Value="{DynamicResource LauncherDangerBrush}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </FrameworkElement.Style>
+                  </TextBlock>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <WrapPanel Margin="0,10,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameConfigCheckButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding CheckAndRepairGameConfigCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameConfigOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenGameConfigDirectoryCommand}" />
+          </WrapPanel>
+          <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_GameConfigAutoRepairLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding AutoRepairGameConfig, Mode=TwoWay}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LauncherLogDirectoryLabel}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Margin="0,0,0,12" Text="{x:Static res:Strings.Settings_LauncherLogDirectoryDescription}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding LauncherLogDirectory}" />
+          </Border>
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_OpenLauncherLogDirectoryButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenLauncherLogDirectoryCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_ClearLauncherLogsButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding RequestClearLauncherLogsCommand}" />
+          </WrapPanel>
+          <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_DiagnosticLoggingLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding DiagnosticLoggingEnabled, Mode=TwoWay}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 运行状态：游戏在不在跑 / 累计游玩 / 一键结束残留进程 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RuntimeSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_RuntimeDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,14,0,0" Text="{x:Static res:Strings.Settings_RuntimeGameStatusLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameRuntimeStatusText}" />
+          </Border>
+          <TextBlock Margin="0,12,0,0" Text="{x:Static res:Strings.Settings_RuntimePlaytimeLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <Border Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding PlaytimeSummaryText}" />
+          </Border>
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{Binding EndGameButtonText}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding EndGameCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_RuntimeRefreshButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding RefreshGameRuntimeCommand}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 诊断包：日志 + 设置 + 体检结果 + 环境信息打包，出问题直接发出去 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_DiagnosticsSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_DiagnosticsDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,10,0,0" Text="{Binding DiagnosticsStatusText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_DiagnosticsExportButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding ExportDiagnosticsCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_DiagnosticsOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenDiagnosticsFolderCommand}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 启动行为：每一项都会真的拼进 BeamNG.drive.exe 的命令行，下面实时显示结果 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LaunchBehaviorSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_LaunchBehaviorDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+          <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_LaunchCheckFilesLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchCheckFilesBeforeLaunch, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchSkipMenuLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchSkipMenuHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchSkipMenu, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchFullScreenLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchFullScreenHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchFullScreen, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_LaunchMinimizeLauncherLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchMinimizeLauncher, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchCloseToTrayLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchCloseToTrayHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchCloseToTray, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_LaunchAutoInstallModLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchAutoInstallMod, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchForceGpuLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchForceGpuHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchForceHighPerformanceGpu, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_LaunchGfxLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" SelectionItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding GraphicsBackendOptions}" SelectedItem="{Binding SelectedGraphicsBackendOption, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchPhysicsFpsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchPhysicsFpsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchPhysicsFpsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <TextBlock Margin="0,18,0,0" Text="{x:Static res:Strings.Settings_LaunchExtraArgsLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <TextBox Margin="0,8,0,0" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchExtraArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_LaunchExtraArgsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+          <!-- 实际启动命令：设置到底有没有生效，看这一行就知道 -->
+          <TextBlock Margin="0,18,0,0" Text="{x:Static res:Strings.Settings_LaunchArgsPreviewLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <Border Margin="0,8,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12" Text="{Binding LaunchArgsPreviewText}" />
+          </Border>
+          <WrapPanel Margin="0,10,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_LaunchArgsRefreshButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding RefreshLaunchArgsPreviewCommand}" />
+          </WrapPanel>
+
+          <TextBlock Margin="0,10,0,0" Text="{x:Static res:Strings.Settings_LaunchPreLaunchCommandLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <TextBox Margin="0,8,0,0" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchPreLaunchCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_LaunchPreLaunchCommandHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+          <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_LaunchWaitPreLaunchLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchWaitForPreLaunchCommand, Mode=TwoWay}" />
+          </Grid>
+
+          <TextBlock Margin="0,18,0,0" Text="{x:Static res:Strings.Settings_LaunchPostExitCommandLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <TextBox Margin="0,8,0,0" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchPostExitCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_LaunchPostExitCommandHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 启动器启动时 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StartupSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_StartupDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_StartupAutoDetectLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding StartupAutoDetectGame, Mode=TwoWay}" />
+          </Grid>
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_StartupAutoUpdateLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding StartupAutoUpdate, Mode=TwoWay}" />
+          </Grid>
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_StartupAutoCheckVehicleModsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding StartupAutoCheckVehicleMods, Mode=TwoWay}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 游戏日志：按 D/I/W/E 精确分级，不用自己翻目录 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameLogSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_GameLogDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <Border Margin="0,14,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
+            <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding GameLogPathText}" />
+          </Border>
+          <TextBlock Margin="0,10,0,0" Text="{Binding GameLogSummaryText}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <TextBlock Margin="0,6,0,0" Text="{Binding GameLogDetailText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameLogRefreshButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding RefreshGameLogCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameLogCopyButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding CopyGameLogErrorsCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameLogOpenFileButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenGameLogFileCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_GameLogOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenGameLogFolderCommand}" />
+          </WrapPanel>
+          <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding GameLogProblems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock MinWidth="46" VerticalAlignment="Top" FontSize="11" Text="{Binding LevelText}">
+                    <TextBlock.Style>
+                      <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
+                        <Style.Triggers>
+                          <DataTrigger Value="True" Binding="{Binding IsProblem}">
+                            <Setter Property="Foreground" Value="{DynamicResource LauncherDangerBrush}" />
+                          </DataTrigger>
+                          <DataTrigger Value="True" Binding="{Binding IsWarning}">
+                            <Setter Property="Foreground" Value="#E8A33D" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                  <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="12" TextWrapping="Wrap" Text="{Binding Message}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="11" Text="{Binding Module}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 配置备份 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_BackupSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_BackupDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,10,0,0" Text="{Binding BackupStatusText}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_BackupCreateButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding CreateBackupCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_BackupRefreshButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding RefreshBackupsCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_BackupOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenBackupFolderCommand}" />
+          </WrapPanel>
+          <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Backups}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" Text="{Binding DisplayName}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="11" Text="{Binding DetailText}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" Text="{Binding SizeText}" />
+                    <Button Margin="0,0,8,0" Content="{x:Static res:Strings.Settings_BackupRestoreButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.RestoreBackupCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" />
+                    <Button Content="{x:Static res:Strings.Settings_BackupDeleteButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.DeleteBackupCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 磁盘占用 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StorageSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_StorageDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,10,0,0" Text="{Binding StorageSummaryText}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <TextBlock Margin="0,6,0,0" Text="{Binding StorageStatusText}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_StorageScanButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding RefreshStorageCommand}" />
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_StorageCleanLogsButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding CleanLogBackupsCommand}" />
+          </WrapPanel>
+          <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding StorageItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" Text="{Binding DisplayName}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="11" Text="{Binding DetailText}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Margin="0,0,8,0" Content="{x:Static res:Strings.Settings_StorageOpenFolderButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.OpenStorageItemFolderCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" />
+                    <Button Content="{x:Static res:Strings.Settings_StorageCleanButton}" Style="{StaticResource LauncherDialogButtonStyle}" IsEnabled="{Binding CanClean}" Command="{Binding DataContext.CleanStorageCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <!-- 联机延迟 -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RelaySection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_RelayDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <TextBlock Margin="0,10,0,0" Text="{Binding RelayStatusText}" Style="{StaticResource SettingsOptionTextStyle}" />
+          <WrapPanel Margin="0,16,0,0">
+            <Button Margin="0,0,10,10" Content="{x:Static res:Strings.Settings_RelayTestButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding ProbeRelayCommand}" />
+          </WrapPanel>
+          <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding RelayProbes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" Text="{Binding Name}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="11" Text="{Binding Endpoint}" />
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="11" Text="{Binding Detail}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" Text="{Binding LatencyText}">
+                    <TextBlock.Style>
+                      <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Foreground" Value="{DynamicResource LauncherDangerBrush}" />
+                        <Style.Triggers>
+                          <DataTrigger Value="True" Binding="{Binding Reachable}">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+  </StackPanel>
+</UserControl>

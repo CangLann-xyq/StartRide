@@ -18,7 +18,7 @@ namespace StartRide.Core
     /// 3) 但设置文件里持久化的 DataDirectory / MinecraftDirectory 是上一版写进去的，
     ///    读出来还是旧值——所以读/写两个方向都要归一化，否则框架又会去建 .minecraft。
     ///
-    /// 注册方式见 Launcher.App/App.cs：排在 AddLauncherInfrastructure() 之后（MS.DI 取后注册者）。
+    /// 注册方式见 StartRide.App/App.cs：排在 AddLauncherInfrastructure() 之后（MS.DI 取后注册者）。
     /// </summary>
     public sealed class StartRideSettingsService : ISettingsService
     {

@@ -8,7 +8,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-RESX = r"D:\code\all\_bh_xaml\Launcher.App.Resources.Strings.resx"
+RESX = r"D:\code\all\_bh_xaml\StartRide.App.Resources.Strings.resx"
 
 # 需要改写的语境词 → 含义
 TERMS = [

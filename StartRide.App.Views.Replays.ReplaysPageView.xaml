@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.Replays.ReplaysPageView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:replays="clr-namespace:StartRide.App.ViewModels.Replays" x:Name="Root" Focusable="False">
+  <Grid Name="PageRoot">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <controls:ListPageFrame Grid.Row="1" x:Name="ReplaysListFrame" Margin="24,36,24,8" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="回放" TitleIconSource="/StartRide;component/Assets/Branding/beamng_logo_256.png" IsListVisible="True" IsSearchVisible="False">
+      <controls:ListPageFrame.ListContent>
+        <Grid Tag="ReplaysListStep">
+          <ListBox ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding Replays}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel Margin="12,20,12,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type replays:ReplayItem}">
+                <!-- IconKey 必须写 目录/文件名 双前缀；不写的话左侧 50px 图标列是空的 -->
+                <controls:ListPageItemButton IconKey="beamng/replay" IconWidth="30" IconHeight="30" Title="{Binding Name}" Subtitle="{Binding MapName}" TrailingText="{Binding FileSizeText}" ToolTip="点击在资源管理器中定位该回放" Command="{Binding DataContext.OpenReplayLocationCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ListBox>
+          <TextBlock Margin="12,20,0,0" Text="{Binding StatusMessage}">
+            <FrameworkElement.Style>
+              <Style BasedOn="{StaticResource PageEmptyStateTextStyle}" TargetType="{x:Type TextBlock}">
+                <Setter Property="Visibility" Value="Collapsed" />
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+        </Grid>
+      </controls:ListPageFrame.ListContent>
+    </controls:ListPageFrame>
+
+    <!-- 空状态引导卡片：无回放时引导打开游戏回放功能（覆盖在列表之上） -->
+    <Border Grid.Row="1" Margin="36,140,36,8" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="520" Visibility="{Binding NeedsGuide, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+      <Border.Style>
+        <Style BasedOn="{StaticResource ReadOnlyFieldSurfaceStyle}" TargetType="{x:Type Border}">
+          <Setter Property="Padding" Value="32,28" />
+        </Style>
+      </Border.Style>
+      <StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <controls:SvgIcon Width="26" Height="26" IconKey="beamng/replay" Foreground="{DynamicResource Brush.Accent.Primary}" VerticalAlignment="Center" />
+          <TextBlock Margin="12,0,0,0" Foreground="{DynamicResource Brush.F4F4F4}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Text="还没有回放" />
+        </StackPanel>
+        <TextBlock Margin="0,12,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="13" LineHeight="20" TextWrapping="Wrap" Text="BeamNG.drive 内置回放功能。启动游戏进入任意地图后，按 Esc 打开菜单选择「Replay / 回放」即可录制并保存回放。保存的回放会出现在这里。" />
+        <Button Margin="0,20,0,0" HorizontalAlignment="Left" MinWidth="180" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="启动游戏并打开回放" Command="{Binding OpenGameForReplayCommand}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

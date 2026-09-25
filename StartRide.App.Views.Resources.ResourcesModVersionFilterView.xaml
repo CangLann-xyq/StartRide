@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.Resources.ResourcesModVersionFilterView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:res="clr-namespace:StartRide.App.Resources" x:Name="Root" Focusable="False" xmlns:resources="clr-namespace:StartRide.App.Views.Resources">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <DataTemplate x:Key="ResourcesAvailableVersionFilterOptionTemplate">
+        <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Text="{Binding Title}" />
+      </DataTemplate>
+      <Style x:Key="ResourcesAvailableVersionFilterComboBoxStyle" TargetType="{x:Type controls:AnimatedComboBox}" BasedOn="{StaticResource LauncherComboBoxStyle}">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="110" />
+        <Setter Property="MaxWidth" Value="170" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+      </Style>
+      <Style x:Key="ResourcesAvailableVersionFilterLabelStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource ListPageFilterLabelStyle}">
+        <Setter Property="Margin" Value="0,0,4,0" />
+      </Style>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Grid VerticalAlignment="Center">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="16" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+    <Grid Column="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="{x:Static res:Strings.Resources_ModFilterVersionLabel}" Style="{StaticResource ResourcesAvailableVersionFilterLabelStyle}" />
+      <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource ResourcesAvailableVersionFilterOptionTemplate}" SelectionItemTemplate="{StaticResource ResourcesAvailableVersionFilterOptionTemplate}" Style="{StaticResource ResourcesAvailableVersionFilterComboBoxStyle}" ItemsSource="{Binding Versions.VersionFilterOptions}" SelectedItem="{Binding Versions.SelectedVersionFilter, Mode=TwoWay}" />
+    </Grid>
+    <Grid Column="2" Visibility="{Binding ProjectList.ShowsLoaderFilters, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="{x:Static res:Strings.Resources_ModFilterLoaderLabel}" Style="{StaticResource ResourcesAvailableVersionFilterLabelStyle}" />
+      <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource ResourcesAvailableVersionFilterOptionTemplate}" SelectionItemTemplate="{StaticResource ResourcesAvailableVersionFilterOptionTemplate}" Style="{StaticResource ResourcesAvailableVersionFilterComboBoxStyle}" ItemsSource="{Binding Versions.LoaderFilterOptions}" SelectedItem="{Binding Versions.SelectedLoaderFilter, Mode=TwoWay}" />
+    </Grid>
+  </Grid>
+</UserControl>
