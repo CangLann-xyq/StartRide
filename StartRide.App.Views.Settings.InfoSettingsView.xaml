@@ -9,7 +9,10 @@
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
     <StackPanel HorizontalAlignment="Left">
-      <Image Width="64" Height="64" HorizontalAlignment="Left" Source="/StartRide;component/Assets/Branding/startride_icon_256.png" RenderOptions.BitmapScalingMode="HighQuality" />
+      <!-- 品牌标识：与主页同一张完整 logo（图形 + 下方自带的 StartRide 字样）的深色主题版。
+           ⚠️ 必须 _dark：原图前景近黑，深色主题上文字看不见。
+           ⚠️ 只给 Height 不给 Width —— 原图 769×380，定宽会横向拉变形。 -->
+      <Image Height="56" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/startride_logo_full_dark.png" />
       <TextBlock Margin="0,10,0,0" Text="{x:Static res:Strings.App_Title}" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="26" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
       <TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{Binding LauncherVersionText, StringFormat=v{0}}" />
       <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12.5" TextTrimming="CharacterEllipsis">

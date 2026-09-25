@@ -27,7 +27,7 @@ local CHAT_COOLDOWN = 0.3
 --   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
 -- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
 -- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
-local MOD_VERSION = '2.9.4'
+local MOD_VERSION = '2.9.5'
 
 
 
@@ -1092,6 +1092,18 @@ local function panelStatus()
   kvRow('桥接端口', LAUNCHER_IP .. ':' .. tostring(LAUNCHER_PORT))
   kvRow('本地桥', connected and '已连接' or (connecting and '连接中' or '未连接'),
     connected and C.ok or (connecting and C.warn or C.danger))
+  if not connected then
+    kvRow('重试次数', tostring(connectRetryCount),
+      connectRetryCount > 0 and C.warn or C.dim)
+    if connectRetryCount >= 3 then
+      
+      
+      im.TextColored(C.danger, '· 连不上启动器（' .. LAUNCHER_IP .. ':' .. tostring(LAUNCHER_PORT) .. '）。')
+      im.TextColored(C.danger, '  启动器就是联机的本地桥，请确认它仍在运行：')
+      im.TextColored(C.danger, '  关掉它的窗口会收进托盘，从托盘菜单选')
+      im.TextColored(C.danger, '  「退出启动器」才算真的退出。')
+    end
+  end
   
   local rTxt, rCol = relayStateText()
   kvRow('中继通道', rTxt, rCol)

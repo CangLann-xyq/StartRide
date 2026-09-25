@@ -220,6 +220,10 @@
     <Resource Include="assets\branding\startride_icon_48.png" />
     <Resource Include="assets\branding\startride_mark_256.png" />
     <Resource Include="assets\branding\startride_logo_full.png" />
+    <!-- 完整 logo 的深色主题版：同一张图，深色前景换成冷白、品牌蓝保留。
+         原图前景近黑，直接铺在深色主题上几乎看不见（车和下方 StartRide 字样全糊进背景）。
+         生成脚本：_sr_shots/_sr_make_logo_ondark.py -->
+    <Resource Include="assets\branding\startride_logo_full_dark.png" />
     <!-- BeamNG.drive 官方 logo（取自游戏内 ui/images/beamng_logo_50x50.png，橙+黑，两主题都清楚） -->
     <Resource Include="assets\branding\beamng_logo_50x50.png" />
     <!-- 同一 logo 的 256 方形高清版：列表行/卡片是 32px 且用 UniformToFill，

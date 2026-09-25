@@ -181,16 +181,50 @@ public partial class MainWindow
 		try
 		{
 			if (startRideTrayExitRequested) return false;
-			if (!AppSettings.Current.CloseToTray) return false;
+
+			// ⚠️ 联机进行中时必须收进托盘，而不是退出进程 —— 哪怕用户没开「关闭窗口时收进托盘」。
+			// 启动器同时就是联机的本地桥（游戏内模组连 127.0.0.1:4444 → 启动器 → 中继）。
+			// 用户进房后点 X 多半只是嫌窗口挡着游戏，可一旦真的退进程：
+			//   本地桥消失 → 游戏侧每 8 秒 `连接断开: connect timeout` → 双方互相看不到车。
+			// 2026-09-18 实测过一次：游戏跑了 4 分半、连了 30+ 次全超时，当天本机没有任何
+			// launcher-*.log —— 启动器全程没在运行。这里兜住它。
+			bool inRoom = StartRideMultiplayerRuntime.IsInRoom;
+			bool closeToTray = AppSettings.Current.CloseToTray;
+			if (!closeToTray && !inRoom) return false;
 
 			EnsureStartRideTray();
 			Hide();
+
+			if (inRoom && !closeToTray)
+			{
+				// 只在「本不该收托盘、但为了联机才收」的时候提示一次，
+				// 免得给已经开了该选项的用户多嘴。
+				logger.LogInformation("联机进行中，关闭窗口改为收进托盘以保持本地桥与中继连接。");
+				StartRideTrayNotify("StartRide 仍在后台保持联机",
+					"关闭窗口不会退出联机。要真正退出请右键托盘图标选择「退出启动器」。");
+			}
+
 			return true;
 		}
 		catch
 		{
 			// 出任何问题都按原来的"真关闭"走，不能让用户关不掉窗口
 			return false;
+		}
+	}
+
+	/// <summary>
+	/// 托盘气泡提示。窗口已经 Hide 了，浮动提示（floatingMessageService）没人看得见，
+	/// 所以走系统托盘气泡。托盘没装上就静默退化，不能因为提示失败影响关闭流程。
+	/// </summary>
+	private void StartRideTrayNotify(string title, string text)
+	{
+		try
+		{
+			startRideTray?.ShowBalloon(title, text);
+		}
+		catch
+		{
 		}
 	}
 

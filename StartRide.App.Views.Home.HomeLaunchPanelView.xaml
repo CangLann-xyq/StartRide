@@ -4,11 +4,13 @@
   <Grid Margin="24,0,24,0">
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 
-      <!-- 品牌标识：StartRide 官方 logo 图标（四角圆角） -->
-      <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,10">
-        <Image Width="40" Height="40" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/startride_icon_128.png" />
-        <TextBlock Margin="12,0,0,2" VerticalAlignment="Center" FontSize="27" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Strong}" Text="StartRide" />
-      </StackPanel>
+      <!-- 品牌标识：直接用作者提供的完整 logo（上方车图形 + **下方自带的 StartRide 字样**）。
+           ⚠️ 不要再拆成「小图标 + 旁边写一个 TextBlock」拼——那就等于把这张图
+           下方自带的文字去掉了（用户明确要求保留）。这张图是唯一品牌展示源。
+           ⚠️ 必须用 _dark 版：原图前景是近黑色（车身线条 + 文字），启动器是深色主题，
+           直接铺上去只剩蓝色那几笔看得见，车和文字会全糊进背景。
+           ⚠️ 只给 Height 不给 Width：原图 769×380，定宽会被横向拉变形。 -->
+      <Image Height="64" Margin="0,0,0,10" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/startride_logo_full_dark.png" />
 
       <!-- 账户名（无账户时显示引导提示） -->
       <TextBlock Style="{StaticResource HomeAccountNameTextStyle}" Text="{Binding HomeAccountDisplayName}" />

@@ -334,6 +334,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		var state = session.State;
 		WriteStateFile();
 
+		// 供 MainWindow 的关闭行为判断：只要还连着中继就不允许退进程
+		// （启动器同时是联机的本地桥，一旦退出，游戏侧立刻 connect timeout、
+		//  中继侧房间也散了，双方互相看不到车）。
+		StartRideMultiplayerRuntime.IsInRoom = state.Connected;
+
 		if (!state.Connected)
 		{
 			// 之前是通的、现在断了 —— 通知界面房间已结束。

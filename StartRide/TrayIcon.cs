@@ -139,6 +139,25 @@ namespace StartRide.Core
             catch { }
         }
 
+        /// <summary>
+        /// 弹一个托盘气泡。用于「本该退程序、但为了联机改成收托盘」这类必须让用户
+        /// 知道的场合——窗口已经 Hide 了，浮动提示没人看得见。
+        /// </summary>
+        public void ShowBalloon(string title, string text, bool warning = false)
+        {
+            if (!_added) return;
+            try
+            {
+                var data = BuildData(new WindowInteropHelper(_window).Handle);
+                data.uFlags |= 0x00000010;                                  // NIF_INFO
+                data.szInfoTitle = Truncate(title ?? "", 60);
+                data.szInfo = Truncate(text ?? "", 250);
+                data.dwInfoFlags = warning ? 0x00000002 : 0x00000001;        // NIIF_WARNING : NIIF_INFO
+                Shell_NotifyIconW(NIM_MODIFY, ref data);
+            }
+            catch { }
+        }
+
         private NOTIFYICONDATA BuildData(IntPtr hwnd)
         {
             return new NOTIFYICONDATA
