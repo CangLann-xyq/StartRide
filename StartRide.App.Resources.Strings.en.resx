@@ -323,7 +323,7 @@ The launcher will exit. Please check whether the directory is accessible and wri
 
 <data name="Dialog_RenameInstanceFailedTitle" xml:space="preserve"><value>Modification failed</value></data>
 
-<data name="Page_Resources" xml:space="preserve"><value>Module repository</value></data>
+<data name="Page_Resources" xml:space="preserve"><value>Mods</value></data>
 
 <data name="Status_LaunchReportExportPartialFormat" xml:space="preserve"><value>Report exported {0} files, {1} files unavailable.</value></data>
 
@@ -1379,7 +1379,7 @@ The launcher has automatically switched to:
 
 <data name="Settings_BackgroundImageOpenFolderButton" xml:space="preserve"><value>Open the folder</value></data>
 
-<data name="Page_Home" xml:space="preserve"><value>Home Page</value></data>
+<data name="Page_Home" xml:space="preserve"><value>Home</value></data>
 
 <data name="Dialog_LaunchAnalysisGameFileIntegrityProcessorRegenerationFailedRecommendation" xml:space="preserve"><value>Please reinstall the current Loader; if it still fails, please reinstall the instance.</value></data>
 
@@ -1441,7 +1441,7 @@ The launcher has automatically switched to:
 
 <data name="Settings_ControlTextBox" xml:space="preserve"><value>Text input box</value></data>
 
-<data name="Page_Install" xml:space="preserve"><value>Replay</value></data>
+<data name="Page_Install" xml:space="preserve"><value>Replays</value></data>
 
 <data name="GameSettings_UnknownMinecraftVersion" xml:space="preserve"><value>Unknown version</value></data>
 
@@ -1707,7 +1707,7 @@ There are no other available directories in the list, so the launcher is ready a
 
 <data name="Settings_InfoContent" xml:space="preserve"><value>About</value></data>
 
-<data name="Page_Download" xml:space="preserve"><value>Vehicle management</value></data>
+<data name="Page_Download" xml:space="preserve"><value>Vehicles</value></data>
 
 <data name="Multiplayer_Create_StepOpenToLan" xml:space="preserve"><value>Automatically detect BeamNG.drive installation location (Steam library and common directories).</value></data>
 
@@ -2371,7 +2371,7 @@ The current game folder will be automatically backed up before restoration.</val
 
 <data name="Dialog_LaunchAnalysisModDependencyTitle" xml:space="preserve"><value>Missing required mods or dependencies</value></data>
 
-<data name="Page_Settings" xml:space="preserve"><value>Global settings</value></data>
+<data name="Page_Settings" xml:space="preserve"><value>Settings</value></data>
 
 <data name="Status_InstallQueued" xml:space="preserve"><value>Waiting for other installation tasks to complete...</value></data>
 

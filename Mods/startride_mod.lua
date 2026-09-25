@@ -27,7 +27,7 @@ local CHAT_COOLDOWN = 0.3
 --   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
 -- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
 -- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
-local MOD_VERSION = '2.9.3'
+local MOD_VERSION = '2.9.4'
 
 
 

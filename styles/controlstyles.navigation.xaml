@@ -36,12 +36,24 @@
   <Style x:Key="TopNavigationTabStyle" TargetType="{x:Type Button}">
     <Setter Property="Height" Value="38" />
     <!-- ⚠️ 这两个值决定 7 个一级导航项能不能一行放下，别随手调大。
-         实测：每项占宽 = 2*Margin + 2*Padding + 图标 18 + 图标文字间距 7 + 文字宽。
-         窗口 1000px 时导航列只有 729px，而 20/6 的旧值需要 819px
-         → 第 7 项「全局设置」的文字整段被裁掉，只剩齿轮图标（2026-09-25 修）。
-         现值 12/4 时 7 项共 679px，在 MinWidth 960 下仍有 10px 余量。 -->
-    <Setter Property="Margin" Value="4,0" />
-    <Setter Property="Padding" Value="12,0" />
+         每项占宽 = 2*Margin + 2*Padding + 图标 18 + 图标文字间距 6 + 文字宽。
+
+         判据（真实字体实测，工具 _sr_shots/_measure_nav.ps1，可复算：
+         FormattedText + Segoe UI Variable Text SemiBold 13.5 DIU @96DPI）：
+           导航列可用宽 = 窗口宽 - 18(左距) - 96(右距) - 品牌块 121 - 右侧下载按钮 56
+                        → 窗口 1000px 时 709px；MinWidth 960 时 669px
+           7 项文字总宽：简中 270 / 繁中 270 / 英文 342 / 日文 331
+         现值 Margin2 + Padding10 + 间距6 → chrome 350：
+           简中 620 / 英文 692 / 日文 681 → 默认 1000px 下都不缩放；
+           缩到 MinWidth 960 时英文缩 3%（由 ShellNavigationView 的 Viewbox 兜底，不再裁字）。
+
+         历史（同一个坑踩了两次，都是「只按中文验」惹的祸）：
+           20/6  → 7 项需 819px，「全局设置」文字被整段裁掉，只剩齿轮图标；
+           12/4  → 中文过了（679px ≤ 709px），但英文要 968px、日文要 940px
+                   → 末端两项照样被静默裁掉（这就是「改成英语后全局设置不见了」）。
+         教训：调这两个值后必须用上面那个脚本把 4 种语言全量一遍。 -->
+    <Setter Property="Margin" Value="2,0" />
+    <Setter Property="Padding" Value="10,0" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
     <Setter Property="Background" Value="#00FFFFFF" />
     <Setter Property="BorderThickness" Value="0" />

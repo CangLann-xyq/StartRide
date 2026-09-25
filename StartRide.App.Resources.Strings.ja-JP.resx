@@ -177,7 +177,7 @@
 <data name="Status_LocalShaderPacksImportedFormat" xml:space="preserve"><value>{0} 個のシェーダーパックをインポートしました</value></data>
 <data name="Resources_ModFilterAllSources" xml:space="preserve"><value>すべてのソース</value></data>
 <data name="Dialog_RenameInstanceFailedTitle" xml:space="preserve"><value>変更に失敗しました</value></data>
-<data name="Page_Resources" xml:space="preserve"><value>モッドリポジトリ</value></data>
+<data name="Page_Resources" xml:space="preserve"><value>MOD</value></data>
 <data name="Status_LaunchReportExportPartialFormat" xml:space="preserve"><value>{0} 個のファイルをエクスポートしました。さらに {1} 個のファイルは利用できません。</value></data>
 <data name="GameSettings_DeleteInstanceTooltip" xml:space="preserve"><value>バージョンを削除</value></data>
 <data name="Status_UserAgreementSaveFailed" xml:space="preserve"><value>ユーザー契約の承諾状態を保存できませんでした。再試行してください。</value></data>
@@ -708,7 +708,7 @@
 <data name="Resources_ModVersionsEmptyLocal" xml:space="preserve"><value>利用可能なモッドバージョンがありません</value></data>
 <data name="Resources_ModDetailsDependenciesLabel" xml:space="preserve"><value>前提モッド</value></data>
 <data name="Settings_BackgroundImageOpenFolderButton" xml:space="preserve"><value>フォルダを開く</value></data>
-<data name="Page_Home" xml:space="preserve"><value>ホームページ</value></data>
+<data name="Page_Home" xml:space="preserve"><value>ホーム</value></data>
 <data name="Dialog_LaunchAnalysisGameFileIntegrityProcessorRegenerationFailedRecommendation" xml:space="preserve"><value>現在のローダーを再インストールしてください。もし失敗する場合は、そのインスタンスを再インストールしてください。</value></data>
 <data name="Status_OfflineAccountAddedFormat" xml:space="preserve"><value>ローカルニックネーム {0} を追加しました</value></data>
 <data name="Settings_UpdateChannelReleaseTitle" xml:space="preserve"><value>正式版</value></data>
@@ -739,7 +739,7 @@
 <data name="Download_QuiltLoaderTitle" xml:space="preserve"><value>Quilt</value></data>
 <data name="Dialog_LaunchAnalysisGameFileIntegrityFinalLaunchPlanInvalidDetailFormat" xml:space="preserve"><value>最終起動コマンドが無効なファイルを参照しました：{0}</value></data>
 <data name="Settings_ControlTextBox" xml:space="preserve"><value>テキスト入力ボックス</value></data>
-<data name="Page_Install" xml:space="preserve"><value>再生</value></data>
+<data name="Page_Install" xml:space="preserve"><value>リプレイ</value></data>
 <data name="GameSettings_UnknownMinecraftVersion" xml:space="preserve"><value>不明なバージョン</value></data>
 <data name="Resources_ModFilterButtonLabel" xml:space="preserve"><value>フィルタ</value></data>
 <data name="GameSettings_SaveManagementInfoSection" xml:space="preserve"><value>セーブ概要</value></data>
@@ -875,7 +875,7 @@
 <data name="Settings_ControlDemoSliderLabel" xml:space="preserve"><value>スライダー</value></data>
 <data name="Status_LaunchAbnormalExit" xml:space="preserve"><value>ゲームの起動が異常終了しました。診断ログが記録されました。</value></data>
 <data name="Settings_InfoContent" xml:space="preserve"><value>アプリについて</value></data>
-<data name="Page_Download" xml:space="preserve"><value>車両管理</value></data>
+<data name="Page_Download" xml:space="preserve"><value>車両</value></data>
 <data name="Multiplayer_Create_StepOpenToLan" xml:space="preserve"><value>BeamNG.drive のインストール場所を自動検出（Steam ライブラリと一般的なディレクトリ）。</value></data>
 <data name="Multiplayer_LobbyWorldClosed" xml:space="preserve"><value>ゲームは終了し、部屋は自動的に解散されました。</value></data>
 <data name="Dialog_MinecraftDirectoryNameValidation" xml:space="preserve"><value>1 から 64 文字のディレクトリ名を入力してください。</value></data>
@@ -1151,7 +1151,7 @@
 <data name="Settings_ControlSecondaryMenuButton" xml:space="preserve"><value>2次メニュー項目</value></data>
 <data name="Status_AccountProfileRefreshTooFrequent" xml:space="preserve"><value>更新が頻繁すぎます。後で再試行してください</value></data>
 <data name="Settings_SystemMemorySummaryFormat" xml:space="preserve"><value>{0}/{1}</value></data>
-<data name="Page_Multiplayer" xml:space="preserve"><value>マルチプレイヤー</value></data>
+<data name="Page_Multiplayer" xml:space="preserve"><value>マルチプレイ</value></data>
 <data name="Dialog_RenameAccountResultSubtitle" xml:space="preserve"><value>確認をクリックしてアカウント詳細に戻ります。</value></data>
 <data name="GameSettings_ModManagementEnableAllButton" xml:space="preserve"><value>すべて有効</value></data>
 <data name="FilePicker_ServerInstallDirectoryTitle" xml:space="preserve"><value>サーバー保存場所を選択</value></data>
@@ -1212,7 +1212,7 @@
 <data name="GameSettings_ModManagementEnableButton" xml:space="preserve"><value>有効</value></data>
 <data name="Settings_AccentColorCyanTitle" xml:space="preserve"><value>シアン Cyan</value></data>
 <data name="Dialog_LaunchAnalysisModDependencyTitle" xml:space="preserve"><value>必要なモジュールまたは依存関係が不足しています</value></data>
-<data name="Page_Settings" xml:space="preserve"><value>グローバル設定</value></data>
+<data name="Page_Settings" xml:space="preserve"><value>設定</value></data>
 <data name="Status_InstallQueued" xml:space="preserve"><value>他のインストールタスクの完了を待っています...</value></data>
 <data name="Dialog_DeleteBackupTitle" xml:space="preserve"><value>バックアップを削除</value></data>
 <data name="Dialog_DeleteMultipleResourcePacksMessageFormat" xml:space="preserve"><value>この {0} 個のリソースパックを削除してもよろしいですか？優先的にシステムのゴミ箱に移動します。ゴミ箱が利用できない場合は直接削除されます。</value></data>

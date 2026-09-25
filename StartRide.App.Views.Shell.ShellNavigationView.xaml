@@ -15,24 +15,31 @@
           <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Strong}" Text="StartRide" />
         </StackPanel>
 
-        <!-- 中部：主导航标签页 -->
-        <ItemsControl Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left" ItemsSource="{Binding NavigationItems}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="{x:Type models:NavigationItem}">
-              <Button Style="{StaticResource TopNavigationTabStyle}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding}">
-                <StackPanel Orientation="Horizontal">
-                  <controls:SvgIcon Width="18" Height="18" VerticalAlignment="Center" IconKey="{Binding IconKey}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
-                  <TextBlock Margin="7,0,0,0" VerticalAlignment="Center" Text="{Binding Page, Converter={StaticResource PageTitleConverter}}" />
-                </StackPanel>
-              </Button>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- 中部：主导航标签页。
+             ⚠️ 外面这层 Viewbox 是「导航项绝不允许再被静默裁掉」的兜底：
+             StretchDirection=DownOnly → 放得下时缩放比恒为 1，渲染与以前逐像素一致；
+             放不下时才整体等比缩小（例如窗口拖到很窄、或系统缺 Segoe UI Variable Text
+             走了字体回退导致文字变宽），而不会像以前那样把末尾几项裁掉只剩图标。
+             标签本身的宽度预算见 styles/controlstyles.navigation.xaml 的注释。 -->
+        <Viewbox Grid.Column="1" x:Name="NavStrip" HorizontalAlignment="Left" VerticalAlignment="Center" Stretch="Uniform" StretchDirection="DownOnly">
+          <ItemsControl x:Name="NavItems" ItemsSource="{Binding NavigationItems}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type models:NavigationItem}">
+                <Button Style="{StaticResource TopNavigationTabStyle}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding}">
+                  <StackPanel Orientation="Horizontal">
+                    <controls:SvgIcon Width="18" Height="18" VerticalAlignment="Center" IconKey="{Binding IconKey}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+                    <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{Binding Page, Converter={StaticResource PageTitleConverter}}" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Viewbox>
 
         <!-- 右侧：下载任务入口（纯图标，悬停显示名称） -->
         <Button Grid.Column="2" Style="{StaticResource TopNavigationTabStyle}" DataContext="{Binding DownloadTasksNavigationItem}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding}" ToolTip="{Binding Page, Converter={StaticResource PageTitleConverter}}" Margin="8,0,4,0">
