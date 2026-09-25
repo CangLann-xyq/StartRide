@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -203,17 +204,57 @@ namespace StartRide.Core
             "StartRide",
             "avatars");
 
+        /// <summary>AvatarCacheDirectory 的上一级（= StartRide 数据根目录）。</summary>
+        private static string DataRootDirectory => Path.GetDirectoryName(AvatarCacheDirectory) ?? "";
+
+        /// <summary>
+        /// 头像查找顺序：新位置优先，历史位置兜底。
+        ///
+        /// 历史位置不写死目录名 —— 数据目录在程序目录下是**目录联接**，所以既直接找
+        /// 联接的落点（数据根目录下的 app\avatars），也把程序目录下所有联接点都试一遍；
+        /// 这样既不写死已弃用的名字，以后目录改名或换位置也不会漏掉老头像。
+        /// </summary>
+        private static readonly Lazy<string[]> AvatarSearchDirectories = new(() =>
+        {
+            var candidates = new List<string>
+            {
+                AvatarCacheDirectory,
+                Path.Combine(DataRootDirectory, "app", "avatars"),
+            };
+            try
+            {
+                foreach (string directory in Directory.EnumerateDirectories(AppContext.BaseDirectory))
+                {
+                    if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+                    {
+                        candidates.Add(Path.Combine(directory, "avatars"));
+                    }
+                }
+            }
+            catch
+            {
+                // 扫不到联接点只影响旧头像兜底，新位置照常可用
+            }
+
+            var unique = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string directory in candidates)
+            {
+                if (seen.Add(directory))
+                {
+                    unique.Add(directory);
+                }
+            }
+            return unique.ToArray();
+        });
+
         /// <summary>返回已缓存的本地头像路径；不存在/无效返回 null（避免重复下载）。</summary>
         public static string? GetCachedAvatarPath(string steamId64)
         {
-            // 新位置优先，旧位置（EXE 旁的历史数据目录）兜底，保证历史账户头像不丢
-            string[] candidates =
+            string fileName = $"steam-{steamId64}.jpg";
+            foreach (string directory in AvatarSearchDirectories.Value)
             {
-                Path.Combine(AvatarCacheDirectory, $"steam-{steamId64}.jpg"),
-                Path.Combine(AppContext.BaseDirectory, "StartRide", "avatars", $"steam-{steamId64}.jpg"),
-            };
-            foreach (string path in candidates)
-            {
+                string path = Path.Combine(directory, fileName);
                 try
                 {
                     if (File.Exists(path) && new FileInfo(path).Length > 256)

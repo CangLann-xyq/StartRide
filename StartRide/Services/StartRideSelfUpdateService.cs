@@ -55,18 +55,109 @@ namespace StartRide.Services
         /// <summary>下载用 UA。旧实现里这里是那个已经弃用的品牌名。</summary>
         private static string UserAgent => "StartRide-Launcher/" + BuildInfo.Version;
 
-        /// <summary>
-        /// 旧版本留下的、新包里不会再有的文件（相对安装目录）。
-        /// 换程序集名之前那版产物的文件，留着只会占地方、还带着旧名字。
-        /// </summary>
-        private static readonly string[] ObsoleteRelativePaths =
+        /// <summary>一整套启动器产物会用到的扩展名（同一「主机名」下成套出现）。</summary>
+        private static readonly string[] LauncherBundleSuffixes =
         {
-            "StartRide.exe",
-            "StartRide.dll",
-            "StartRide.deps.json",
-            "StartRide.runtimeconfig.json",
-            "StartRide.pdb",
+            ".exe",
+            ".dll",
+            ".deps.json",
+            ".runtimeconfig.json",
+            ".pdb",
         };
+
+        /// <summary>认定「一整套启动器产物」必须同时存在的后缀。</summary>
+        private static readonly string[] LauncherBundleRequiredSuffixes =
+        {
+            ".exe",
+            ".dll",
+        };
+
+        /// <summary>认定「一整套启动器产物」至少要有其一的后缀（.NET 发布物的特征）。</summary>
+        private static readonly string[] LauncherBundleDescriptorSuffixes =
+        {
+            ".deps.json",
+            ".runtimeconfig.json",
+        };
+
+        /// <summary>
+        /// 安装目录里「新包不再提供、但确实是一整套启动器产物」的残留文件名。
+        ///
+        /// 换过程序集名的那版产物会在安装目录留下**另一套**完整的启动器文件（同一主机名 +
+        /// .exe / .dll / .deps.json / .runtimeconfig.json / .pdb），与现在的 StartRide.* 并存。
+        /// 这里按「成套装」识别，而不是按名字硬编码：
+        ///   · 主机名取自 &lt;stem&gt;.exe，且该 .exe 不在新包里（= 新包主机名是另一个）
+        ///   · 同时还存在 &lt;stem&gt;.dll 与 &lt;stem&gt;.deps.json 或 .runtimeconfig.json
+        /// 好处：源码里不写死任何已弃用的名字，也不会误删根目录下的普通依赖 dll
+        /// （它们没有同名 .exe），程序集以后再改名照样能清干净。
+        /// </summary>
+        private static IReadOnlyList<string> FindObsoleteArtifacts(string installDirectory, string stageDirectory)
+        {
+            var shipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var staleStems = new List<string>();
+            try
+            {
+                foreach (string file in Directory.EnumerateFiles(stageDirectory, "*", SearchOption.TopDirectoryOnly))
+                {
+                    shipped.Add(Path.GetFileName(file));
+                }
+                foreach (string file in Directory.EnumerateFiles(installDirectory, "*.exe", SearchOption.TopDirectoryOnly))
+                {
+                    string name = Path.GetFileName(file);
+                    if (!shipped.Contains(name))
+                    {
+                        staleStems.Add(Path.GetFileNameWithoutExtension(name));
+                    }
+                }
+            }
+            catch
+            {
+                // 目录读不了就不删任何东西：宁可留残留，也不误删用户已有的文件
+                return Array.Empty<string>();
+            }
+
+            var obsolete = new List<string>();
+            foreach (string stem in staleStems)
+            {
+                if (!HasAllSuffixes(installDirectory, stem, LauncherBundleRequiredSuffixes)
+                    || !HasAnySuffix(installDirectory, stem, LauncherBundleDescriptorSuffixes))
+                {
+                    continue;
+                }
+                foreach (string suffix in LauncherBundleSuffixes)
+                {
+                    string name = stem + suffix;
+                    if (!shipped.Contains(name) && File.Exists(Path.Combine(installDirectory, name)))
+                    {
+                        obsolete.Add(name);
+                    }
+                }
+            }
+            return obsolete;
+        }
+
+        private static bool HasAllSuffixes(string directory, string stem, IReadOnlyList<string> suffixes)
+        {
+            foreach (string suffix in suffixes)
+            {
+                if (!File.Exists(Path.Combine(directory, stem + suffix)))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool HasAnySuffix(string directory, string stem, IReadOnlyList<string> suffixes)
+        {
+            foreach (string suffix in suffixes)
+            {
+                if (File.Exists(Path.Combine(directory, stem + suffix)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         private static readonly HttpClient Http = CreateClient();
 
@@ -444,7 +535,7 @@ namespace StartRide.Services
             startInfo.ArgumentList.Add("-ExecutableName");
             startInfo.ArgumentList.Add(executableName);
             startInfo.ArgumentList.Add("-ObsoleteNames");
-            startInfo.ArgumentList.Add(string.Join(";", ObsoleteRelativePaths));
+            startInfo.ArgumentList.Add(string.Join(";", FindObsoleteArtifacts(installDirectory, stageDirectory)));
             startInfo.ArgumentList.Add("-LogPath");
             startInfo.ArgumentList.Add(logPath);
 
@@ -566,6 +657,8 @@ Write-UpdateLog ('copied=' + $copied + ' failed=' + $failed)
 if ($ObsoleteNames -ne '') {
     foreach ($name in $ObsoleteNames.Split(';')) {
         if ($name -eq '') { continue }
+        # Double safety: deletion runs after the copy, so never remove a name the new package ships.
+        if (Test-Path -LiteralPath (Join-Path $stage $name)) { continue }
         $path = Join-Path $InstallDirectory $name
         if (Test-Path -LiteralPath $path) {
             try {

@@ -1,27 +1,22 @@
 {
-  "version": "2.8.1",
-  "displayVersion": "2.8.1",
-  "versionCode": 20801,
+  "version": "2.8.2",
+  "displayVersion": "2.8.2",
+  "versionCode": 20802,
   "releasePageUrl": "https://windseek.cloud/update/",
-  "downloadUrl": "https://windseek.cloud/downloads/StartRide-2.8.1-win-x64.zip",
+  "downloadUrl": "https://windseek.cloud/downloads/StartRide-2.8.2-win-x64.zip",
   "downloadUrls": [
     {
       "name": "官方源（windseek.cloud）",
-      "url": "https://windseek.cloud/downloads/StartRide-2.8.1-win-x64.zip",
+      "url": "https://windseek.cloud/downloads/StartRide-2.8.2-win-x64.zip",
       "priority": 0
-    },
-    {
-      "name": "GitHub Releases",
-      "url": "https://github.com/CangLann-xyq/StartRide/releases/latest",
-      "priority": 1
     }
   ],
-  "downloadFileName": "StartRide-2.8.1-win-x64.zip",
+  "downloadFileName": "StartRide-2.8.2-win-x64.zip",
   "assetKind": "zip",
-  "sizeBytes": 5015836,
-  "sha256": "230b978a2e3566cfe65bbb4f364d1a7135b7af55afd9a2b74f9e5041375f08a8",
-  "changelog": "2.8.1 更新要点：\n· 日志文件名前缀由 startride- 改为 startride-（新日志形如 startride-20260925-101406-472-p580.log）\n  历史日志不会被删，仍按「30 天 / 保留最近 20 个」的既有规则一起清理\n· 性能诊断开关的环境变量更名为 STARTRIDE_UI_PERF_DIAG",
+  "sizeBytes": 5016796,
+  "sha256": "e53923017d3e7ac3fafa1be1f7dd368360c89262fbed75ca8f98e3b7eb1fd82c",
+  "changelog": "2.8.2 更新要点：\n· 升级时自动清掉改名前的整套旧产物：不再依赖写死的旧文件名，改成按「一整套启动器文件」\n  （同名 .exe/.dll/.deps.json/.runtimeconfig.json）识别，以后再改名也照样清得干净\n· 替换脚本加了双保险：新包里带的文件一律不删，避免拷贝完成后被误删\n· 更新清单只保留自有源（去掉了国内不可达的一条兜底地址）\n· 头像缓存的历史位置不再写死目录名，改按数据目录与目录联接定位",
   "isMandatory": false,
   "minSupportedVersionCode": 0,
-  "publishedAt": "2026-09-25T02:31:09Z"
+  "publishedAt": "2026-09-25T02:51:01Z"
 }
