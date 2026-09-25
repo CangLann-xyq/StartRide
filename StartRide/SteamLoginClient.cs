@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -164,7 +164,7 @@ namespace StartRide.Core
         }
 
         /// <summary>
-        /// 下载 Steam 头像到本地缓存（StartRide/avatars/steam-<id>.jpg），返回本地绝对路径；失败返回 null。
+        /// 下载 Steam 头像到本地缓存（%APPDATA%\StartRidevatars\steam-<id>.jpg），返回本地绝对路径；失败返回 null。
         /// CDN 顺序很重要：国内只有 avatars.steamstatic.com 可达，
         /// 而 akamai.steamstatic.com / steamcdn-a.akamaihd.net 均不可达（实测 HTTP=000）。
         /// 全零 hash（未设置头像）直接跳过。
@@ -195,7 +195,7 @@ namespace StartRide.Core
 
         /// <summary>
         /// 头像缓存目录：统一到 %APPDATA%\StartRide\avatars。
-        /// 铁律：**不再写 EXE 旁的 StartRide\avatars**——那会让头像路径随启动目录漂移，
+        /// 铁律：**不再写 EXE 旁的历史数据目录**——那会让头像路径随启动目录漂移，
         /// 且换目录启动就"头像丢了"。
         /// </summary>
         public static string AvatarCacheDirectory => Path.Combine(
@@ -206,7 +206,7 @@ namespace StartRide.Core
         /// <summary>返回已缓存的本地头像路径；不存在/无效返回 null（避免重复下载）。</summary>
         public static string? GetCachedAvatarPath(string steamId64)
         {
-            // 新位置优先，旧位置（EXE 旁 StartRide\avatars）兜底，保证历史账户头像不丢
+            // 新位置优先，旧位置（EXE 旁的历史数据目录）兜底，保证历史账户头像不丢
             string[] candidates =
             {
                 Path.Combine(AvatarCacheDirectory, $"steam-{steamId64}.jpg"),

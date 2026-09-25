@@ -681,6 +681,8 @@ public static class Strings
 
 	public static string Dialog_OpenUpdateChangelogButton => Get("Dialog_OpenUpdateChangelogButton");
 
+	public static string Dialog_UpdateNotesLabel => Get("Dialog_UpdateNotesLabel");
+
 	public static string Dialog_UpdateButton => Get("Dialog_UpdateButton");
 
 	public static string Settings_GeneralAccountSection => Get("Settings_GeneralAccountSection");

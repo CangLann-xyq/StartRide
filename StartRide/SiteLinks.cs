@@ -77,6 +77,22 @@ namespace StartRide.Core
         /// <summary>反馈用的联系邮箱（无 GitHub 账号的用户也能反馈）。</summary>
         public const string SupportEmail = "3956860183@qq.com";
 
+        /// <summary>
+        /// 反馈页（站内表单，国内直连可用）。
+        ///
+        /// ⚠️ 启动器反馈弹窗的「新功能建议 / Bug 反馈」都指这里，不再指 GitHub Issues ——
+        /// GitHub 在国内直连打不开（本机也是靠隧道才能推），让用户点开一个打不开的页面等于没有反馈入口。
+        /// 反馈表单会把内容邮件给维护者，页面本身也给了邮件兜底。
+        /// </summary>
+        public const string FeedbackPage = "https://startride.top/feedback.html";
+
+        /// <summary>按类型（feature / bug / other）拼出带当前版本号的反馈页地址。</summary>
+        public static string FeedbackUrl(string type)
+        {
+            string t = string.IsNullOrWhiteSpace(type) ? "other" : type.Trim().ToLowerInvariant();
+            return FeedbackPage + "?type=" + t + "&v=" + BuildInfo.Version;
+        }
+
         /// <summary>按渠道拼出更新清单的候选地址（按顺序尝试，第一个成功就用）。</summary>
         public static string[] UpdateManifestCandidates(string channel)
         {

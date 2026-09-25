@@ -120,7 +120,7 @@
     "licenseText": "MIT License"
   },
   {
-    "name": "SharpZipLib",
+    "name": "ICSharpCode.SharpZipLib",
     "copyrightNotice": "Copyright (c) 2000-2018 SharpZipLib Contributors",
     "projectUrl": "https://github.com/icsharpcode/SharpZipLib",
     "licenseText": "MIT License"
@@ -132,7 +132,13 @@
     "licenseText": "LGPL-2.1-or-later License"
   },
   {
-    "name": "Microsoft.Web.WebView2",
+    "name": "Microsoft.Web.WebView2.Core",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://developer.microsoft.com/microsoft-edge/webview2/",
+    "licenseText": "Microsoft 软件许可条款"
+  },
+  {
+    "name": "Microsoft.Web.WebView2.WinForms",
     "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
     "projectUrl": "https://developer.microsoft.com/microsoft-edge/webview2/",
     "licenseText": "Microsoft 软件许可条款"

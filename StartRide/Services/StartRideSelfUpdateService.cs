@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -26,7 +26,7 @@ namespace StartRide.Services
     ///   · LauncherUpdateInfo.CanAutoInstall 只对 AssetKind=WindowsX64Executable 返回 true，
     ///     清单写 zip 时界面上的「更新」按钮点了会直接报「未找到可自动安装的更新包」并返回，
     ///     StartUpdateAsync 根本不会被调用（已用探针实测）
-    ///   · 它的 UserAgent 常量还写着旧品牌名（StartRide-Launcher）
+    ///   · 它的 UserAgent 常量还写着一个与本项目无关的旧名字
     /// 而 StartRide 的分发形态是 zip 安装包（exe 只有 200 KB，界面全在 StartRide.dll 里，
     /// 只替换 exe 毫无意义），所以必须支持「整包替换」。
     ///
@@ -47,7 +47,7 @@ namespace StartRide.Services
     ///
     /// 保留用户数据
     /// ------------
-    ///   只「覆盖」包里带的文件，不镜像整个目录 —— 用户的 Mods/、日志、StartRide 数据目录不会被删。
+    ///   只「覆盖」包里带的文件，不镜像整个目录 —— 用户的 Mods/、日志、历史数据目录不会被删。
     ///   仅额外删除已知的历史遗留文件（改名前的旧程序集）。
     /// </summary>
     public sealed class StartRideSelfUpdateService : ILauncherSelfUpdateService

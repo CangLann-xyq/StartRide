@@ -175,4 +175,65 @@
       </ResourceDictionary>
     </Style.Resources>
   </Style>
+  <!--
+    更新弹窗里的「更新说明」滚动区（2026-09-24）：
+    默认那根系统滚动条又宽又亮，在深色弹窗里非常跳。
+    这里给一条 6px、圆角、无箭头、常显但很淡的滚动条，悬停/拖拽才变亮。
+  -->
+  <Style x:Key="UpdateNotesScrollThumbStyle" TargetType="{x:Type Thumb}" BasedOn="{StaticResource SlimScrollThumbStyle}">
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Background" Value="#40FFFFFF" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Thumb}">
+          <Border Name="Root" Width="4" Margin="1,3" HorizontalAlignment="Center" Background="{TemplateBinding Control.Background}" CornerRadius="2" />
+          <ControlTemplate.Triggers>
+            <Trigger Property="UIElement.IsMouseOver" Value="True">
+              <Setter TargetName="Root" Value="{DynamicResource Brush.84FFFFFF}" Property="Border.Background" />
+            </Trigger>
+            <Trigger Property="Thumb.IsDragging" Value="True">
+              <Setter TargetName="Root" Value="{DynamicResource Brush.A8FFFFFF}" Property="Border.Background" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="UpdateNotesScrollBarStyle" TargetType="{x:Type ScrollBar}">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="Margin" Value="0,2,0,2" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type ScrollBar}">
+          <Grid Background="#00FFFFFF">
+            <Track Name="PART_Track" IsDirectionReversed="True">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollRepeatButtonStyle}" />
+              </Track.DecreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb Style="{StaticResource UpdateNotesScrollThumbStyle}" />
+              </Track.Thumb>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource SlimScrollRepeatButtonStyle}" />
+              </Track.IncreaseRepeatButton>
+            </Track>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="UpdateNotesScrollViewerStyle" TargetType="{x:Type ScrollViewer}" BasedOn="{StaticResource OverlayScrollViewerStyle}">
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+    <Setter Property="behaviors:SmoothScrollBehavior.IsEnabled" Value="True" />
+    <Setter Property="behaviors:SmoothScrollBehavior.ScrollAmount" Value="56" />
+    <Style.Resources>
+      <ResourceDictionary>
+        <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource UpdateNotesScrollBarStyle}" />
+      </ResourceDictionary>
+    </Style.Resources>
+  </Style>
 </ResourceDictionary>

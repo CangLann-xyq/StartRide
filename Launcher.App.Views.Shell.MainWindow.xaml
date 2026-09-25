@@ -547,10 +547,20 @@
           </Grid.RowDefinitions>
           <TextBlock Text="{x:Static res:Strings.Dialog_UpdateAvailableTitle}" Style="{StaticResource DialogTitleTextStyle}" />
           <TextBlock Grid.Row="1" Margin="0,16,0,12" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogMessage}" />
-          <ScrollViewer Grid.Row="2" Margin="0,0,0,20" MaxHeight="200" VerticalScrollBarVisibility="Auto"
-                        Visibility="{Binding HasUpdateDialogChangelog, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
-            <TextBlock Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogChangelog}" />
-          </ScrollViewer>
+          <Border Grid.Row="2" Margin="0,0,0,20" Padding="14,12" CornerRadius="12"
+                  Background="#0AFFFFFF" BorderBrush="#17FFFFFF" BorderThickness="1"
+                  Visibility="{Binding HasUpdateDialogChangelog, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <TextBlock Text="{x:Static res:Strings.Dialog_UpdateNotesLabel}" Style="{StaticResource DialogFieldLabelTextStyle}" />
+              <ScrollViewer Grid.Row="1" Margin="0,8,0,0" MaxHeight="168" Style="{StaticResource UpdateNotesScrollViewerStyle}">
+                <TextBlock Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogChangelog}" />
+              </ScrollViewer>
+            </Grid>
+          </Border>
           <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

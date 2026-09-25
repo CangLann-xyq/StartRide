@@ -1,4 +1,4 @@
-
+﻿
 
 
 
@@ -687,7 +687,7 @@ local function onInit()
   end)
   if not readyLogged then
     readyLogged = true
-    logI('v2.7.0 已加载, physicsFPS=' .. tostring(physicsFPS),
+    logI('v2.8.1 已加载, physicsFPS=' .. tostring(physicsFPS),
       'refNode=' .. tostring(getRefNode()), 'type=' .. tostring(v.mpVehicleType))
   end
 end
