@@ -70,7 +70,7 @@
 
 如对本协议有疑问，可通过以下方式联系：
 
-- 邮箱：3956860183@qq.com
+- 邮箱：cloudfur2026@qq.com
 - 仓库 Issues：<https://github.com/CangLann-xyq/StartRide/issues>
 
 ---

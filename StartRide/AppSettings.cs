@@ -153,12 +153,13 @@ namespace StartRide.Core
 
         // ---------------- 持久化 ----------------
 
+        /// <summary>配置目录。收敛到 <see cref="StartRidePaths.Root"/>，全工程只此一处定义。</summary>
         [JsonIgnore]
-        public static string ConfigDirectory =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StartRide");
+        public static string ConfigDirectory => StartRidePaths.Root;
 
+        /// <summary>设置文件。与 <see cref="StartRidePaths.SettingsFile"/> 同一路径（框架设置文件在 LauncherState，不在这）。</summary>
         [JsonIgnore]
-        public static string ConfigPath => Path.Combine(ConfigDirectory, "settings.json");
+        public static string ConfigPath => StartRidePaths.SettingsFile;
 
         private static readonly JsonSerializerOptions Opts = new() { WriteIndented = true };
 

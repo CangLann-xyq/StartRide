@@ -26,7 +26,7 @@ namespace StartRide.Core
         public static string Root =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StartRide");
 
-        /// <summary>启动器设置文件（框架 ISettingsService 的 dataDirectory 就指向 <see cref="Root"/>）</summary>
+        /// <summary>自有启动器设置文件（<see cref="AppSettings"/> 的唯一落点，47 项）。框架那套在 <see cref="LauncherState"/>，两者不可混用。</summary>
         public static string SettingsFile => Path.Combine(Root, "settings.json");
 
         /// <summary>账户与账户皮肤/披风缓存</summary>
@@ -34,6 +34,19 @@ namespace StartRide.Core
 
         /// <summary>游戏侧数据目录（顶替框架默认的 .minecraft）</summary>
         public static string GameData => Path.Combine(Root, "game");
+
+        /// <summary>
+        /// 框架层（<c>ISettingsService</c> / <c>JsonSettingsService</c>）自己的设置文件目录。
+        ///
+        /// ⚠️ 必须与 <see cref="Root"/> 分开，否则会和 <see cref="SettingsFile"/> 撞成同一个文件：
+        /// JsonSettingsService 写的是「&lt;dataDirectory&gt;\settings.json」，而自有设置也正好在
+        /// 「&lt;Root&gt;\settings.json」。两者 schema 完全不同（框架：Revision/Theme/AccentColor/
+        /// LauncherLanguage…；自有：GameDirectory/MaxMemoryMB/RelayHost… 共 47 项），
+        /// 谁后写谁把对方整体抹掉。实测（fwprobe saveprobe）确认了框架写的就是 settings.json：
+        /// 框架保存一次 → 用户自有设置全变默认值；自有设置保存一次 → 主题/语言/窗口位置被清空。
+        /// 因此框架那套独立到 Root\launcher\settings.json，两边各写各的。
+        /// </summary>
+        public static string LauncherState => Path.Combine(Root, "launcher");
 
         public static string Log => Path.Combine(Root, "Log");
         public static string Avatars => Path.Combine(Root, "avatars");
@@ -75,7 +88,7 @@ namespace StartRide.Core
         /// </summary>
         public static void EnsureLayout()
         {
-            foreach (string dir in new[] { Root, Accounts, GameData, Log, Avatars, Backups, Diagnostics })
+            foreach (string dir in new[] { Root, Accounts, GameData, Log, Avatars, Backups, Diagnostics, LauncherState })
             {
                 try { Directory.CreateDirectory(dir); } catch { }
             }

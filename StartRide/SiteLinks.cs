@@ -74,8 +74,13 @@ namespace StartRide.Core
         /// <summary>产品名（对话框、协议等文案里统一用这个）。</summary>
         public const string ProductName = "StartRide 启动器";
 
-        /// <summary>反馈用的联系邮箱（无 GitHub 账号的用户也能反馈）。</summary>
-        public const string SupportEmail = "3956860183@qq.com";
+        /// <summary>
+        /// 反馈用的联系邮箱（无 GitHub 账号的用户也能反馈）。
+        ///
+        /// ⚠️ 当前**没有任何界面引用它**（反馈都走 <see cref="FeedbackPage"/> 站内表单）。
+        /// 保留是为了让「联系邮箱」有唯一出处，改邮箱时和 README / docs/USER-AGREEMENT.md 一起改。
+        /// </summary>
+        public const string SupportEmail = "cloudfur2026@qq.com";
 
         /// <summary>
         /// 反馈页（站内表单，国内直连可用）。

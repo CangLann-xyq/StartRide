@@ -102,7 +102,7 @@ StartRide 的界面层基于一个开源 Minecraft 启动器（GPL-3.0）的既�
 
 - 项目主页：[startride.top](https://startride.top)
 - 问题反馈：[Issues](https://github.com/CangLann-xyq/StartRide/issues)
-- 联系邮箱：3956860183@qq.com
+- 联系邮箱：cloudfur2026@qq.com
 
 ---
 

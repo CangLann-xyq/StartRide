@@ -112,7 +112,7 @@ public partial class App : System.Windows.Application
 		string[] args = Environment.GetCommandLineArgs().Skip(1).ToArray();
 		if ((object)LauncherUpdateApplyOptions.Parse(args) == null && (object)LauncherUpdateRecoveryOptions.Parse(args) == null)
 		{
-			bootstrapPreferences = new JsonSettingsService(StartRidePaths.Root).LoadLauncherBootstrapPreferences();
+			bootstrapPreferences = new JsonSettingsService(StartRidePaths.LauncherState).LoadLauncherBootstrapPreferences();
 			ApplyLauncherCulture(bootstrapPreferences.LauncherLanguage);
 		}
 	}
@@ -169,9 +169,11 @@ public partial class App : System.Windows.Application
 			// 框架默认会把设置写到 <EXE>\BHL、账户写到 %APPDATA%\BHL\accounts、并把默认游戏目录算成 .minecraft，
 			// 以前是靠三个目录联接把这三个名字遮住；现在直接注入我们自己的路径——这几个类型的构造函数
 			// 本来就接受路径参数，且没有别的注册点在构造时就缓存它们，所以排在 AddLauncherInfrastructure() 之后即可顶掉。
+			// ⚠️ 框架设置服务的落盘目录用 StartRidePaths.LauncherState 而不是 Root：JsonSettingsService 写的是
+			// 「<目录>\settings.json」，直接用 Root 会和自有 AppSettings 抢同一个文件、互相整体覆盖（详见 StartRidePaths）。
 			services.AddSingleton(new LauncherPathProvider(StartRidePaths.Root, StartRidePaths.Root));
 			services.AddSingleton<ISettingsService>(serviceProvider => new StartRideSettingsService(
-				new JsonSettingsService(StartRidePaths.Root, serviceProvider.GetRequiredService<ILogger<JsonSettingsService>>())));
+				new JsonSettingsService(StartRidePaths.LauncherState, serviceProvider.GetRequiredService<ILogger<JsonSettingsService>>())));
 			services.AddSingleton<IAccountStateService>(serviceProvider => new JsonAccountStateService(
 				serviceProvider.GetRequiredService<LauncherPathProvider>(),
 				StartRidePaths.Accounts,

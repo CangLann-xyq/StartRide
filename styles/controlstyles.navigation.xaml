@@ -35,8 +35,13 @@
   </Style>
   <Style x:Key="TopNavigationTabStyle" TargetType="{x:Type Button}">
     <Setter Property="Height" Value="38" />
-    <Setter Property="Margin" Value="6,0" />
-    <Setter Property="Padding" Value="20,0" />
+    <!-- ⚠️ 这两个值决定 7 个一级导航项能不能一行放下，别随手调大。
+         实测：每项占宽 = 2*Margin + 2*Padding + 图标 18 + 图标文字间距 7 + 文字宽。
+         窗口 1000px 时导航列只有 729px，而 20/6 的旧值需要 819px
+         → 第 7 项「全局设置」的文字整段被裁掉，只剩齿轮图标（2026-09-25 修）。
+         现值 12/4 时 7 项共 679px，在 MinWidth 960 下仍有 10px 余量。 -->
+    <Setter Property="Margin" Value="4,0" />
+    <Setter Property="Padding" Value="12,0" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
     <Setter Property="Background" Value="#00FFFFFF" />
     <Setter Property="BorderThickness" Value="0" />
