@@ -65,8 +65,17 @@ namespace StartRide.Core
         public static string GitHubRawBase =>
             "https://raw.githubusercontent.com/" + GitHubOwner + "/" + GitHubRepoName + "/" + GitHubBranch;
 
-        /// <summary>自有域名的更新清单目录（备用通道，服务器可放一份）。</summary>
-        public const string SelfHostedUpdateBase = "https://windseek.cloud/update";
+        /// <summary>
+        /// 自有更新源基址（更新清单 + 更新说明页）。
+        ///
+        /// ⚠️ 2026-09 从 windseek.cloud 迁到这里。windseek.cloud 只承担"服务器连接"
+        /// （云同步 / 联机 API），**没有备案、之前被提醒过**；凡是有用户会打开的内容
+        /// （更新说明页、安装包下载）都必须放在已备案的 startride.top 上，别再改回去。
+        ///
+        /// 服务器上仍然为 2.9.9 及更早的启动器保留了一份同内容的 JSON 清单
+        /// （它们内置的是 windseek.cloud/update 地址），但那份只放 JSON，不放网页。
+        /// </summary>
+        public const string SelfHostedUpdateBase = "https://startride.top/update";
 
         /// <summary>版权署名行（关于页显示）。</summary>
         public const string CopyrightLine = "Copyright © 2026 肖又祺 · StartRide";

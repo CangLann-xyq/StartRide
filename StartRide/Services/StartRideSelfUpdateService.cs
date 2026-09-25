@@ -259,7 +259,7 @@ namespace StartRide.Services
         /// <summary>
         /// 挑出可用的下载地址：清单里的 downloadUrls + downloadUrl，按「自有域名优先」排序。
         ///
-        /// 自有域名（windseek.cloud）在国内直连快，GitHub 那两条基本不可达，
+        /// 自有域名（startride.top，已备案）在国内直连快，GitHub 那两条基本不可达，
         /// 所以不能让 GitHub 排在前面拖慢失败重试。
         /// </summary>
         internal static List<LauncherUpdateDownloadUrl> ResolvePackageUrls(LauncherUpdateInfo update)

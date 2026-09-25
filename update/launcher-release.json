@@ -2,12 +2,12 @@
   "version": "2.8.2",
   "displayVersion": "2.8.2",
   "versionCode": 20802,
-  "releasePageUrl": "https://windseek.cloud/update/",
-  "downloadUrl": "https://windseek.cloud/downloads/StartRide-2.8.2-win-x64.zip",
+  "releasePageUrl": "https://startride.top/update/",
+  "downloadUrl": "https://startride.top/downloads/StartRide-2.8.2-win-x64.zip",
   "downloadUrls": [
     {
-      "name": "官方源（windseek.cloud）",
-      "url": "https://windseek.cloud/downloads/StartRide-2.8.2-win-x64.zip",
+      "name": "官方源（startride.top）",
+      "url": "https://startride.top/downloads/StartRide-2.8.2-win-x64.zip",
       "priority": 0
     }
   ],

@@ -243,7 +243,7 @@ public partial class App : System.Windows.Application
 				});
 			}
 			// StartRide：把"检查更新"从上游启动器的 GitHub 清单换成自有的
-			// （windseek.cloud/update → 本仓库 update/ 两个通道）。
+			// （startride.top/update → 本仓库 update/ 两个通道）。
 			// MS.DI 取后注册者，因此必须排在 AddLauncherInfrastructure 之后才顶得掉原实现。
 			services.AddSingleton<ILauncherUpdateService, StartRideLauncherUpdateService>();
 			// StartRide：自有的在线更新（zip 整包下载 → 校验 → 替换安装目录 → 自动重启）。
