@@ -27,6 +27,7 @@ using Launcher.Application.DependencyInjection;
 using Launcher.Application.Services;
 using Launcher.Domain.Models;
 using Launcher.Infrastructure;
+using Launcher.Infrastructure.Accounts;
 using Launcher.Infrastructure.DependencyInjection;
 using Launcher.Infrastructure.Persistence;
 using Launcher.Infrastructure.Updates;
@@ -104,10 +105,14 @@ public partial class App : System.Windows.Application
 	public App()
 	{
 		bootstrapPreferences = new LauncherBootstrapPreferences("zh-Hans", EnableDiagnosticLogging: false);
+		// StartRide：先把老布局（%APPDATA%\StartRide\app 下的 settings.json / accounts）搬到自有布局，
+		// 再读引导设置——否则这一步仍会去碰框架的默认数据目录（<EXE>\BHL）。
+		StartRidePaths.MigrateLegacyLayout();
+		StartRidePaths.EnsureLayout();
 		string[] args = Environment.GetCommandLineArgs().Skip(1).ToArray();
 		if ((object)LauncherUpdateApplyOptions.Parse(args) == null && (object)LauncherUpdateRecoveryOptions.Parse(args) == null)
 		{
-			bootstrapPreferences = new JsonSettingsService().LoadLauncherBootstrapPreferences();
+			bootstrapPreferences = new JsonSettingsService(StartRidePaths.Root).LoadLauncherBootstrapPreferences();
 			ApplyLauncherCulture(bootstrapPreferences.LauncherLanguage);
 		}
 	}
@@ -160,6 +165,51 @@ public partial class App : System.Windows.Application
 			((IServiceCollection)services).AddSingleton((ILauncherLogLevelController)logLevelController);
 			services.AddLauncherApplication();
 			services.AddLauncherInfrastructure();
+			// StartRide：数据目录、设置文件、账户状态全部改用自有布局（StartRidePaths）。
+			// 框架默认会把设置写到 <EXE>\BHL、账户写到 %APPDATA%\BHL\accounts、并把默认游戏目录算成 .minecraft，
+			// 以前是靠三个目录联接把这三个名字遮住；现在直接注入我们自己的路径——这几个类型的构造函数
+			// 本来就接受路径参数，且没有别的注册点在构造时就缓存它们，所以排在 AddLauncherInfrastructure() 之后即可顶掉。
+			services.AddSingleton(new LauncherPathProvider(StartRidePaths.Root, StartRidePaths.Root));
+			services.AddSingleton<ISettingsService>(serviceProvider => new StartRideSettingsService(
+				new JsonSettingsService(StartRidePaths.Root, serviceProvider.GetRequiredService<ILogger<JsonSettingsService>>())));
+			services.AddSingleton<IAccountStateService>(serviceProvider => new JsonAccountStateService(
+				serviceProvider.GetRequiredService<LauncherPathProvider>(),
+				StartRidePaths.Accounts,
+				serviceProvider.GetRequiredService<ILogger<JsonAccountStateService>>()));
+			// StartRide：账户只有 Steam 一种，不存在 Minecraft 皮肤/披风那套缓存；顶掉框架实现，
+			// 顺带掐掉它按 ApplicationId 现拼出来的 <根>\<框架名>\accounts\{microsoft,third-party}\... 目录。
+			services.AddSingleton<IAccountSkinLibraryService, StartRideSkinLibraryService>();
+			// StartRide：头像/皮肤缓存这两个服务也是按框架路径自己拼目录的
+			// （<根>\<框架名>\accounts\<账户种类>\{avatars,capes,skins}）。它们的类型与构造函数
+			// 都是 internal（LauncherPathProvider 又是 sealed、属性不可重写），所以按类型名反射取类型、
+			// 用「HttpClient + 目录」那个 internal 构造函数造实例，再按原服务类型注册回去。
+			// 任何一步失败就不注册，框架原注册继续生效，不影响启动。
+			foreach (string frameworkServiceName in new[]
+			         {
+				         "Launcher.Infrastructure.Accounts.AccountAvatarService",
+				         "Launcher.Infrastructure.Accounts.AccountSkinCacheService"
+			         })
+			{
+				try
+				{
+					Type frameworkServiceType = FrameworkServiceOverrides.FindType(frameworkServiceName);
+					object instance = FrameworkServiceOverrides.CreateWithExplicitDirectory(
+						frameworkServiceType, StartRidePaths.Accounts, null);
+					if (frameworkServiceType != null && instance != null)
+					{
+						services.AddSingleton(frameworkServiceType, instance);
+						Log.Information("StartRide: {Service} 的目录已接管为 {Directory}", frameworkServiceType.Name, StartRidePaths.Accounts);
+					}
+					else
+					{
+						Log.Warning("StartRide: {Service} 目录接管失败（构造函数不匹配），继续用框架默认。", frameworkServiceName);
+					}
+				}
+				catch (Exception ex)
+				{
+					Log.Warning(ex, "StartRide: {Service} 目录接管异常，继续用框架默认。", frameworkServiceName);
+				}
+			}
 			// StartRide：把"检查更新"从上游启动器的 GitHub 清单换成自有的
 			// （windseek.cloud/update → 本仓库 update/ 两个通道）。
 			// MS.DI 取后注册者，因此必须排在 AddLauncherInfrastructure 之后才顶得掉原实现。
@@ -361,7 +411,7 @@ public partial class App : System.Windows.Application
 			ISettingsService settingsService = serviceProvider.GetRequiredService<ISettingsService>();
 			LauncherSettings result = await Task.Run(() => settingsService.UpdateAsync(delegate(LauncherSettings settings)
 			{
-				initializedDirectory = initializationService.InitializeDefaultDirectory(settings, pathProvider.DefaultMinecraftDirectory);
+				initializedDirectory = initializationService.InitializeDefaultDirectory(settings, StartRidePaths.GameData);
 			}));
 			Log.Information("Default Minecraft directory initialized for the first launcher run. MinecraftDirectory={MinecraftDirectory}", initializedDirectory);
 			return result;
@@ -372,7 +422,7 @@ public partial class App : System.Windows.Application
 		}
 		catch (Exception innerException)
 		{
-			throw new MinecraftDirectoryStartupRecoveryException(pathProvider.DefaultMinecraftDirectory, "The initial Minecraft directory could not be initialized.", innerException);
+			throw new MinecraftDirectoryStartupRecoveryException(StartRidePaths.GameData, "The initial Minecraft directory could not be initialized.", innerException);
 		}
 	}
 
@@ -406,11 +456,11 @@ public partial class App : System.Windows.Application
 		{
 			LauncherSettings updatedSettings = await Task.Run(() => settingsService.UpdateAsync(delegate(LauncherSettings settings)
 			{
-				recovery = recoveryService.Recover(settings, pathProvider.DefaultMinecraftDirectory, availability);
+				recovery = recoveryService.Recover(settings, StartRidePaths.GameData, availability);
 			}));
 			if (!(await MinecraftDirectoryStartupProbe.IsAccessibleAsync(fileSystem, updatedSettings.MinecraftDirectory, null, probeLogger)))
 			{
-				throw new MinecraftDirectoryStartupRecoveryException(pathProvider.DefaultMinecraftDirectory, "The recovered Minecraft directory is not accessible.");
+				throw new MinecraftDirectoryStartupRecoveryException(StartRidePaths.GameData, "The recovered Minecraft directory is not accessible.");
 			}
 			if ((object)recovery != null)
 			{
@@ -428,7 +478,7 @@ public partial class App : System.Windows.Application
 		}
 		catch (Exception innerException)
 		{
-			throw new MinecraftDirectoryStartupRecoveryException(recovery?.SelectedDirectory ?? pathProvider.DefaultMinecraftDirectory, "The recovered Minecraft directory could not be saved.", innerException);
+			throw new MinecraftDirectoryStartupRecoveryException(recovery?.SelectedDirectory ?? StartRidePaths.GameData, "The recovered Minecraft directory could not be saved.", innerException);
 		}
 	}
 

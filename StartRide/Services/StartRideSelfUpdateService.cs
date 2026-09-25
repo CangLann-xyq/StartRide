@@ -671,6 +671,23 @@ if ($ObsoleteNames -ne '') {
     }
 }
 
+# Since 2.9.0 the app resolves its data directories itself, so the old directory junctions
+# (BHL / .minecraft pointing at %APPDATA%\StartRide\app) are leftovers and must go.
+# Directory::Delete with recursive=$false removes the reparse point only, never the target,
+# and fails harmlessly if the name is a real non-empty directory.
+$legacyJunctionNames = @('BHL', '.minecraft')
+foreach ($name in $legacyJunctionNames) {
+    if (Test-Path -LiteralPath (Join-Path $stage $name)) { continue }
+    $junctionPath = Join-Path $InstallDirectory $name
+    if (-not (Test-Path -LiteralPath $junctionPath)) { continue }
+    try {
+        [System.IO.Directory]::Delete($junctionPath, $false)
+        Write-UpdateLog ('removed legacy junction ' + $name)
+    } catch {
+        Write-UpdateLog ('failed to remove legacy junction ' + $name)
+    }
+}
+
 if ($failed -eq 0) {
     try {
         Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction Stop
