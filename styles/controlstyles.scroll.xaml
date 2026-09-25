@@ -176,6 +176,26 @@
     </Style.Resources>
   </Style>
   <!--
+    ── 常显滚动条（车辆管理等"一屏装不下"的长列表专用） ──────────────────────────
+    MainContentScrollBarStyle / SecondaryMenuScrollBarStyle 都是「鼠标悬停在滚动区里
+    才 Opacity 0→1，且悬停前 IsHitTestVisible=False」——为了画面干净，代价是
+    用户**根本看不见也拖不到**滚动条（反馈："滑动条滑不到头"）。
+    长列表里这不是美观问题而是可用性问题，所以单独给一套"常显可拖"的。
+  -->
+  <Style x:Key="RidePersistentScrollBarStyle" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource SlimVerticalScrollBarStyle}">
+    <Setter Property="Margin" Value="0,8,2,8" />
+    <Setter Property="UIElement.Opacity" Value="1" />
+    <Setter Property="UIElement.IsHitTestVisible" Value="True" />
+  </Style>
+  <Style x:Key="RidePersistentScrollViewerStyle" TargetType="{x:Type ScrollViewer}" BasedOn="{StaticResource MainContentScrollViewerStyle}">
+    <Setter Property="VerticalScrollBarVisibility" Value="Visible" />
+    <Style.Resources>
+      <ResourceDictionary>
+        <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource RidePersistentScrollBarStyle}" />
+      </ResourceDictionary>
+    </Style.Resources>
+  </Style>
+  <!--
     更新弹窗里的「更新说明」滚动区（2026-09-24）：
     默认那根系统滚动条又宽又亮，在深色弹窗里非常跳。
     这里给一条 6px、圆角、无箭头、常显但很淡的滚动条，悬停/拖拽才变亮。

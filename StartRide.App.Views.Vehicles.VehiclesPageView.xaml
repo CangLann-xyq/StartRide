@@ -37,6 +37,9 @@
           </FrameworkElement.Style>
         </Button>
         <Border Width="1" Margin="12,6,12,6" Background="#1AFFFFFF" />
+        <!-- 来源筛选：内置 123 辆 + 模组车辆，一眼分开 -->
+        <controls:AnimatedComboBox Width="94" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding SourceOptions}" SelectedItem="{Binding SelectedSource}" ToolTip="按来源筛选（内置 / 模组）" />
+        <Border Width="1" Margin="12,6,12,6" Background="#1AFFFFFF" />
         <Button Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="打开车辆文件夹" Command="{Binding OpenVehiclesFolderCommand}" />
       </StackPanel>
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -153,6 +156,14 @@
             <Border Style="{StaticResource RideHairlineStyle}" />
 
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="来源" />
+              <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding SelectedSourceText}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="车辆ID" />
+              <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding SelectedVehicleId}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
               <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="文件" />
               <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding SelectedFileName}" />
             </StackPanel>
@@ -167,7 +178,7 @@
 
             <Border Style="{StaticResource RideHairlineStyle}" />
 
-            <Button HorizontalAlignment="Stretch" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="在资源管理器中定位" Command="{Binding OpenVehicleLocationCommand}" CommandParameter="{Binding SelectedVehicle}" />
+            <Button HorizontalAlignment="Stretch" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="在资源管理器中定位" Command="{Binding RevealSelectedCommand}" />
             <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Style="{StaticResource LauncherDialogButtonStyle}" Content="复制文件路径" Command="{Binding CopyVehiclePathCommand}" CommandParameter="{Binding SelectedVehicle}" />
           </StackPanel>
         </Grid>

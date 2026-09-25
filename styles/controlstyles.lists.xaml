@@ -306,8 +306,24 @@
   <!-- 无 MaxWidth 上限的列表（详情页要铺满左栏，不能被 800px 卡住）。
        必须留在本文件：它 BasedOn 的 ListPageVirtualizedListBoxStyle 也在这里，
        放进 ControlStyles.Page.xaml 会变成跨文件前向引用 → 启动即崩。 -->
+  <!-- 唯一使用点 = 车辆管理页的车辆列表（内置车 123 + 模组车上百条，一屏绝对装不下）。
+       所以这里把 PART_ScrollViewer 换成 RidePersistentScrollViewerStyle：
+       继承来的那套滚动条是"鼠标悬停才显形、悬停前连点击都不接受"的，
+       长列表里用户根本看不见 / 拖不到它（反馈："滑动条滑不到头"）。
+       其余页面继续用默认的自动隐藏滚动条，观感不变。 -->
   <Style x:Key="RideWideListBoxStyle" TargetType="{x:Type ListBox}" BasedOn="{StaticResource ListPageVirtualizedListBoxStyle}">
     <Setter Property="MaxWidth" Value="{x:Static sys:Double.PositiveInfinity}" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type ListBox}">
+          <Border Background="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}">
+            <ScrollViewer Name="PART_ScrollViewer" Focusable="False" Style="{StaticResource RidePersistentScrollViewerStyle}">
+              <ItemsPresenter />
+            </ScrollViewer>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 </ResourceDictionary>

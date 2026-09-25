@@ -4,9 +4,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using StartRide.Core;
@@ -28,20 +30,42 @@ public sealed class ModItem : ObservableObject
 	}
 }
 
-/// <summary>在线仓库的模组条目（来自 BeamNG 官方资源库列表页解析）。</summary>
+/// <summary>
+/// 在线仓库的模组条目。
+/// 列表页能直接给的东西（名称/作者/分类/版本/评分/下载量/tagline/**作者上传的图标**）立刻可见；
+/// 完整介绍、安装包体积、详情页精确下载量在用户点「详情」时才拉（和下载直链共用同一次请求）。
+/// </summary>
 public sealed class RepositoryModItem : ObservableObject
 {
+	private ImageSource? iconSource;
+	private string fullDescription = "";
+	private string exactDownloadsText = "";
+	private string fileSizeText = "";
+	private string detailVersion = "";
+	private bool isExpanded;
+	private bool isDetailLoading;
+	private bool detailLoaded;
+	private bool isDownloaded;
+	private bool isDownloading;
+
 	public long ResourceId { get; }
 	public string Slug { get; }
 	public string Name { get; }
 	public string Author { get; }
 	public string Category { get; }
-	public string Description { get; }
+
+	/// <summary>列表页的 tagline（一句话简介），不点详情也能看到。</summary>
+	public string Summary { get; }
+
 	public string Version { get; }
 	public string RatingText { get; }
-	public string DownloadsText { get; }
 
-	/// <summary>资源详情页地址（下载前用它解析 download?version=NNN 直链）。</summary>
+	/// <summary>列表页给出的下载量（真实值，来自官方仓库列表）。</summary>
+	public string ListDownloadsText { get; }
+
+	/// <summary>模组作者上传的图标地址（绝对地址）。</summary>
+	public string IconUrl { get; }
+
 	public string PageUrl { get; }
 
 	public RepositoryModItem(BeamNgModInfo info)
@@ -51,19 +75,153 @@ public sealed class RepositoryModItem : ObservableObject
 		Name = info.Name;
 		Author = info.Author;
 		Category = info.CategoryName;
-		Description = info.Description;
+		Summary = info.Description;
 		Version = info.Version;
 		RatingText = info.RatingText;
-		DownloadsText = info.DownloadsText;
+		ListDownloadsText = info.DownloadsText;
+		IconUrl = info.IconUrl;
 		PageUrl = info.PageUrl;
+	}
+
+	/// <summary>作者上传的图标位图（异步填充；为空时界面显示默认图标）。</summary>
+	public ImageSource? IconSource
+	{
+		get => iconSource;
+		set
+		{
+			if (SetProperty(ref iconSource, value))
+			{
+				OnPropertyChanged(nameof(HasIcon));
+				OnPropertyChanged(nameof(NoIcon));
+			}
+		}
+	}
+
+	public bool HasIcon => iconSource != null;
+
+	public bool NoIcon => iconSource == null;
+
+	/// <summary>作者写的完整介绍（点详情后才有）。</summary>
+	public string FullDescription
+	{
+		get => fullDescription;
+		internal set
+		{
+			if (SetProperty(ref fullDescription, value))
+			{
+				OnPropertyChanged(nameof(HasFullDescription));
+				OnPropertyChanged(nameof(DescriptionText));
+			}
+		}
+	}
+
+	public bool HasFullDescription => fullDescription.Length > 0;
+
+	/// <summary>界面上展示的介绍：有完整版用完整版，否则退回 tagline。</summary>
+	public string DescriptionText => fullDescription.Length > 0 ? fullDescription : Summary;
+
+	/// <summary>详情页上的精确下载量（列表页的是同一来源的近似快照）。</summary>
+	public string DownloadsText => exactDownloadsText.Length > 0 ? exactDownloadsText : ListDownloadsText;
+
+	public string FileSizeText => fileSizeText;
+
+	public bool HasFileSize => fileSizeText.Length > 0;
+
+	public string VersionText => detailVersion.Length > 0 ? detailVersion : Version;
+
+	public bool IsExpanded
+	{
+		get => isExpanded;
+		set
+		{
+			if (SetProperty(ref isExpanded, value))
+			{
+				OnPropertyChanged(nameof(DetailButtonText));
+			}
+		}
+	}
+
+	public string DetailButtonText => isExpanded ? "收起" : "详情";
+
+	public bool IsDetailLoading
+	{
+		get => isDetailLoading;
+		set => SetProperty(ref isDetailLoading, value);
+	}
+
+	public bool DetailLoaded
+	{
+		get => detailLoaded;
+		set => SetProperty(ref detailLoaded, value);
+	}
+
+	/// <summary>本机 mods 目录里是否已经有这个模组。</summary>
+	public bool IsDownloaded
+	{
+		get => isDownloaded;
+		set
+		{
+			if (SetProperty(ref isDownloaded, value))
+			{
+				OnPropertyChanged(nameof(DownloadButtonText));
+			}
+		}
+	}
+
+	public string DownloadButtonText => isDownloaded ? "重新下载" : "下载";
+
+	/// <summary>正在下载这一条（按钮显示进度占位）。</summary>
+	public bool IsDownloading
+	{
+		get => isDownloading;
+		set
+		{
+			if (SetProperty(ref isDownloading, value))
+			{
+				OnPropertyChanged(nameof(DownloadButtonText));
+			}
+		}
+	}
+
+	/// <summary>把详情页解析结果填进条目。</summary>
+	public void ApplyDetail(BeamNgResourceDetail detail)
+	{
+		if (!string.IsNullOrWhiteSpace(detail.Description))
+		{
+			FullDescription = detail.Description;
+		}
+		if (!string.IsNullOrWhiteSpace(detail.DownloadsText))
+		{
+			exactDownloadsText = detail.DownloadsText.Trim();
+			OnPropertyChanged(nameof(DownloadsText));
+		}
+		if (!string.IsNullOrWhiteSpace(detail.FileSizeText))
+		{
+			fileSizeText = detail.FileSizeText.Trim();
+			OnPropertyChanged(nameof(FileSizeText));
+			OnPropertyChanged(nameof(HasFileSize));
+		}
+		if (!string.IsNullOrWhiteSpace(detail.Version))
+		{
+			detailVersion = detail.Version.Trim();
+			OnPropertyChanged(nameof(VersionText));
+		}
+		DetailLoaded = true;
 	}
 }
 
 /// <summary>
-/// 模组仓库页：在线数据实时拉取 BeamNG 官方资源库（www.beamng.com/resources）列表页解析。
-/// 全库约 1500+ 页 / 15 万+ 条目 → 首屏并发拉 10 页（约 1000 条）快速展示，
-/// 之后"滚动到底自动续拉"下一波，直到拉完全库。
-/// 下载：先解析详情页的 download?version=NNN 直链，再走客户端分段并行下载（R2 支持 Range）。
+/// 模组仓库页：在线数据实时拉取 BeamNG 官方资源库（www.beamng.com/resources）。
+///
+/// 拉取策略（实测过的时间数字见注释）：
+///   ① 启动器起来时就在后台**预热**第 1 页 —— 首次请求含 DNS+TLS，实测要 12.9s，
+///      之后每页只要 ~0.7s，把这 12.9s 挪到用户点进「在线仓库」之前；
+///   ② 先把第 1 页（100 条）画出来，再后台续拉；
+///   ③ 列表页 HTML 有 10 分钟内存缓存（切分类来回点 / 点刷新不再重复下载 283KB/页）；
+///   ④ 拉完的结果落盘，下次启动直接秒开（标明是本地缓存，点刷新可更新）。
+///
+/// 下载：先拉模组自己的详情页（顺带拿到介绍/图标/体积/精确下载量 + 下载直链），
+/// 再走客户端分段并行下载（实测单流 424KB/s、4 段 4.0MB/s）。
 /// </summary>
 public sealed class ModsPageViewModel : ObservableObject
 {
@@ -77,23 +235,29 @@ public sealed class ModsPageViewModel : ObservableObject
 	private bool isLoadingMore;
 	private double downloadProgress;
 	private string? downloadStatusText;
+	private string? downloadingItemName;
 	private RelayCommand? showOnlineCommand;
 	private RelayCommand? showLocalCommand;
 	private RelayCommand? openModsFolderCommand;
 	private RelayCommand? refreshRepositoryCommand;
 	private RelayCommand? loadMoreCommand;
-	private RelayCommand<ModItem?> revealModCommand;
+	private RelayCommand? hideOnlineCommand;
+	private RelayCommand<ModItem?>? revealModCommand;
+	private RelayCommand<RepositoryModItem?>? toggleDetailCommand;
+	private RelayCommand<RepositoryModItem?>? openModPageCommand;
 
-	private List<RepositoryModItem> allRepositoryMods = new();
+	private readonly List<RepositoryModItem> allRepositoryMods = new();
 	private CancellationTokenSource? loadCts;
+	private readonly CancellationTokenSource lifetimeCts = new();
 	private int nextPage = 1;
 	private int totalPages;
+	private bool restoredFromDisk;
 
-	/// <summary>首屏并发拉取页数（约 1000 条快速展示）。</summary>
-	private const int FirstWavePages = 10;
-
-	/// <summary>滚动到底后续拉的页数。</summary>
+	/// <summary>续拉每批页数。</summary>
 	private const int LoadMorePages = 10;
+
+	/// <summary>图标下载并发上限（图标很小，但别把仓库列表的带宽抢光）。</summary>
+	private static readonly SemaphoreSlim IconGate = new(6);
 
 	/// <summary>在线视图分类选项（与 BeamNgRepositoryClient 的映射对应）。</summary>
 	private static readonly string[] Categories = { "全部", "车辆", "地图", "涂装", "场景", "界面应用", "模组扩展", "音效", "其他" };
@@ -103,6 +267,8 @@ public sealed class ModsPageViewModel : ObservableObject
 	public ObservableCollection<string> CategoryOptions { get; } = new();
 
 	public bool HasMods => Mods.Count > 0;
+
+	public bool HasRepositoryMods => RepositoryMods.Count > 0;
 
 	public string ModsDirectory { get; }
 
@@ -198,6 +364,20 @@ public sealed class ModsPageViewModel : ObservableObject
 			CategoryOptions.Add(c);
 		}
 		LoadMods();
+
+		// 后台预热：把第 1 页那次 12.9s 的冷启动开销提前花掉
+		_ = Task.Run(async () =>
+		{
+			try
+			{
+				await Task.Delay(1500, lifetimeCts.Token).ConfigureAwait(false);
+				await BeamNgRepositoryClient.WarmUpAsync(null, lifetimeCts.Token).ConfigureAwait(false);
+			}
+			catch
+			{
+				// 预热失败无所谓
+			}
+		});
 	}
 
 	public IRelayCommand ShowOnlineCommand =>
@@ -206,11 +386,20 @@ public sealed class ModsPageViewModel : ObservableObject
 	public IRelayCommand ShowLocalCommand =>
 		showLocalCommand ?? (showLocalCommand = new RelayCommand(ShowLocal));
 
+	/// <summary>「← 返回本机模组」：在线列表占满整页时用它退回去。</summary>
+	public IRelayCommand HideOnlineCommand =>
+		hideOnlineCommand ?? (hideOnlineCommand = new RelayCommand(ShowLocal));
+
 	public IRelayCommand OpenModsFolderCommand =>
 		openModsFolderCommand ?? (openModsFolderCommand = new RelayCommand(OpenModsFolder));
 
+	/// <summary>刷新：清掉页面缓存后重新拉第 1 页，保证拿到的是最新数据。</summary>
 	public IRelayCommand RefreshRepositoryCommand =>
-		refreshRepositoryCommand ?? (refreshRepositoryCommand = new RelayCommand(StartLoadRepository));
+		refreshRepositoryCommand ?? (refreshRepositoryCommand = new RelayCommand(() =>
+		{
+			BeamNgRepositoryClient.InvalidatePageCache();
+			StartLoadRepository();
+		}));
 
 	/// <summary>滚动到底部触发：续拉下一波页面（内部有防重入守卫）。</summary>
 	public IRelayCommand LoadMoreCommand =>
@@ -220,6 +409,14 @@ public sealed class ModsPageViewModel : ObservableObject
 	public IRelayCommand<ModItem?> RevealModCommand =>
 		revealModCommand ?? (revealModCommand = new RelayCommand<ModItem?>(RevealMod));
 
+	/// <summary>展开/收起某个模组：首次展开时拉它自己的详情页（介绍/体积/精确下载量）。</summary>
+	public IRelayCommand<RepositoryModItem?> ToggleDetailCommand =>
+		toggleDetailCommand ?? (toggleDetailCommand = new RelayCommand<RepositoryModItem?>(ToggleDetail));
+
+	/// <summary>在浏览器里打开该模组在 BeamNG 官网的页面。</summary>
+	public IRelayCommand<RepositoryModItem?> OpenModPageCommand =>
+		openModPageCommand ?? (openModPageCommand = new RelayCommand<RepositoryModItem?>(OpenModPage));
+
 	private void ShowOnline()
 	{
 		IsOnlineView = true;
@@ -228,6 +425,76 @@ public sealed class ModsPageViewModel : ObservableObject
 	private void ShowLocal()
 	{
 		IsOnlineView = false;
+	}
+
+	private void OpenModPage(RepositoryModItem? item)
+	{
+		if (item == null)
+		{
+			return;
+		}
+		try
+		{
+			Process.Start(new ProcessStartInfo(item.PageUrl) { UseShellExecute = true });
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show("无法打开模组页面：" + ex.Message, "StartRide", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
+	private void ToggleDetail(RepositoryModItem? item)
+	{
+		if (item == null)
+		{
+			return;
+		}
+		item.IsExpanded = !item.IsExpanded;
+		if (item.IsExpanded && !item.DetailLoaded && !item.IsDetailLoading)
+		{
+			_ = LoadDetailAsync(item);
+		}
+	}
+
+	private async Task LoadDetailAsync(RepositoryModItem item)
+	{
+		item.IsDetailLoading = true;
+		try
+		{
+			CancellationToken ct = lifetimeCts.Token;
+			BeamNgResourceDetail? detail = await BeamNgRepositoryClient
+				.FetchResourceDetailAsync(item.PageUrl, ct)
+				.ConfigureAwait(true);
+			if (detail != null)
+			{
+				item.ApplyDetail(detail);
+				if (!string.IsNullOrEmpty(detail.IconUrl) && item.IconSource == null)
+				{
+					ImageSource? icon = await ModIconCache.GetAsync(item.ResourceId, detail.IconUrl, ct).ConfigureAwait(true);
+					if (icon != null)
+					{
+						item.IconSource = icon;
+					}
+				}
+			}
+			else
+			{
+				item.DetailLoaded = true;
+				item.FullDescription = "（读取模组介绍失败，可稍后重试或点「官网页面」查看）";
+			}
+		}
+		catch (OperationCanceledException)
+		{
+		}
+		catch (Exception ex)
+		{
+			item.DetailLoaded = true;
+			item.FullDescription = "（读取模组介绍失败：" + ex.Message + "）";
+		}
+		finally
+		{
+			item.IsDetailLoading = false;
+		}
 	}
 
 	/// <summary>启动在线仓库拉取（fire-and-forget，异常全部吞掉并显示失败状态，不崩 UI 线程）。</summary>
@@ -256,14 +523,47 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>本机已有模组的文件名集合（用于判断在线条目是否已下载）。</summary>
+	private HashSet<string> LocalModFileNames()
+	{
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		try
+		{
+			if (Directory.Exists(ModsDirectory))
+			{
+				foreach (string f in Directory.GetFiles(ModsDirectory, "*.zip"))
+				{
+					set.Add(Path.GetFileName(f));
+					set.Add(Path.GetFileNameWithoutExtension(f));
+				}
+			}
+		}
+		catch
+		{
+		}
+		return set;
+	}
+
 	private async Task LoadRepositoryAsync(CancellationToken ct)
 	{
 		IsLoadingRepository = true;
 		IsLoadingMore = false;
 		nextPage = 1;
 		totalPages = 0;
-		allRepositoryMods = new List<RepositoryModItem>();
+		allRepositoryMods.Clear();
 		RepositoryMods.Clear();
+		OnPropertyChanged(nameof(HasRepositoryMods));
+		restoredFromDisk = false;
+
+		// ① 有本地缓存先秒开
+		if (TryRestoreFromDisk())
+		{
+			restoredFromDisk = true;
+			IsLoadingRepository = false;
+			RepositoryStatusText = $"已从本地缓存载入 {RepositoryMods.Count} 个模组（滚到底或点「加载更多」继续拉，点「刷新」取最新）";
+			return;
+		}
+
 		RepositoryStatusText = "正在拉取 BeamNG 官方仓库（第 1 页）…";
 		try
 		{
@@ -273,18 +573,9 @@ public sealed class ModsPageViewModel : ObservableObject
 			totalPages = Math.Max(total, 1);
 			AppendItems(firstPage);
 			nextPage = 2;
-			ApplyFilter();
+			UpdateRepositoryStatus();
 
-			if (totalPages <= 1)
-			{
-				RepositoryStatusText = $"已从 BeamNG 官方仓库拉取 {allRepositoryMods.Count} 个模组";
-			}
-			else
-			{
-				RepositoryStatusText = $"已加载 {allRepositoryMods.Count} / 约 {FormatCount(totalPages * 100L)} 个模组 · 下拉到底自动继续加载";
-			}
-
-			// 首屏渲染后再自动续拉一波（共约 2000 条），之后由滚动触发。
+			// 首屏渲染后再自动续拉一波，之后由滚动触发。
 			// 注意先解除 IsLoadingRepository 守卫，否则续拉会被防重入检查直接拦掉。
 			IsLoadingRepository = false;
 			if (nextPage <= totalPages && IsOnlineView)
@@ -298,14 +589,26 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
+	private void UpdateRepositoryStatus()
+	{
+		if (restoredFromDisk)
+		{
+			RepositoryStatusText = $"已从本地缓存载入 {RepositoryMods.Count} 个模组（滚到底或点「加载更多」继续拉，点「刷新」取最新）";
+			return;
+		}
+		if (totalPages <= 1 || nextPage > totalPages)
+		{
+			RepositoryStatusText = $"已从 BeamNG 官方仓库拉取 {allRepositoryMods.Count} 个模组";
+			return;
+		}
+		RepositoryStatusText =
+			$"已加载 {allRepositoryMods.Count} / 约 {FormatCount(totalPages * 100L)} 个模组 · 下拉到底自动继续加载";
+	}
+
 	/// <summary>续拉下一波页面（滚动到底触发）。返回是否真的启动了加载。</summary>
 	public async Task<bool> TryLoadMoreAsync()
 	{
 		if (!IsOnlineView || IsLoadingRepository || IsLoadingMore || IsDownloading)
-		{
-			return false;
-		}
-		if (nextPage > totalPages || totalPages <= 0)
 		{
 			return false;
 		}
@@ -318,6 +621,32 @@ public sealed class ModsPageViewModel : ObservableObject
 		IsLoadingMore = true;
 		try
 		{
+			// ⚠️ 本地缓存模式下用户仍要更多时：只回线上锚一次总页数（第 1 页很便宜），
+			// 再从缓存覆盖到的下一页续拉——绝不能因为 restoredFromDisk 就静默什么都不做，
+			// 否则用户点「加载更多」/滚到底毫无反应，只能靠「刷新」把 150+ 页整套重拉。
+			if (restoredFromDisk)
+			{
+				RepositoryStatusText = "正在回到线上继续加载…";
+				string? reSlug = BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory);
+				var (head, total) = await BeamNgRepositoryClient
+					.FetchFirstPageAsync(reSlug, cts.Token)
+					.ConfigureAwait(true);
+				cts.Token.ThrowIfCancellationRequested();
+				totalPages = Math.Max(total, 1);
+				nextPage = Math.Max(2, allRepositoryMods.Count / 100 + 1);
+				if (head.Count > 0)
+				{
+					AppendItems(head); // 按 ResourceId 去重，重复的不会进列表
+				}
+				restoredFromDisk = false;
+			}
+
+			if (nextPage > totalPages || totalPages <= 0)
+			{
+				UpdateRepositoryStatus();
+				return false;
+			}
+
 			int from = nextPage;
 			int to = Math.Min(from + LoadMorePages - 1, totalPages);
 			RepositoryStatusText = $"正在加载第 {from}-{to} 页（共 {totalPages} 页）…";
@@ -326,10 +655,9 @@ public sealed class ModsPageViewModel : ObservableObject
 			cts.Token.ThrowIfCancellationRequested();
 			AppendItems(items);
 			nextPage = to + 1;
-
-			RepositoryStatusText = nextPage > totalPages
-				? $"已加载全部 {allRepositoryMods.Count} 个模组（BeamNG 官方仓库）"
-				: $"已加载 {allRepositoryMods.Count} / 约 {FormatCount(totalPages * 100L)} 个模组 · 下拉到底自动继续加载";
+			UpdateRepositoryStatus();
+			// 每批落一次盘：下次启动就能秒开（只存列表页字段）
+			SaveCacheToDisk();
 			return true;
 		}
 		catch (OperationCanceledException)
@@ -347,25 +675,203 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
-	private void AppendItems(List<BeamNgModInfo> items)
+	/// <summary>
+	/// 追加条目。⚠️ 这里同时写入 allRepositoryMods（后台全集）**和 RepositoryMods（界面绑定的集合）** ——
+	/// 旧实现只写前者，于是状态栏"已加载 1087 个"而列表永远停在 100 条
+	/// （用户报的"拉取第一页后其他页拉取不出来"就是这个）。
+	/// 用增量 Add 而不是 Clear+重建，避免每次续拉都把滚动位置弹回顶部。
+	/// </summary>
+	private void AppendItems(IEnumerable<BeamNgModInfo> items)
 	{
-		if (items.Count == 0)
+		var existing = new HashSet<long>(allRepositoryMods.Select(m => m.ResourceId));
+		HashSet<string> local = LocalModFileNames();
+		int added = 0;
+		foreach (BeamNgModInfo info in items)
+		{
+			if (!existing.Add(info.Id))
+			{
+				continue;
+			}
+			var item = new RepositoryModItem(info);
+			item.IsDownloaded = local.Contains(item.Slug + ".zip") || local.Contains(item.Slug);
+			allRepositoryMods.Add(item);
+
+			if (PassesFilter(item))
+			{
+				RepositoryMods.Add(item);
+				added++;
+			}
+			_ = LoadIconAsync(item);
+		}
+		if (added > 0)
+		{
+			OnPropertyChanged(nameof(HasRepositoryMods));
+		}
+	}
+
+	/// <summary>拉作者上传的图标（本地已有缓存则直接命中）。</summary>
+	private async Task LoadIconAsync(RepositoryModItem item)
+	{
+		if (string.IsNullOrWhiteSpace(item.IconUrl) || item.IconSource != null)
 		{
 			return;
 		}
-		var existingIds = new HashSet<long>(allRepositoryMods.Select(m => m.ResourceId));
-		foreach (BeamNgModInfo info in items)
+		await IconGate.WaitAsync(lifetimeCts.Token).ConfigureAwait(false);
+		try
 		{
-			if (existingIds.Add(info.Id))
+			ImageSource? icon = await ModIconCache.GetAsync(item.ResourceId, item.IconUrl, lifetimeCts.Token).ConfigureAwait(false);
+			if (icon == null)
 			{
-				allRepositoryMods.Add(new RepositoryModItem(info));
+				return;
+			}
+			System.Windows.Application.Current?.Dispatcher?.BeginInvoke(() => item.IconSource = icon);
+		}
+		catch
+		{
+			// 图标拿不到就用默认图标，不打扰用户
+		}
+		finally
+		{
+			IconGate.Release();
+		}
+	}
+
+	private bool PassesFilter(RepositoryModItem m)
+	{
+		if (SelectedCategory != "全部" && m.Category != SelectedCategory)
+		{
+			return false;
+		}
+		string? kw = SearchText?.Trim();
+		if (!string.IsNullOrEmpty(kw))
+		{
+			bool hit = (m.Name?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+				|| (m.Author?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+				|| (m.Summary?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+				|| (m.FullDescription?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0);
+			if (!hit)
+			{
+				return false;
 			}
 		}
+		return true;
 	}
 
 	private static string FormatCount(long n)
 	{
 		return n.ToString("##,###");
+	}
+
+	// ── 本地磁盘缓存 ────────────────────────────────────────────────────────────
+	// 目的：第二次打开启动器点进「在线仓库」应当是"秒开"。
+	// 缓存只存列表页能拿到的字段；介绍等详情字段仍然按需现拉。
+
+	private static string CacheRoot => Path.Combine(
+		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+		"StartRide",
+		"cache");
+
+	private static string RepoCachePath(string? categorySlug) =>
+		Path.Combine(CacheRoot, "repo-" + (categorySlug ?? "all") + ".json");
+
+	private sealed class RepoCacheDto
+	{
+		public int TotalPages { get; set; }
+		public List<RepoCacheRow> Items { get; set; } = new();
+	}
+
+	private sealed class RepoCacheRow
+	{
+		public long Id { get; set; }
+		public string Slug { get; set; } = "";
+		public string Name { get; set; } = "";
+		public string Author { get; set; } = "";
+		public string Category { get; set; } = "";
+		public string Summary { get; set; } = "";
+		public string Version { get; set; } = "";
+		public string Rating { get; set; } = "";
+		public string Downloads { get; set; } = "";
+		public string Icon { get; set; } = "";
+	}
+
+	private bool TryRestoreFromDisk()
+	{
+		try
+		{
+			string path = RepoCachePath(BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory));
+			if (!File.Exists(path))
+			{
+				return false;
+			}
+			// 只认 12 小时内的缓存，太旧就别拿出来误导人
+			if (DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > TimeSpan.FromHours(12))
+			{
+				return false;
+			}
+			RepoCacheDto? dto = JsonSerializer.Deserialize<RepoCacheDto>(File.ReadAllText(path));
+			if (dto?.Items == null || dto.Items.Count == 0)
+			{
+				return false;
+			}
+			totalPages = Math.Max(dto.TotalPages, 1);
+			nextPage = dto.Items.Count / 100 + 1;
+			var infos = dto.Items.Select(r => new BeamNgModInfo
+			{
+				Id = r.Id,
+				Slug = r.Slug,
+				Name = r.Name,
+				Author = r.Author,
+				CategoryName = r.Category,
+				Description = r.Summary,
+				Version = r.Version,
+				RatingText = r.Rating,
+				DownloadsText = r.Downloads,
+				IconUrl = r.Icon,
+			});
+			AppendItems(infos);
+			return RepositoryMods.Count > 0;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private void SaveCacheToDisk()
+	{
+		try
+		{
+			if (allRepositoryMods.Count == 0)
+			{
+				return;
+			}
+			var dto = new RepoCacheDto
+			{
+				TotalPages = totalPages,
+				Items = allRepositoryMods.Select(m => new RepoCacheRow
+				{
+					Id = m.ResourceId,
+					Slug = m.Slug,
+					Name = m.Name,
+					Author = m.Author,
+					Category = m.Category,
+					Summary = m.Summary,
+					Version = m.Version,
+					Rating = m.RatingText,
+					Downloads = m.ListDownloadsText,
+					Icon = m.IconUrl,
+				}).ToList(),
+			};
+			Directory.CreateDirectory(CacheRoot);
+			string path = RepoCachePath(BeamNgRepositoryClient.ChineseToCategorySlug(SelectedCategory));
+			string tmp = path + ".part";
+			File.WriteAllText(tmp, JsonSerializer.Serialize(dto));
+			File.Move(tmp, path, overwrite: true);
+		}
+		catch
+		{
+			// 缓存写失败不影响使用
+		}
 	}
 
 	private void OpenModsFolder()
@@ -401,7 +907,10 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>下载模组：先解析详情页拿到 download?version=NNN 直链，再分段并行下载 zip 到 mods 目录。</summary>
+	/// <summary>
+	/// 下载模组：先拉它自己的详情页（拿到 download?version=NNN 直链 + 介绍/体积/精确下载量），
+	/// 再分段并行下载 zip 到 mods 目录。分段数取设置里的「下载线程数」。
+	/// </summary>
 	public async Task DownloadModAsync(RepositoryModItem? item)
 	{
 		if (item == null || IsDownloading)
@@ -409,15 +918,27 @@ public sealed class ModsPageViewModel : ObservableObject
 			return;
 		}
 		IsDownloading = true;
+		item.IsDownloading = true;
+		downloadingItemName = item.Name;
 		DownloadProgress = 0;
 		DownloadStatusText = $"正在获取 {item.Name} 的下载链接…";
 		try
 		{
-			string? downloadUrl = await BeamNgRepositoryClient.ResolveDownloadUrlAsync(item.PageUrl, CancellationToken.None).ConfigureAwait(true);
+			BeamNgResourceDetail? detail = await BeamNgRepositoryClient
+				.FetchResourceDetailAsync(item.PageUrl, CancellationToken.None)
+				.ConfigureAwait(true);
+			if (detail != null)
+			{
+				item.ApplyDetail(detail);
+			}
+			string? downloadUrl = detail?.DownloadUrl;
+
 			if (string.IsNullOrEmpty(downloadUrl))
 			{
 				DownloadStatusText = "未找到下载链接";
-				MessageBox.Show("该模组页面没有可用的下载链接（可能需要登录 BeamNG 官网）。", "StartRide", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show(
+					"该模组页面没有可用的下载链接（部分模组需要登录 BeamNG 官网才能下载）。",
+					"StartRide", MessageBoxButton.OK, MessageBoxImage.Warning);
 				return;
 			}
 
@@ -428,7 +949,11 @@ public sealed class ModsPageViewModel : ObservableObject
 			string fileName = item.Slug + ".zip";
 			string target = Path.Combine(ModsDirectory, fileName);
 
-			DownloadStatusText = $"正在下载 {item.Name}…";
+			DownloadStatusText = detail != null && !string.IsNullOrEmpty(detail.FileSizeText)
+				? $"正在下载 {item.Name}（{detail.FileSizeText}）…"
+				: $"正在下载 {item.Name}…";
+
+			int threads = Math.Clamp(AppSettings.Current.DownloadThreads, 1, 16);
 
 			// 进度回调来自后台线程：节流 100ms 后再跳回 UI 线程刷新，避免每块数据都打断 UI（卡死根源）
 			long[] lastUiTick = new long[1];
@@ -450,17 +975,18 @@ public sealed class ModsPageViewModel : ObservableObject
 					if (p.TotalBytes.HasValue && p.TotalBytes.Value > 0)
 					{
 						DownloadProgress = p.Bytes * 100.0 / p.TotalBytes.Value;
-						DownloadStatusText = $"正在下载 {item.Name}… {p.Bytes / 1048576.0:0.0} / {p.TotalBytes.Value / 1048576.0:0.0} MB";
+						DownloadStatusText = $"正在下载 {downloadingItemName}… {p.Bytes / 1048576.0:0.0} / {p.TotalBytes.Value / 1048576.0:0.0} MB（{threads} 线程）";
 					}
 					else
 					{
-						DownloadStatusText = $"正在下载 {item.Name}… {p.Bytes / 1048576.0:0.0} MB";
+						DownloadStatusText = $"正在下载 {downloadingItemName}… {p.Bytes / 1048576.0:0.0} MB（{threads} 线程）";
 					}
 				});
-			}, CancellationToken.None).ConfigureAwait(true);
+			}, CancellationToken.None, threads).ConfigureAwait(true);
 
 			DownloadProgress = 100;
-			DownloadStatusText = $"已下载 {item.Name} 到模组文件夹";
+			DownloadStatusText = $"已下载 {item.Name} 到模组文件夹：{target}";
+			item.IsDownloaded = true;
 			LoadMods();
 
 			// 云同步：把本次下载记录上报云端（下载历史）
@@ -468,7 +994,7 @@ public sealed class ModsPageViewModel : ObservableObject
 			{
 				AppState.Current.CloudSync.PushDownloads(new[]
 				{
-					new { slug = item.Slug, name = item.Name, version = item.Version, author = item.Author, downloadedAt = DateTimeOffset.Now.ToString("o") }
+					new { slug = item.Slug, name = item.Name, version = item.VersionText, author = item.Author, downloadedAt = DateTimeOffset.Now.ToString("o") }
 				});
 			}
 			catch
@@ -484,33 +1010,22 @@ public sealed class ModsPageViewModel : ObservableObject
 		finally
 		{
 			IsDownloading = false;
+			item.IsDownloading = false;
+			downloadingItemName = null;
+			SaveCacheToDisk();
 		}
 	}
 
-	/// <summary>按搜索词过滤在线列表（搜索只作用于已加载条目）。</summary>
+	/// <summary>按搜索词过滤在线列表（搜索作用于已加载条目，不重新拉取）。</summary>
 	private void ApplyFilter()
 	{
-		IEnumerable<RepositoryModItem> query = allRepositoryMods;
-		if (SelectedCategory != "全部")
-		{
-			// 拉取时已按官方分类过滤；本机映射里"车辆"覆盖 vehicles/land 两个官方分类
-			query = query.Where(m => m.Category == SelectedCategory);
-		}
-		string? kw = SearchText?.Trim();
-		if (!string.IsNullOrEmpty(kw))
-		{
-			query = query.Where(m =>
-				(m.Name?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
-				|| (m.Author?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
-				|| (m.Description?.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0));
-		}
-
-		IList<RepositoryModItem> filtered = query.ToList();
+		IList<RepositoryModItem> filtered = allRepositoryMods.Where(PassesFilter).ToList();
 		RepositoryMods.Clear();
 		foreach (RepositoryModItem m in filtered)
 		{
 			RepositoryMods.Add(m);
 		}
+		OnPropertyChanged(nameof(HasRepositoryMods));
 	}
 
 	private void LoadMods()
@@ -539,5 +1054,6 @@ public sealed class ModsPageViewModel : ObservableObject
 		StatusMessage = entries.Count == 0
 			? "还没有安装模组。点击上方「在线仓库」浏览下载，或在下方打开模组文件夹手动放入 zip。"
 			: $"共 {entries.Count} 个模组 · {ModsDirectory}";
+		OnPropertyChanged(nameof(HasMods));
 	}
 }

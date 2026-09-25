@@ -42,54 +42,144 @@
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
 
-      <!-- 下载进度文字（仅下载中显示） -->
-      <TextBlock Grid.Row="0" Margin="0,0,0,6" Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="12" Text="{Binding DownloadStatusText}" Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+      <!-- 下载进度文字（仅下载中显示）。
+           ⚠️ 这一层**绝对不能放 ProgressBar**：在线视图一旦出现 ProgressBar，启动器启动即崩（rc=-1）。 -->
+      <TextBlock Grid.Row="0" Margin="0,0,0,6" Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="12" TextWrapping="Wrap" Text="{Binding DownloadStatusText}" Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
 
-      <!-- 状态行：拉取状态 + 刷新 -->
+      <!-- 状态行：拉取状态 + 加载更多 + 刷新 -->
       <DockPanel Grid.Row="1" Margin="0,4,0,8" LastChildFill="True">
-        <Button DockPanel.Dock="Right" Height="32" MinWidth="76" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="刷新" Command="{Binding RefreshRepositoryCommand}" />
+        <Button DockPanel.Dock="Right" Height="32" MinWidth="76" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="刷新" ToolTip="清掉页缓存后重新拉取第 1 页" Command="{Binding RefreshRepositoryCommand}" />
+        <Button DockPanel.Dock="Right" Height="32" MinWidth="88" Margin="0,0,8,0" HorizontalAlignment="Right" Style="{StaticResource LauncherDialogButtonStyle}" Content="加载更多" ToolTip="不等滚动到底，直接再拉一批" Command="{Binding LoadMoreCommand}" />
         <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="12" Text="{Binding RepositoryStatusText}" TextTrimming="CharacterEllipsis" />
       </DockPanel>
 
       <!-- 在线列表：虚拟化 ListBox（上万条目也只渲染可见卡片），
            滚动到底自动续拉下一波页面，直到拉完全库 -->
-      <ListBox Grid.Row="2" x:Name="RepositoryListBox" ScrollViewer.ScrollChanged="OnRepositoryScrollChanged" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" Background="{x:Null}" BorderThickness="0" Padding="0" ItemsSource="{Binding RepositoryMods}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <VirtualizingStackPanel Margin="0,0,0,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="{x:Type mods:RepositoryModItem}">
-            <Border Margin="0,0,0,10" Padding="16,14" BorderBrush="{DynamicResource Brush.284E4E4E}" BorderThickness="1" CornerRadius="12" Background="#22FFFFFF">
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                  <StackPanel Orientation="Horizontal">
-                    <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="14.5" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="430" />
-                    <Border Margin="8,0,0,0" Padding="8,3" VerticalAlignment="Center" Background="#1EFFFFFF" CornerRadius="9">
-                      <TextBlock Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="11" Text="{Binding Category}" />
-                    </Border>
-                    <Border Margin="8,0,0,0" Padding="8,3" VerticalAlignment="Center" Background="#1EFFFFFF" CornerRadius="9" Visibility="{Binding Version, Converter={StaticResource BlankToCollapsedConverter}}">
-                      <TextBlock Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="11" Text="{Binding Version, StringFormat=v{0}}" />
-                    </Border>
+      <Grid Grid.Row="2">
+        <ListBox x:Name="RepositoryListBox" ScrollViewer.ScrollChanged="OnRepositoryScrollChanged" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" Background="{x:Null}" BorderThickness="0" Padding="0" ItemsSource="{Binding RepositoryMods}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel Margin="0,0,0,64" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type mods:RepositoryModItem}">
+              <Border Margin="0,0,0,10" Padding="14,12" BorderBrush="{DynamicResource Brush.284E4E4E}" BorderThickness="1" CornerRadius="12" Background="#22FFFFFF">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+
+                  <!-- ① 模组作者自己上传的图标（来自官方仓库 data/resource_icons/…，本地缓存）
+                       拿不到时显示默认的模组图标，不留空洞 -->
+                  <Border Grid.Column="0" Width="84" Height="84" VerticalAlignment="Top" CornerRadius="12" Background="#1EFFFFFF" BorderBrush="#1FFFFFFF" BorderThickness="1" SnapsToDevicePixels="True">
+                    <Grid>
+                      <controls:SvgIcon Width="30" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center" IconKey="beamng/mod" Foreground="{DynamicResource Brush.8FFFFFFF}">
+                        <FrameworkElement.Style>
+                          <Style TargetType="{x:Type controls:SvgIcon}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                              <DataTrigger Value="True" Binding="{Binding NoIcon}">
+                                <Setter Property="Visibility" Value="Visible" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </FrameworkElement.Style>
+                      </controls:SvgIcon>
+                      <Image Margin="3" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconSource}" />
+                    </Grid>
+                  </Border>
+
+                  <!-- ② 文字信息 -->
+                  <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="14.5" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="380" />
+                      <Border Margin="8,0,0,0" Padding="8,3" VerticalAlignment="Center" Background="#1EFFFFFF" CornerRadius="9">
+                        <TextBlock Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="11" Text="{Binding Category}" />
+                      </Border>
+                      <Border Margin="8,0,0,0" Padding="8,3" VerticalAlignment="Center" Background="#1EFFFFFF" CornerRadius="9" Visibility="{Binding VersionText, Converter={StaticResource BlankToCollapsedConverter}}">
+                        <TextBlock Foreground="{DynamicResource Brush.CCFFFFFF}" FontSize="11" Text="{Binding VersionText, StringFormat=v{0}}" />
+                      </Border>
+                    </StackPanel>
+
+                    <!-- 作者 / 评分 / 下载量 / 安装包体积 -->
+                    <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                      <TextBlock Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding Author, StringFormat=作者：{0}}" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                      <TextBlock Margin="14,0,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding RatingText, StringFormat=评分 {0}}" Visibility="{Binding RatingText, Converter={StaticResource BlankToCollapsedConverter}}" />
+                      <TextBlock Margin="14,0,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding DownloadsText, StringFormat={}{0} 次下载}" Visibility="{Binding DownloadsText, Converter={StaticResource BlankToCollapsedConverter}}" />
+                      <TextBlock Margin="14,0,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding FileSizeText, StringFormat=安装包 {0}}" Visibility="{Binding FileSizeText, Converter={StaticResource BlankToCollapsedConverter}}" />
+                    </StackPanel>
+
+                    <!-- 收起：一句话 tagline（列表页自带，不额外请求） -->
+                    <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.A8FFFFFF}" FontSize="12" TextWrapping="Wrap" MaxWidth="600" Text="{Binding Summary}">
+                      <FrameworkElement.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                          <Setter Property="Visibility" Value="Visible" />
+                          <Style.Triggers>
+                            <DataTrigger Value="True" Binding="{Binding IsExpanded}">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </FrameworkElement.Style>
+                    </TextBlock>
+
+                    <!-- 展开：作者写的完整介绍（点「详情」时才拉该模组自己的页面） -->
+                    <StackPanel Margin="0,6,0,0">
+                      <StackPanel.Style>
+                        <Style TargetType="{x:Type StackPanel}">
+                          <Setter Property="Visibility" Value="Collapsed" />
+                          <Style.Triggers>
+                            <DataTrigger Value="True" Binding="{Binding IsExpanded}">
+                              <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </StackPanel.Style>
+                      <TextBlock Foreground="{DynamicResource Brush.9FFFFFFF}" FontSize="12" TextWrapping="Wrap" LineHeight="19" MaxWidth="600" Text="{Binding DescriptionText}" />
+                      <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="11.5" Text="正在读取该模组的介绍…">
+                        <FrameworkElement.Style>
+                          <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                              <DataTrigger Value="True" Binding="{Binding IsDetailLoading}">
+                                <Setter Property="Visibility" Value="Visible" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </FrameworkElement.Style>
+                      </TextBlock>
+                    </StackPanel>
                   </StackPanel>
-                  <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
-                    <TextBlock Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding Author, StringFormat=作者：{0}}" />
-                    <TextBlock Margin="14,0,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding RatingText, StringFormat=评分 {0}}" Visibility="{Binding RatingText, Converter={StaticResource BlankToCollapsedConverter}}" />
-                    <TextBlock Margin="14,0,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{Binding DownloadsText, StringFormat={}{0} 次下载}" Visibility="{Binding DownloadsText, Converter={StaticResource BlankToCollapsedConverter}}" />
+
+                  <!-- ③ 操作按钮 -->
+                  <StackPanel Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Button MinWidth="104" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{Binding DownloadButtonText}" Click="OnDownloadModClick" />
+                    <Button Margin="0,8,0,0" MinWidth="104" Style="{StaticResource LauncherDialogButtonStyle}" Content="{Binding DetailButtonText}" Command="{Binding DataContext.ToggleDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}" />
+                    <Button Margin="0,8,0,0" MinWidth="104" Style="{StaticResource LauncherDialogButtonStyle}" Content="官网页面" Command="{Binding DataContext.OpenModPageCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}" />
                   </StackPanel>
-                  <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource Brush.A8FFFFFF}" FontSize="12" TextWrapping="Wrap" MaxWidth="620" Text="{Binding Description}" />
-                </StackPanel>
-                <Button Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" MinWidth="104" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="下载" Click="OnDownloadModClick" />
-              </Grid>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ListBox>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ListBox>
+
+        <!-- 一条都没加载出来时的空状态 -->
+        <TextBlock Margin="6,24,6,0" VerticalAlignment="Top" Text="正在从 BeamNG 官方仓库拉取模组列表…">
+          <FrameworkElement.Style>
+            <Style BasedOn="{StaticResource PageEmptyStateTextStyle}" TargetType="{x:Type TextBlock}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="False" Binding="{Binding HasRepositoryMods}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+        </TextBlock>
+      </Grid>
     </Grid>
 
     <!-- 页面标题（覆盖在 frame 头部留白区）＋ BeamNG 官方图标 -->
@@ -103,7 +193,7 @@
       <Button Style="{StaticResource LauncherDialogButtonStyle}" Content="在线仓库" Command="{Binding ShowOnlineCommand}" />
       <Button Margin="8,0,0,0" Style="{StaticResource LauncherDialogButtonStyle}" Content="本机模组" Command="{Binding ShowLocalCommand}" />
       <Button Margin="8,0,0,0" Style="{StaticResource LauncherDialogButtonStyle}" Content="打开模组文件夹" Command="{Binding OpenModsFolderCommand}" />
-      <TextBox Margin="16,0,0,0" Width="160" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索模组" Visibility="{Binding IsOnlineView, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+      <TextBox Margin="16,0,0,0" Width="160" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索模组（作用于已加载条目）" Visibility="{Binding IsOnlineView, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
       <controls:AnimatedComboBox Margin="8,0,0,0" Width="90" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" Visibility="{Binding IsOnlineView, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
     </StackPanel>
   </Grid>
