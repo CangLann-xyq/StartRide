@@ -1,22 +1,22 @@
 {
-  "version": "2.8.2",
-  "displayVersion": "2.8.2",
-  "versionCode": 20802,
+  "version": "2.9.12",
+  "displayVersion": "2.9.12",
+  "versionCode": 20912,
   "releasePageUrl": "https://startride.top/update/",
-  "downloadUrl": "https://startride.top/downloads/StartRide-2.8.2-win-x64.zip",
+  "downloadUrl": "https://startride.top/downloads/StartRide-2.9.12-win-x64.zip",
   "downloadUrls": [
     {
       "name": "官方源（startride.top）",
-      "url": "https://startride.top/downloads/StartRide-2.8.2-win-x64.zip",
+      "url": "https://startride.top/downloads/StartRide-2.9.12-win-x64.zip",
       "priority": 0
     }
   ],
-  "downloadFileName": "StartRide-2.8.2-win-x64.zip",
+  "downloadFileName": "StartRide-2.9.12-win-x64.zip",
   "assetKind": "zip",
-  "sizeBytes": 5016796,
-  "sha256": "e53923017d3e7ac3fafa1be1f7dd368360c89262fbed75ca8f98e3b7eb1fd82c",
-  "changelog": "2.8.2 更新要点：\n· 升级时自动清掉改名前的整套旧产物：不再依赖写死的旧文件名，改成按「一整套启动器文件」\n  （同名 .exe/.dll/.deps.json/.runtimeconfig.json）识别，以后再改名也照样清得干净\n· 替换脚本加了双保险：新包里带的文件一律不删，避免拷贝完成后被误删\n· 更新清单只保留自有源（去掉了国内不可达的一条兜底地址）\n· 头像缓存的历史位置不再写死目录名，改按数据目录与目录联接定位",
+  "sizeBytes": 5338893,
+  "sha256": "842b6ddf7710e37b65e80cae8bb7cf30471f3a537588d969617e87555905a493",
+  "changelog": "2.9.12 更新要点（含 2.9.11 及以前全部内容）：\n· 在线模组仓库终于能真正拉得动了。之前拉不出来不是代码问题，是网络：\n  www.beamng.com 在国内**彻底不可达** —— 实测本机直连三次全部超时（约 17 秒），\n  走本机代理也全部超时，把本机 46 个监听端口逐个当代理试了一遍，没有一条能拉到。\n  同一时刻租用的那台服务器 3.2 秒就取回了页面。\n  现在网页（模组列表、介绍详情、模组图标，单页约 300 KB）改由服务器只读代取，\n  服务器还带 10 分钟缓存，来回都很快。\n· 模组安装包**不走服务器**：那条下载地址会跳到 Cloudflare，而 Cloudflare 从国内是通的\n  （实测本机 1.0 秒就拿到第一个数据块）。所以只请服务器把跳转目标解出来（几百字节），\n  几百 MB 的包仍然由你自己的网络直连 Cloudflare 下载 —— 速度取决于你的宽带，\n  不会被那台小服务器的带宽拖住。\n· 附带：既然本机连不上 beamng.com，就不会再为每条通道白等 25 秒连接超时\n  （以前 88 页全量滚动会把时间全耗在等超时上）。\n· 其余同 2.9.11：多人联机「看不见对方的车 / 两台车撞不到一起」已按 BeamMP 的做法修好。",
   "isMandatory": false,
   "minSupportedVersionCode": 0,
-  "publishedAt": "2026-09-25T02:51:01Z"
+  "publishedAt": "2026-09-25T13:21:17Z"
 }

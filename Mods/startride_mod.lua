@@ -27,7 +27,7 @@ local CHAT_COOLDOWN = 0.3
 --   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
 -- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
 -- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
-local MOD_VERSION = '2.9.10'
+local MOD_VERSION = '2.9.12'
 
 
 
@@ -79,6 +79,7 @@ local spawnOkCount = 0
 local lastSpawnError = ''
 local lastSpawnTryAt = 0        
 local badPacketCount = 0        
+local skipByCollision = 0       -- applyRemoteTransform 因"疑似碰撞"跳过的次数
 local pendingCleanup = {}       
 local lastStallLog = -100       
 
@@ -368,6 +369,22 @@ end
 
 
 
+-- 把"这辆车是远程车 / 它的联机 ID 是多少"下发到车辆层（VE）。
+-- ⚠️ 这是在 spawn 之后立刻排队的，那时 VE 模块（lua/vehicle/extensions/startride）
+--    可能还没加载完 —— 命令会丢，于是 VE 里 v.mpVehicleType 一直是 'L'、
+--    v.srServerID 一直是 ''，物理解算整段不跑 → 对方看我们的车停在原地（"看不见对方的车"）。
+--    所以这一段要发三次：① spawn 后立刻；② VE 上报就绪（onVEReady）；③ VE 主动索要
+--    （onVEAskID）。BeamMP 也是靠"VE 就绪后才下发"这一步（MPVehicleGE.onVehicleReady）。
+local function queueVETypeAndID(veh, id)
+  if not veh then return end
+  pcall(function() veh.mpVehicleType = 'R' end)
+  pcall(function() veh:queueLuaCommand("startrideVE.setVehicleType('R')") end)
+  pcall(function()
+    veh:queueLuaCommand('startrideVE.setServerID(' .. string.format('%q', tostring(id)) .. ')')
+  end)
+end
+
+
 local function trySpawn(model, cfg, pos, rot, id, exact)
   local opts = {
     autoEnterVehicle = false,
@@ -425,7 +442,8 @@ local function spawnRemote(rec, id, data)
 
   
   pcall(function() veh.mpVehicleType = 'R' end)
-  pcall(function() veh:setField('protected', 0, '1') end)
+  -- protected 是"配置保护"（禁止克隆/另存），BeamMP 默认给 '0'。之前写成 '1' 是笔误。
+  pcall(function() veh:setField('protected', 0, '0') end)
   
   
   
@@ -434,8 +452,7 @@ local function spawnRemote(rec, id, data)
   pcall(function()
     veh:queueLuaCommand("extensions.loadModulesInDirectory('lua/vehicle/extensions/startride')")
   end)
-  pcall(function() veh:queueLuaCommand("startrideVE.setVehicleType('R')") end)
-  pcall(function() veh:queueLuaCommand('startrideVE.setServerID(' .. string.format('%q', tostring(id)) .. ')') end)
+  queueVETypeAndID(veh, id)
   pcall(function() veh:queueLuaCommand('hydros.onFFBConfigChanged(nil)') end)
 
   rec.veh = veh
@@ -531,20 +548,41 @@ end
 
 
 
-function M.onVEReady(gameVehicleID)
-  veReadyCount = veReadyCount + 1
-  local found = nil
+local function findRecByVehID(gameVehicleID)
   for id, rec in pairs(remoteVehicles) do
     if rec.veh then
       local ok, gid = pcall(function() return rec.veh:getID() end)
-      if ok and gid == gameVehicleID then found = id break end
+      if ok and gid == gameVehicleID then return id, rec end
     end
   end
+  return nil, nil
+end
+
+
+function M.onVEReady(gameVehicleID)
+  veReadyCount = veReadyCount + 1
+  local found, frec = findRecByVehID(gameVehicleID)
   if found then
-    remoteVehicles[found].veReady = true
+    frec.veReady = true
+    -- ⚠️ 这才是"设类型/设联机 ID"的正确时机：此刻 VE 模块一定已经加载完，命令不会丢。
+    -- （BeamMP 的 MPVehicleGE.onVehicleReady 就是在这里做同样的事）
+    queueVETypeAndID(frec.veh, found)
     logMsg('远程车 VE 就绪:', tostring(found))
   else
     logMsg('VE 就绪上报(暂未匹配到车辆):', tostring(gameVehicleID))
+  end
+end
+
+
+-- VE 主动来要联机 ID（它发现自己 v.srServerID 是空的）→ 立刻补发。
+-- 这是加载竞态的最后一道自愈：spawn 时那次下发丢了也能救回来。
+function M.onVEAskID(gameVehicleID)
+  local id, rec = findRecByVehID(gameVehicleID)
+  if not id then return end
+  queueVETypeAndID(rec.veh, id)
+  if not rec.askLogged then
+    rec.askLogged = true
+    logMsg('VE 索要联机 ID，已补发:', tostring(id))
   end
 end
 
@@ -560,7 +598,24 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
   if not ok or type(d) ~= 'table' then return end
   local p, r, v, rv = d.pos, d.rot, d.vel, d.rvel
   if type(p) ~= 'table' or type(r) ~= 'table' then return end
+  if type(v) ~= 'table' then v = { 0, 0, 0 } end
   if type(rv) ~= 'table' then rv = { 0, 0, 0 } end
+  local vv = d.vehVel
+  local noCounter = (d.noCounter == 1)
+
+  -- ⚠️ 碰撞保护（BeamMP positionGE.setPositionRotationVelocity 的做法）：
+  --    远程车"实际速度"远大于它"自己上报的速度" → 说明刚刚发生了碰撞/爆炸/落地冲击。
+  --    这时候再硬传送 + 覆盖速度，等于把这次碰撞的结果直接抹掉 —— 用户看到的就是
+  --    "两台车撞不到 / 互相穿模"。这一跳只是"这一帧不修"，下一帧会重新判断。
+  if type(vv) == 'table' then
+    local lv = veh:getVelocity()
+    local cur = math.abs(lv.x) + math.abs(lv.y) + math.abs(lv.z)
+    local tgt = math.abs(vv[1] or 0) + math.abs(vv[2] or 0) + math.abs(vv[3] or 0)
+    if cur > tgt * 5 then
+      skipByCollision = skipByCollision + 1
+      return
+    end
+  end
 
   pcall(function()
     local refNode = veh:getRefNodeId()
@@ -570,20 +625,23 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
     local want = quat(r[1], r[2], r[3], r[4])
     local delta = cur:inversed() * want
 
-    
     local localVel = veh:getVelocity()
     veh:setClusterPosRelRot(refNode, p[1], p[2], p[3], delta.x, delta.y, delta.z, delta.w)
 
-    if type(v) == 'table' then
+    -- setClusterPosRelRot 会把速度一起旋转，所以要把转过的分量扣掉。
+    -- 但"刚生成那一跳"（noCounter=1）要跳过：那时车身上的松散件（原木/挂车）本来就快，
+    -- 扣一次会让它们朝反方向飞出去（BeamMP 的原话：logs on the T-series would fly backwards）。
+    local rx, ry, rz = v[1] or 0, v[2] or 0, v[3] or 0
+    if not noCounter then
       local rotVel = localVel:rotated(delta)
-      veh:applyClusterVelocityScaleAdd(refNode, 1,
-        (v[1] or 0) - rotVel.x,
-        (v[2] or 0) - rotVel.y,
-        (v[3] or 0) - rotVel.z)
+      rx, ry, rz = rx - rotVel.x, ry - rotVel.y, rz - rotVel.z
     end
+    veh:applyClusterVelocityScaleAdd(refNode, 1, rx, ry, rz)
 
-    
-    veh:queueLuaCommand('startrideVE.setAngularVelocity(0, 0, 0, ' ..
+    -- 角速度只能回 VE 做（GE 没有角速度接口）。
+    -- ⚠️ 只动角速度、不动线速度：线速度上面已经设好了，VE 再动一次就是互相打架
+    --    （BeamMP positionGE 传的 onlyAngularVelocity=1 就是这个意思）。
+    veh:queueLuaCommand('startrideVE.setAngularVelocityOnly(' ..
       tostring(rv[1] or 0) .. ', ' .. tostring(rv[2] or 0) .. ', ' .. tostring(rv[3] or 0) .. ')')
   end)
 end
@@ -1141,6 +1199,7 @@ local function panelStatus()
     spawnFailCount > 0 and C.warn or C.ok)
   
   kvRow('车辆扩展就绪', tostring(veReadyCount), veReadyCount > 0 and C.ok or C.warn)
+  kvRow('碰撞保护跳过修正', tostring(skipByCollision), C.dim)
   
   
   
