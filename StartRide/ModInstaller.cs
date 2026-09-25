@@ -25,7 +25,7 @@ namespace StartRide.Core
     public sealed class ModInstaller
     {
         public const string ModPackageName = "startride.zip";
-        private const string ModVersion = "2.9.5";
+        private const string ModVersion = "2.9.6";
 
         private readonly AppSettings _settings;
 
