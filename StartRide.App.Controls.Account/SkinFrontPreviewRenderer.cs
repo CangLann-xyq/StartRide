@@ -6,18 +6,18 @@ using Launcher.Domain.Models;
 
 namespace StartRide.App.Controls.Account;
 
-public static class MinecraftSkinFrontPreviewRenderer
+public static class SkinFrontPreviewRenderer
 {
 	private const int PreviewHeight = 32;
 
 	public static BitmapSource BuildFrontBitmap(BitmapSource skin, MinecraftSkinModel? skinModel)
 	{
 		BitmapSource bitmapSource = EnsureBgra32(skin);
-		int armWidth = MinecraftSkinPreviewGeometry.GetArmWidth(skinModel);
+		int armWidth = SkinPreviewGeometry.GetArmWidth(skinModel);
 		int num = armWidth * 2 + 8;
 		byte[] array = new byte[num * 32 * 4];
-		bool flag = MinecraftSkinPreviewGeometry.CanUseHeadOverlay(bitmapSource.PixelWidth, bitmapSource.PixelHeight);
-		bool num2 = MinecraftSkinPreviewGeometry.CanUseSecondLayer(bitmapSource.PixelHeight);
+		bool flag = SkinPreviewGeometry.CanUseHeadOverlay(bitmapSource.PixelWidth, bitmapSource.PixelHeight);
+		bool num2 = SkinPreviewGeometry.CanUseSecondLayer(bitmapSource.PixelHeight);
 		SkinPart part = (num2 ? SkinPart.LeftArm : SkinPart.RightArm);
 		SkinPart part2 = (num2 ? SkinPart.LeftLeg : SkinPart.RightLeg);
 		DrawPart(bitmapSource, array, num, SkinPart.RightArm, 0, 8, armWidth);
@@ -51,7 +51,7 @@ public static class MinecraftSkinFrontPreviewRenderer
 		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0019: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
-		Int32Rect front = MinecraftSkinPreviewGeometry.GetFaces(part, armWidth).Front;
+		Int32Rect front = SkinPreviewGeometry.GetFaces(part, armWidth).Front;
 		Int32Rect sourceRect = ClampRect(source, front);
 		int num = sourceRect.Width * 4;
 		byte[] array = new byte[num * sourceRect.Height];

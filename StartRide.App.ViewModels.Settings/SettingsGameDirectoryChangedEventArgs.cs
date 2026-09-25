@@ -2,11 +2,11 @@ using System;
 
 namespace StartRide.App.ViewModels.Settings;
 
-public sealed class SettingsMinecraftDirectoryChangedEventArgs : EventArgs
+public sealed class SettingsGameDirectoryChangedEventArgs : EventArgs
 {
 	public string MinecraftDirectory { get; }
 
-	public SettingsMinecraftDirectoryChangedEventArgs(string minecraftDirectory)
+	public SettingsGameDirectoryChangedEventArgs(string minecraftDirectory)
 	{
 		MinecraftDirectory = minecraftDirectory;
 	}

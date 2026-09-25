@@ -425,7 +425,7 @@ public sealed class LauncherSessionCoordinator : IDisposable
 		gameManagement.ApplyDownloadSpeedLimit(e.DownloadSpeedLimitMbPerSecond);
 	}
 
-	private void SettingsPage_MinecraftDirectoryChanged(object? sender, SettingsMinecraftDirectoryChangedEventArgs e)
+	private void SettingsPage_MinecraftDirectoryChanged(object? sender, SettingsGameDirectoryChangedEventArgs e)
 	{
 		if (settings != null)
 		{

@@ -2,4 +2,4 @@ using System.Collections.Generic;
 
 namespace StartRide.App.ViewModels.Download;
 
-internal sealed record DownloadVersionFilterResult(IReadOnlyList<DownloadMinecraftVersionItem> Versions, string EmptyMessage, bool ShouldClearSelectedVersion);
+internal sealed record DownloadVersionFilterResult(IReadOnlyList<DownloadVersionItem> Versions, string EmptyMessage, bool ShouldClearSelectedVersion);

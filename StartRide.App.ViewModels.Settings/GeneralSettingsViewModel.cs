@@ -59,7 +59,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	private bool diagnosticLoggingEnabled;
 
 	[ObservableProperty]
-	private SettingsMinecraftDirectoryItem? selectedMinecraftDirectory;
+	private SettingsGameDirectoryItem? selectedMinecraftDirectory;
 
 	[ObservableProperty]
 	private bool isRemoveMinecraftDirectoryDialogOpen;
@@ -89,13 +89,13 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	[ObservableProperty]
 	[NotifyPropertyChangedFor("RemoveMinecraftDirectoryDialogMessage")]
 	[NotifyCanExecuteChangedFor("ConfirmRemoveMinecraftDirectoryCommand")]
-	private SettingsMinecraftDirectoryItem? minecraftDirectoryPendingRemoval;
+	private SettingsGameDirectoryItem? minecraftDirectoryPendingRemoval;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand<SettingsMinecraftDirectoryItem?>? openMinecraftDirectoryCommand;
+	private RelayCommand<SettingsGameDirectoryItem?>? openMinecraftDirectoryCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand<SettingsMinecraftDirectoryItem?>? requestRenameMinecraftDirectoryCommand;
+	private RelayCommand<SettingsGameDirectoryItem?>? requestRenameMinecraftDirectoryCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand? cancelMinecraftDirectoryNameCommand;
@@ -104,7 +104,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	private AsyncRelayCommand? confirmMinecraftDirectoryNameCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand<SettingsMinecraftDirectoryItem?>? requestRemoveMinecraftDirectoryCommand;
+	private RelayCommand<SettingsGameDirectoryItem?>? requestRemoveMinecraftDirectoryCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand? cancelRemoveMinecraftDirectoryCommand;
@@ -158,9 +158,9 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 
 	internal Task PendingMinecraftDirectoryChange { get; private set; } = Task.CompletedTask;
 
-	public ObservableCollection<SettingsMinecraftDirectoryItem> MinecraftDirectories { get; } = new ObservableCollection<SettingsMinecraftDirectoryItem>();
+	public ObservableCollection<SettingsGameDirectoryItem> MinecraftDirectories { get; } = new ObservableCollection<SettingsGameDirectoryItem>();
 
-	public MinecraftDirectorySwitchDialogViewModel MinecraftDirectorySwitchDialog { get; }
+	public GameDirectorySwitchDialogViewModel MinecraftDirectorySwitchDialog { get; }
 
 	public string MinecraftDirectoryNameDialogTitle
 	{
@@ -300,7 +300,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public SettingsMinecraftDirectoryItem? SelectedMinecraftDirectory
+	public SettingsGameDirectoryItem? SelectedMinecraftDirectory
 	{
 		get
 		{
@@ -308,7 +308,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		}
 		set
 		{
-			if (!EqualityComparer<SettingsMinecraftDirectoryItem>.Default.Equals(selectedMinecraftDirectory, value))
+			if (!EqualityComparer<SettingsGameDirectoryItem>.Default.Equals(selectedMinecraftDirectory, value))
 			{
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.SelectedMinecraftDirectory);
 				selectedMinecraftDirectory = value;
@@ -432,7 +432,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public SettingsMinecraftDirectoryItem? MinecraftDirectoryPendingRemoval
+	public SettingsGameDirectoryItem? MinecraftDirectoryPendingRemoval
 	{
 		get
 		{
@@ -440,7 +440,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		}
 		set
 		{
-			if (!EqualityComparer<SettingsMinecraftDirectoryItem>.Default.Equals(minecraftDirectoryPendingRemoval, value))
+			if (!EqualityComparer<SettingsGameDirectoryItem>.Default.Equals(minecraftDirectoryPendingRemoval, value))
 			{
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.MinecraftDirectoryPendingRemoval);
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.RemoveMinecraftDirectoryDialogMessage);
@@ -454,11 +454,11 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IRelayCommand<SettingsMinecraftDirectoryItem?> OpenMinecraftDirectoryCommand => openMinecraftDirectoryCommand ?? (openMinecraftDirectoryCommand = new RelayCommand<SettingsMinecraftDirectoryItem>(OpenMinecraftDirectory));
+	public IRelayCommand<SettingsGameDirectoryItem?> OpenMinecraftDirectoryCommand => openMinecraftDirectoryCommand ?? (openMinecraftDirectoryCommand = new RelayCommand<SettingsGameDirectoryItem>(OpenMinecraftDirectory));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IRelayCommand<SettingsMinecraftDirectoryItem?> RequestRenameMinecraftDirectoryCommand => requestRenameMinecraftDirectoryCommand ?? (requestRenameMinecraftDirectoryCommand = new RelayCommand<SettingsMinecraftDirectoryItem>(RequestRenameMinecraftDirectory, CanRequestRenameMinecraftDirectory));
+	public IRelayCommand<SettingsGameDirectoryItem?> RequestRenameMinecraftDirectoryCommand => requestRenameMinecraftDirectoryCommand ?? (requestRenameMinecraftDirectoryCommand = new RelayCommand<SettingsGameDirectoryItem>(RequestRenameMinecraftDirectory, CanRequestRenameMinecraftDirectory));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -470,7 +470,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IRelayCommand<SettingsMinecraftDirectoryItem?> RequestRemoveMinecraftDirectoryCommand => requestRemoveMinecraftDirectoryCommand ?? (requestRemoveMinecraftDirectoryCommand = new RelayCommand<SettingsMinecraftDirectoryItem>(RequestRemoveMinecraftDirectory, CanRequestRemoveMinecraftDirectory));
+	public IRelayCommand<SettingsGameDirectoryItem?> RequestRemoveMinecraftDirectoryCommand => requestRemoveMinecraftDirectoryCommand ?? (requestRemoveMinecraftDirectoryCommand = new RelayCommand<SettingsGameDirectoryItem>(RequestRemoveMinecraftDirectory, CanRequestRemoveMinecraftDirectory));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -500,7 +500,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	[ExcludeFromCodeCoverage]
 	public IAsyncRelayCommand AddMinecraftDirectoryCommand => addMinecraftDirectoryCommand ?? (addMinecraftDirectoryCommand = new AsyncRelayCommand(AddMinecraftDirectoryAsync, () => CanAddMinecraftDirectory));
 
-	public event EventHandler<SettingsMinecraftDirectoryChangedEventArgs>? MinecraftDirectoryChanged;
+	public event EventHandler<SettingsGameDirectoryChangedEventArgs>? MinecraftDirectoryChanged;
 
 	internal GeneralSettingsViewModel(SettingsPersistenceCoordinator persistence, IStatusService statusService, IFilePickerService filePickerService, IInstanceFolderService instanceFolderService, IMinecraftDirectoryFileSystem minecraftDirectoryFileSystem, MinecraftDirectoryManagementService minecraftDirectoryManagementService, DownloadTasksPageViewModel? downloadTasksPage, ILauncherLogLevelController? logLevelController, ILogger logger)
 		: base(persistence)
@@ -515,7 +515,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		this.logger = logger;
 		// StartRide：对话框改成"切换 BeamNG 游戏目录"用。当前值/确定动作都走分流：
 		// BeamNG 模式下读写的 AppSettings.GameDirectory，不再是 .minecraft 目录。
-		MinecraftDirectorySwitchDialog = new MinecraftDirectorySwitchDialogViewModel(MinecraftDirectories, ResolveSwitchDialogCurrentDirectory, () => CanChangeMinecraftDirectory, () => IsMinecraftDirectoryChangeBlocked, ApplySwitchDialogDirectoryAsync);
+		MinecraftDirectorySwitchDialog = new GameDirectorySwitchDialogViewModel(MinecraftDirectories, ResolveSwitchDialogCurrentDirectory, () => CanChangeMinecraftDirectory, () => IsMinecraftDirectoryChangeBlocked, ApplySwitchDialogDirectoryAsync);
 		if (downloadTasksPage != null)
 		{
 			downloadTasksPage.ActivityChanged += DownloadTasksPage_ActivityChanged;
@@ -534,7 +534,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	public async Task RefreshMinecraftDirectoryAvailabilityAsync(CancellationToken cancellationToken = default(CancellationToken))
 	{
 		int generation = Interlocked.Increment(ref minecraftDirectoryAvailabilityGeneration);
-		string[] directoryPaths = MinecraftDirectories.Select((SettingsMinecraftDirectoryItem item) => item.DirectoryPath).ToArray();
+		string[] directoryPaths = MinecraftDirectories.Select((SettingsGameDirectoryItem item) => item.DirectoryPath).ToArray();
 		if (directoryPaths.Length == 0)
 		{
 			return;
@@ -553,7 +553,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		{
 			return;
 		}
-		foreach (SettingsMinecraftDirectoryItem minecraftDirectory in MinecraftDirectories)
+		foreach (SettingsGameDirectoryItem minecraftDirectory in MinecraftDirectories)
 		{
 			if (dictionary.TryGetValue(minecraftDirectory.DirectoryPath, out var value))
 			{
@@ -615,7 +615,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	}
 
 	[RelayCommand]
-	private void OpenMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private void OpenMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		try
 		{
@@ -631,7 +631,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		statusService.Report(Strings.Status_OpenMinecraftDirectoryFailed);
 	}
 
-	private bool CanRequestRenameMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private bool CanRequestRenameMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		if (!IsMinecraftDirectoryNameDialogBusy)
 		{
@@ -641,7 +641,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	}
 
 	[RelayCommand(CanExecute = "CanRequestRenameMinecraftDirectory")]
-	private void RequestRenameMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private void RequestRenameMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		if (CanRequestRenameMinecraftDirectory(item))
 		{
@@ -710,7 +710,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		}
 	}
 
-	private bool CanRequestRemoveMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private bool CanRequestRemoveMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		if (!isChangingMinecraftDirectory)
 		{
@@ -720,7 +720,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	}
 
 	[RelayCommand(CanExecute = "CanRequestRemoveMinecraftDirectory")]
-	private void RequestRemoveMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private void RequestRemoveMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		if (CanRequestRemoveMinecraftDirectory(item))
 		{
@@ -739,7 +739,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	[RelayCommand(CanExecute = "CanConfirmRemoveMinecraftDirectory")]
 	private async Task ConfirmRemoveMinecraftDirectoryAsync()
 	{
-		SettingsMinecraftDirectoryItem pendingRemoval = MinecraftDirectoryPendingRemoval;
+		SettingsGameDirectoryItem pendingRemoval = MinecraftDirectoryPendingRemoval;
 		if (pendingRemoval == null || !CanConfirmRemoveMinecraftDirectory)
 		{
 			return;
@@ -973,7 +973,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 			SetMinecraftDirectoryChangeInProgress(value: false);
 		}
 		statusService.Report(successMessage);
-		MinecraftDirectoryChanged?.Invoke(this, new SettingsMinecraftDirectoryChangedEventArgs(base.Settings.MinecraftDirectory));
+		MinecraftDirectoryChanged?.Invoke(this, new SettingsGameDirectoryChangedEventArgs(base.Settings.MinecraftDirectory));
 		return true;
 	}
 
@@ -1016,12 +1016,12 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 				{
 					MinecraftDirectories.Move(num, i);
 				}
-				SettingsMinecraftDirectoryItem settingsMinecraftDirectoryItem = MinecraftDirectories[i];
+				SettingsGameDirectoryItem settingsMinecraftDirectoryItem = MinecraftDirectories[i];
 				settingsMinecraftDirectoryItem.Update(GetMinecraftDirectoryDisplayName(settings, text), settingsMinecraftDirectoryItem.IsAvailable, !MinecraftDirectoryPath.Equals(text, settings.MinecraftDirectory));
 			}
 			else
 			{
-				SettingsMinecraftDirectoryItem settingsMinecraftDirectoryItem = new SettingsMinecraftDirectoryItem(GetMinecraftDirectoryDisplayName(settings, text), text, isAvailable: true, !MinecraftDirectoryPath.Equals(text, settings.MinecraftDirectory));
+				SettingsGameDirectoryItem settingsMinecraftDirectoryItem = new SettingsGameDirectoryItem(GetMinecraftDirectoryDisplayName(settings, text), text, isAvailable: true, !MinecraftDirectoryPath.Equals(text, settings.MinecraftDirectory));
 				MinecraftDirectories.Insert(i, settingsMinecraftDirectoryItem);
 			}
 		}
@@ -1046,12 +1046,12 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		return -1;
 	}
 
-	private SettingsMinecraftDirectoryItem? FindMinecraftDirectoryItem(string directoryPath)
+	private SettingsGameDirectoryItem? FindMinecraftDirectoryItem(string directoryPath)
 	{
-		return MinecraftDirectories.FirstOrDefault((SettingsMinecraftDirectoryItem item) => MinecraftDirectoryPath.Equals(item.DirectoryPath, directoryPath));
+		return MinecraftDirectories.FirstOrDefault((SettingsGameDirectoryItem item) => MinecraftDirectoryPath.Equals(item.DirectoryPath, directoryPath));
 	}
 
-	private void SetSelectedMinecraftDirectory(SettingsMinecraftDirectoryItem? item)
+	private void SetSelectedMinecraftDirectory(SettingsGameDirectoryItem? item)
 	{
 		suppressMinecraftDirectorySelectionChanged = true;
 		try
@@ -1136,13 +1136,13 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
-	private void OnSelectedMinecraftDirectoryChanged(SettingsMinecraftDirectoryItem? value)
+	private void OnSelectedMinecraftDirectoryChanged(SettingsGameDirectoryItem? value)
 	{
 		if (suppressMinecraftDirectorySelectionChanged || value == null || !base.CanPersist)
 		{
 			return;
 		}
-		SettingsMinecraftDirectoryItem settingsMinecraftDirectoryItem = FindMinecraftDirectoryItem(MinecraftDirectory);
+		SettingsGameDirectoryItem settingsMinecraftDirectoryItem = FindMinecraftDirectoryItem(MinecraftDirectory);
 		if (MinecraftDirectoryPath.Equals(value.DirectoryPath, MinecraftDirectory))
 		{
 			return;

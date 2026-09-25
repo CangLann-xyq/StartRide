@@ -3,7 +3,7 @@ using Launcher.Domain.Models;
 
 namespace StartRide.App.Controls.Account;
 
-public static class MinecraftSkinPreviewGeometry
+public static class SkinPreviewGeometry
 {
 	public static int GetArmWidth(MinecraftSkinModel? skinModel)
 	{

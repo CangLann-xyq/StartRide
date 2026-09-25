@@ -202,7 +202,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 
 	public event EventHandler<SettingsDownloadSpeedLimitChangedEventArgs>? DownloadSpeedLimitChanged;
 
-	public event EventHandler<SettingsMinecraftDirectoryChangedEventArgs>? MinecraftDirectoryChanged;
+	public event EventHandler<SettingsGameDirectoryChangedEventArgs>? MinecraftDirectoryChanged;
 
 	public SettingsPageViewModel(ISettingsService settingsService, IStatusService statusService, ISystemMemoryService systemMemoryService, IJavaRuntimeDiscoveryService javaRuntimeDiscoveryService, IMinecraftDirectoryFileSystem minecraftDirectoryFileSystem, MinecraftDirectoryManagementService minecraftDirectoryManagementService, IFilePickerService filePickerService, ICustomFileDownloadService customFileDownloadService, IInstanceFolderService instanceFolderService, IFloatingMessageService floatingMessageService, IThemeService themeService, IExternalLinkService externalLinkService, ILauncherUpdateService launcherUpdateService, ILauncherSelfUpdateService launcherSelfUpdateService, IApplicationExitService applicationExitService, IInfoReferenceProjectCatalog infoReferenceProjectCatalog, ILogger<SettingsFeedbackDialogViewModel>? feedbackDialogLogger = null, ILogger<InfoSettingsViewModel>? infoSettingsLogger = null, ILogger<SettingsPageViewModel>? logger = null, ILogger<CustomFileDownloadViewModel>? customFileDownloadLogger = null, DownloadTasksPageViewModel? downloadTasksPage = null, ILauncherLogLevelController? logLevelController = null, LauncherBackgroundViewModel? launcherBackground = null, SettingsPersistenceCoordinator? settingsPersistence = null)
 	{
@@ -231,7 +231,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 		{
 			DownloadSpeedLimitChanged?.Invoke(this, args);
 		};
-		General.MinecraftDirectoryChanged += delegate(object? _, SettingsMinecraftDirectoryChangedEventArgs args)
+		General.MinecraftDirectoryChanged += delegate(object? _, SettingsGameDirectoryChangedEventArgs args)
 		{
 			MinecraftDirectoryChanged?.Invoke(this, args);
 		};

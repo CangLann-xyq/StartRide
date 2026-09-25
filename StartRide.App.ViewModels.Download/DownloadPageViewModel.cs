@@ -393,12 +393,12 @@ public sealed class DownloadPageViewModel : ObservableObject, IDisposable
 		VersionList.ClearSelectedVersion();
 	}
 
-	private void VersionList_VersionSelected(DownloadMinecraftVersionItem version)
+	private void VersionList_VersionSelected(DownloadVersionItem version)
 	{
 		OpenInstanceOptionsAsync(version);
 	}
 
-	private async Task OpenInstanceOptionsAsync(DownloadMinecraftVersionItem version)
+	private async Task OpenInstanceOptionsAsync(DownloadVersionItem version)
 	{
 		CancelOptionsNavigation();
 		CancellationTokenSource cancellation = (optionsNavigationCancellation = new CancellationTokenSource());

@@ -119,7 +119,7 @@
       <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Foreground="{DynamicResource Brush.AFFFFFFF}" FontSize="12" TextTrimming="CharacterEllipsis" Text="{Binding ExecutablePath}" />
     </Grid>
   </DataTemplate>
-  <DataTemplate x:Key="MinecraftDirectoryItemTemplate" DataType="{x:Type settings:SettingsMinecraftDirectoryItem}">
+  <DataTemplate x:Key="MinecraftDirectoryItemTemplate" DataType="{x:Type settings:SettingsGameDirectoryItem}">
     <Grid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />

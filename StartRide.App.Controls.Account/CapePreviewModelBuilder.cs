@@ -12,7 +12,7 @@ using Launcher.Application.Accounts;
 
 namespace StartRide.App.Controls.Account;
 
-public static class MinecraftCapePreviewModelBuilder
+public static class CapePreviewModelBuilder
 {
 	private sealed record BatchedCapeFace(Rect3D Bounds, Int32Rect TextureRect, bool ReverseWinding);
 

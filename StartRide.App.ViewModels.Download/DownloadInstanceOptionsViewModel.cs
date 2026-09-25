@@ -38,7 +38,7 @@ public sealed class DownloadInstanceOptionsViewModel : ObservableObject, IDispos
 
 	private CancellationTokenSource? nameAvailabilityCancellation;
 
-	private DownloadMinecraftVersionItem? selectedMinecraftVersion;
+	private DownloadVersionItem? selectedMinecraftVersion;
 
 	private DownloadSourcePreference downloadSourcePreference = DownloadSourcePreference.Official;
 
@@ -487,7 +487,7 @@ public sealed class DownloadInstanceOptionsViewModel : ObservableObject, IDispos
 		SelectedLoaderOption = LoaderOptions[0];
 	}
 
-	public async Task PrepareAsync(DownloadMinecraftVersionItem minecraftVersion, CancellationToken cancellationToken = default(CancellationToken))
+	public async Task PrepareAsync(DownloadVersionItem minecraftVersion, CancellationToken cancellationToken = default(CancellationToken))
 	{
 		isActive = true;
 		selectedMinecraftVersion = minecraftVersion;

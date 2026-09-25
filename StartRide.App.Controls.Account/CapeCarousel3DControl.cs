@@ -284,8 +284,8 @@ public sealed class CapeCarousel3DControl : Grid
 			{
 				Children = 
 				{
-					(Model3D)MinecraftCapePreviewModelBuilder.CreateAmbientLight(),
-					(Model3D)MinecraftCapePreviewModelBuilder.CreateDirectionalLight()
+					(Model3D)CapePreviewModelBuilder.CreateAmbientLight(),
+					(Model3D)CapePreviewModelBuilder.CreateDirectionalLight()
 				}
 			};
 			AddPreparedSlot(model3DGroup, slotRequests[0], prepared, oldSlotVisuals, direction);
@@ -358,7 +358,7 @@ public sealed class CapeCarousel3DControl : Grid
 			cancellationToken.ThrowIfCancellationRequested();
 			try
 			{
-				dictionary[request.Key] = MinecraftCapePreviewModelBuilder.BuildCapeModel(request.Value.Cape, request.Value.Brightness, request.Value.Texture);
+				dictionary[request.Key] = CapePreviewModelBuilder.BuildCapeModel(request.Value.Cape, request.Value.Brightness, request.Value.Texture);
 			}
 			catch when (!cancellationToken.IsCancellationRequested)
 			{

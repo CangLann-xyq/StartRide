@@ -680,11 +680,19 @@ foreach ($name in $legacyJunctionNames) {
     if (Test-Path -LiteralPath (Join-Path $stage $name)) { continue }
     $junctionPath = Join-Path $InstallDirectory $name
     if (-not (Test-Path -LiteralPath $junctionPath)) { continue }
+    # Only touch it when it really is a link. A plain directory of the same name may hold
+    # user data, so it is left alone (and said so) rather than force-deleted.
+    $legacyItem = Get-Item -LiteralPath $junctionPath -Force -ErrorAction SilentlyContinue
+    if ($null -eq $legacyItem) { continue }
+    if (($legacyItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -eq 0) {
+        Write-UpdateLog ('kept legacy directory ' + $name + ' (not a link)')
+        continue
+    }
     try {
         [System.IO.Directory]::Delete($junctionPath, $false)
         Write-UpdateLog ('removed legacy junction ' + $name)
     } catch {
-        Write-UpdateLog ('failed to remove legacy junction ' + $name)
+        Write-UpdateLog ('failed to remove legacy junction ' + $name + ' : ' + $_.Exception.Message)
     }
 }
 

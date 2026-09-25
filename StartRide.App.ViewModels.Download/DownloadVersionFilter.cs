@@ -8,7 +8,7 @@ namespace StartRide.App.ViewModels.Download;
 
 internal static class DownloadVersionFilter
 {
-	public static DownloadVersionFilterResult Apply(IEnumerable<DownloadMinecraftVersionItem> allVersions, DownloadVersionCategory? category, string searchQuery, DownloadMinecraftVersionItem? selectedVersion, bool hasLoadedVersions, bool isLoadingVersions, bool hasVersionLoadError)
+	public static DownloadVersionFilterResult Apply(IEnumerable<DownloadVersionItem> allVersions, DownloadVersionCategory? category, string searchQuery, DownloadVersionItem? selectedVersion, bool hasLoadedVersions, bool isLoadingVersions, bool hasVersionLoadError)
 	{
 		if (hasVersionLoadError)
 		{
@@ -16,20 +16,20 @@ internal static class DownloadVersionFilter
 		}
 		if (category == null)
 		{
-			return new DownloadVersionFilterResult(Array.Empty<DownloadMinecraftVersionItem>(), Strings.Status_UnimplementedCategory, ShouldClearSelectedVersion: true);
+			return new DownloadVersionFilterResult(Array.Empty<DownloadVersionItem>(), Strings.Status_UnimplementedCategory, ShouldClearSelectedVersion: true);
 		}
-		string categoryId = MinecraftVersionIconResolver.NormalizeVersionType(category.Id);
+		string categoryId = VersionIconResolver.NormalizeVersionType(category.Id);
 		if (!ListFilterUtilities.IsKnownMinecraftCategory(categoryId))
 		{
-			return new DownloadVersionFilterResult(Array.Empty<DownloadMinecraftVersionItem>(), Strings.Status_UnimplementedCategory, ShouldClearSelectedVersion: true);
+			return new DownloadVersionFilterResult(Array.Empty<DownloadVersionItem>(), Strings.Status_UnimplementedCategory, ShouldClearSelectedVersion: true);
 		}
 		string query = searchQuery.Trim();
-		IEnumerable<DownloadMinecraftVersionItem> enumerable = ListFilterUtilities.ApplyMinecraftCategory(allVersions, categoryId, (DownloadMinecraftVersionItem version) => version.IsRelease, (DownloadMinecraftVersionItem version) => version.IsSnapshot, (DownloadMinecraftVersionItem version) => version.IsAprilFools, (DownloadMinecraftVersionItem version) => version.IsBeta, (DownloadMinecraftVersionItem version) => version.IsAlpha);
+		IEnumerable<DownloadVersionItem> enumerable = ListFilterUtilities.ApplyMinecraftCategory(allVersions, categoryId, (DownloadVersionItem version) => version.IsRelease, (DownloadVersionItem version) => version.IsSnapshot, (DownloadVersionItem version) => version.IsAprilFools, (DownloadVersionItem version) => version.IsBeta, (DownloadVersionItem version) => version.IsAlpha);
 		if (!string.IsNullOrWhiteSpace(query))
 		{
-			enumerable = enumerable.Where((DownloadMinecraftVersionItem version) => version.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+			enumerable = enumerable.Where((DownloadVersionItem version) => version.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
 		}
-		List<DownloadMinecraftVersionItem> list = Sort(enumerable, categoryId).ToList();
+		List<DownloadVersionItem> list = Sort(enumerable, categoryId).ToList();
 		string emptyMessage = ListFilterUtilities.CreateEmptyMessage(list.Count, hasLoadedVersions, isLoadingVersions, () => CreateEmptyMessage(category.Title, query));
 		bool shouldClearSelectedVersion = ListFilterUtilities.ShouldClearSelection(selectedVersion, list);
 		return new DownloadVersionFilterResult(list, emptyMessage, shouldClearSelectedVersion);
@@ -37,7 +37,7 @@ internal static class DownloadVersionFilter
 
 	private static DownloadVersionFilterResult Empty(bool shouldClearSelectedVersion)
 	{
-		return new DownloadVersionFilterResult(Array.Empty<DownloadMinecraftVersionItem>(), string.Empty, shouldClearSelectedVersion);
+		return new DownloadVersionFilterResult(Array.Empty<DownloadVersionItem>(), string.Empty, shouldClearSelectedVersion);
 	}
 
 	private static string CreateEmptyMessage(string categoryTitle, string query)
@@ -49,7 +49,7 @@ internal static class DownloadVersionFilter
 		return string.Format(Strings.Status_NoCategoryVersionsFormat, categoryTitle);
 	}
 
-	private static IEnumerable<DownloadMinecraftVersionItem> Sort(IEnumerable<DownloadMinecraftVersionItem> versions, string? categoryId)
+	private static IEnumerable<DownloadVersionItem> Sort(IEnumerable<DownloadVersionItem> versions, string? categoryId)
 	{
 		bool flag;
 		switch (categoryId)
@@ -67,7 +67,7 @@ internal static class DownloadVersionFilter
 		}
 		if (flag)
 		{
-			return versions.OrderByDescending((DownloadMinecraftVersionItem version) => version.Version.ReleaseTime ?? DateTimeOffset.MinValue).ThenByDescending<DownloadMinecraftVersionItem, string>((DownloadMinecraftVersionItem version) => version.Name, StringComparer.OrdinalIgnoreCase);
+			return versions.OrderByDescending((DownloadVersionItem version) => version.Version.ReleaseTime ?? DateTimeOffset.MinValue).ThenByDescending<DownloadVersionItem, string>((DownloadVersionItem version) => version.Name, StringComparer.OrdinalIgnoreCase);
 		}
 		return versions;
 	}

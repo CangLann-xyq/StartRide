@@ -9,7 +9,7 @@ using Launcher.Application.Services;
 
 namespace StartRide.App.ViewModels.Shell;
 
-public sealed class MinecraftDirectoryStartupRecoveryDialogViewModel : ObservableObject
+public sealed class GameDirectoryStartupRecoveryDialogViewModel : ObservableObject
 {
 	private MinecraftDirectoryStartupRecoveryResult? pendingRecovery;
 

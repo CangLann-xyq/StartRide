@@ -15,7 +15,7 @@ namespace StartRide.App.ViewModels.Shared;
 /// 一律返回 BeamNG 官方 logo。版本类型归一化（正式版/快照版…）仍然保留，
 /// 类型标签和筛选用得到它。
 /// </summary>
-internal static class MinecraftVersionIconResolver
+internal static class VersionIconResolver
 {
 	/// <summary>列表项默认图标：BeamNG.drive 官方 logo。</summary>
 	public const string DefaultGameIconSource = BrandingIcons.BeamNgLogo;

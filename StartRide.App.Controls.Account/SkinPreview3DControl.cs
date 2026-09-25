@@ -55,7 +55,7 @@ public sealed class SkinPreview3DControl : Viewport3D
 			BitmapImage skin;
 			try
 			{
-				skin = MinecraftSkinPreviewModelBuilder.LoadSkinBitmap(SkinSource);
+				skin = SkinPreviewModelBuilder.LoadSkinBitmap(SkinSource);
 			}
 			catch
 			{
@@ -67,9 +67,9 @@ public sealed class SkinPreview3DControl : Viewport3D
 				{
 					Children = 
 					{
-						(Model3D)MinecraftSkinPreviewModelBuilder.CreateAmbientLight(),
-						(Model3D)MinecraftSkinPreviewModelBuilder.CreateDirectionalLight(),
-						(Model3D)MinecraftSkinPreviewModelBuilder.BuildPlayerModel(skin, SkinModel)
+						(Model3D)SkinPreviewModelBuilder.CreateAmbientLight(),
+						(Model3D)SkinPreviewModelBuilder.CreateDirectionalLight(),
+						(Model3D)SkinPreviewModelBuilder.BuildPlayerModel(skin, SkinModel)
 					}
 				}
 			});

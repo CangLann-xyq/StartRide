@@ -49,7 +49,7 @@ public sealed class ResourcesModInstallTargetItemViewModel
 
 	public static ResourcesModInstallTargetItemViewModel FromInstance(GameInstance instance)
 	{
-		return new ResourcesModInstallTargetItemViewModel(instance, GameInstanceDisplayFormatter.GetName(instance), GameInstanceDisplayFormatter.GetSubtitle(instance), MinecraftVersionIconResolver.Resolve(instance, instance.VersionType, instance.MinecraftVersion), null, isLocalDownload: false, isNewInstanceInstall: false, isServerInstall: false);
+		return new ResourcesModInstallTargetItemViewModel(instance, GameInstanceDisplayFormatter.GetName(instance), GameInstanceDisplayFormatter.GetSubtitle(instance), VersionIconResolver.Resolve(instance, instance.VersionType, instance.MinecraftVersion), null, isLocalDownload: false, isNewInstanceInstall: false, isServerInstall: false);
 	}
 
 	public static ResourcesModInstallTargetItemViewModel CreateNewInstanceInstall(string title)

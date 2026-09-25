@@ -9,7 +9,7 @@ using Launcher.Domain.Models;
 
 namespace StartRide.App.Controls.Account;
 
-internal static class MinecraftSkinPreviewModelBuilder
+internal static class SkinPreviewModelBuilder
 {
 	private sealed record BatchedSkinFace(Rect3D Bounds, CubeFace Face, Int32Rect TextureRect, bool IsOverlay);
 
@@ -51,9 +51,9 @@ internal static class MinecraftSkinPreviewModelBuilder
 	{
 		ArgumentNullException.ThrowIfNull(skin, "skin");
 		int skinPixelHeight = Math.Max(skin.PixelHeight, 32);
-		int armWidth = MinecraftSkinPreviewGeometry.GetArmWidth(skinModel);
-		bool num = MinecraftSkinPreviewGeometry.CanUseHeadOverlay(skin.PixelWidth, skinPixelHeight);
-		bool flag = MinecraftSkinPreviewGeometry.CanUseSecondLayer(skinPixelHeight);
+		int armWidth = SkinPreviewGeometry.GetArmWidth(skinModel);
+		bool num = SkinPreviewGeometry.CanUseHeadOverlay(skin.PixelWidth, skinPixelHeight);
+		bool flag = SkinPreviewGeometry.CanUseSecondLayer(skinPixelHeight);
 		List<BatchedSkinFace> list = new List<BatchedSkinFace>(72);
 		AddBatchedCuboid(list, new Rect3D(-4.0, 12.0, -4.0, 8.0, 8.0, 8.0), SkinPart.Head);
 		AddBatchedCuboid(list, new Rect3D(-4.0, 0.0, -2.0, 8.0, 12.0, 4.0), SkinPart.Body);
@@ -124,7 +124,7 @@ internal static class MinecraftSkinPreviewModelBuilder
 		//IL_004f: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0065: Unknown result type (might be due to invalid IL or missing references)
 		//IL_007b: Unknown result type (might be due to invalid IL or missing references)
-		SkinPartFaces faces = MinecraftSkinPreviewGeometry.GetFaces(part, armWidth);
+		SkinPartFaces faces = SkinPreviewGeometry.GetFaces(part, armWidth);
 		target.Add(new BatchedSkinFace(bounds, CubeFace.Front, faces.Front, isOverlay));
 		target.Add(new BatchedSkinFace(bounds, CubeFace.Back, faces.Back, isOverlay));
 		target.Add(new BatchedSkinFace(bounds, CubeFace.Left, faces.Left, isOverlay));

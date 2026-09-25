@@ -139,7 +139,7 @@ public sealed class MainViewModel : ObservableObject
 
 	public UserAgreementDialogViewModel UserAgreementDialog { get; }
 
-	public MinecraftDirectoryStartupRecoveryDialogViewModel MinecraftDirectoryStartupRecoveryDialog { get; }
+	public GameDirectoryStartupRecoveryDialogViewModel MinecraftDirectoryStartupRecoveryDialog { get; }
 
 	public TerracottaAgreementDialogViewModel TerracottaAgreementDialog { get; }
 
@@ -426,7 +426,7 @@ public sealed class MainViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand CloseWindowCommand => closeWindowCommand ?? (closeWindowCommand = new RelayCommand(CloseWindow));
 
-	public MainViewModel(ISettingsService settingsService, LauncherSessionCoordinator sessionCoordinator, AccountPageViewModel accountPage, DownloadPageViewModel downloadPage, DownloadTasksPageViewModel downloadTasksPage, GameSettingsPageViewModel gameSettingsPage, MultiplayerPageViewModel multiplayerPage, ResourcesPageViewModel resourcesPage, SettingsPageViewModel settingsPage, GameManagementViewModel gameManagement, IWindowService windowService, IStatusService statusService, IFloatingMessageService floatingMessageService, IUiDispatcher uiDispatcher, IHomePageViewModelFactory homePageFactory, LaunchStatusDialogViewModel launchStatusDialog, UserAgreementDialogViewModel userAgreementDialog, MinecraftDirectoryStartupRecoveryDialogViewModel minecraftDirectoryStartupRecoveryDialog, TerracottaAgreementDialogViewModel terracottaAgreementDialog, LauncherBackgroundViewModel launcherBackground, ILogger<MainViewModel>? logger = null)
+	public MainViewModel(ISettingsService settingsService, LauncherSessionCoordinator sessionCoordinator, AccountPageViewModel accountPage, DownloadPageViewModel downloadPage, DownloadTasksPageViewModel downloadTasksPage, GameSettingsPageViewModel gameSettingsPage, MultiplayerPageViewModel multiplayerPage, ResourcesPageViewModel resourcesPage, SettingsPageViewModel settingsPage, GameManagementViewModel gameManagement, IWindowService windowService, IStatusService statusService, IFloatingMessageService floatingMessageService, IUiDispatcher uiDispatcher, IHomePageViewModelFactory homePageFactory, LaunchStatusDialogViewModel launchStatusDialog, UserAgreementDialogViewModel userAgreementDialog, GameDirectoryStartupRecoveryDialogViewModel minecraftDirectoryStartupRecoveryDialog, TerracottaAgreementDialogViewModel terracottaAgreementDialog, LauncherBackgroundViewModel launcherBackground, ILogger<MainViewModel>? logger = null)
 	{
 		this.settingsService = settingsService;
 		this.sessionCoordinator = sessionCoordinator;

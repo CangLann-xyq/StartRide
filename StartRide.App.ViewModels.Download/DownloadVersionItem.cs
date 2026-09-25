@@ -10,7 +10,7 @@ using Launcher.Domain.Models;
 
 namespace StartRide.App.ViewModels.Download;
 
-public sealed class DownloadMinecraftVersionItem : ObservableObject
+public sealed class DownloadVersionItem : ObservableObject
 {
 	[ObservableProperty]
 	private bool isSelected;
@@ -21,9 +21,9 @@ public sealed class DownloadMinecraftVersionItem : ObservableObject
 
 	public string Type => Version.Type;
 
-	public string VersionType => MinecraftVersionIconResolver.NormalizeVersionType(Type);
+	public string VersionType => VersionIconResolver.NormalizeVersionType(Type);
 
-	public string TypeLabel => MinecraftVersionTypeDisplayProvider.GetLabel(VersionType, Version.Type);
+	public string TypeLabel => VersionTypeDisplayProvider.GetLabel(VersionType, Version.Type);
 
 	public string ReleaseDateText
 	{
@@ -42,13 +42,13 @@ public sealed class DownloadMinecraftVersionItem : ObservableObject
 
 	public bool IsSnapshot => VersionType.Equals("snapshot", StringComparison.OrdinalIgnoreCase);
 
-	public bool IsAprilFools => MinecraftAprilFoolsVersionClassifier.IsAprilFoolsVersion(Name);
+	public bool IsAprilFools => AprilFoolsVersionClassifier.IsAprilFoolsVersion(Name);
 
 	public bool IsBeta => VersionType.Equals("old_beta", StringComparison.OrdinalIgnoreCase);
 
 	public bool IsAlpha => VersionType.Equals("old_alpha", StringComparison.OrdinalIgnoreCase);
 
-	public string IconSource => MinecraftVersionIconResolver.Resolve(VersionType, Name);
+	public string IconSource => VersionIconResolver.Resolve(VersionType, Name);
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -69,7 +69,7 @@ public sealed class DownloadMinecraftVersionItem : ObservableObject
 		}
 	}
 
-	public DownloadMinecraftVersionItem(MinecraftVersionInfo version)
+	public DownloadVersionItem(MinecraftVersionInfo version)
 	{
 		Version = version;
 	}

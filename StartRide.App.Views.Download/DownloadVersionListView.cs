@@ -37,7 +37,7 @@ public partial class DownloadVersionListView : UserControl, IComponentConnector
 		};
 	}
 
-	public Button? FindVersionButton(DownloadMinecraftVersionItem selectedVersion)
+	public Button? FindVersionButton(DownloadVersionItem selectedVersion)
 	{
 		if (!(DownloadVersionListBox.ItemContainerGenerator.ContainerFromItem(selectedVersion) is ListBoxItem root))
 		{
@@ -46,17 +46,17 @@ public partial class DownloadVersionListView : UserControl, IComponentConnector
 		return VisualTreeSearch.FindDescendant((DependencyObject)(object)root, (ListPageItemButton _) => true)?.InnerButton;
 	}
 
-	public bool ContainsVersion(DownloadMinecraftVersionItem selectedVersion)
+	public bool ContainsVersion(DownloadVersionItem selectedVersion)
 	{
 		return DownloadVersionListBox.Items.Contains(selectedVersion);
 	}
 
-	public bool IsVersionRendered(DownloadMinecraftVersionItem selectedVersion)
+	public bool IsVersionRendered(DownloadVersionItem selectedVersion)
 	{
 		return DownloadVersionListBox.ItemContainerGenerator.ContainerFromItem(selectedVersion) is ListBoxItem;
 	}
 
-	public bool RealizeVersion(DownloadMinecraftVersionItem selectedVersion)
+	public bool RealizeVersion(DownloadVersionItem selectedVersion)
 	{
 		if (!ContainsVersion(selectedVersion))
 		{
@@ -67,7 +67,7 @@ public partial class DownloadVersionListView : UserControl, IComponentConnector
 		return IsVersionRendered(selectedVersion);
 	}
 
-	public double GetVersionTopOffset(DownloadMinecraftVersionItem selectedVersion)
+	public double GetVersionTopOffset(DownloadVersionItem selectedVersion)
 	{
 		int num = DownloadVersionListBox.Items.IndexOf(selectedVersion);
 		if (num < 0)

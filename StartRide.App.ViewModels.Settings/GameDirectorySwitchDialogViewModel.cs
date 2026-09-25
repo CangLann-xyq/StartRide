@@ -12,7 +12,7 @@ using Launcher.Application.Services;
 
 namespace StartRide.App.ViewModels.Settings;
 
-public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
+public sealed class GameDirectorySwitchDialogViewModel : ObservableObject
 {
 	private readonly Func<string> getCurrentDirectory;
 
@@ -24,7 +24,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 
 	private bool suppressSelectionChanged;
 
-	private SettingsMinecraftDirectoryItem? acceptedSelection;
+	private SettingsGameDirectoryItem? acceptedSelection;
 
 	[ObservableProperty]
 	[NotifyPropertyChangedFor("CanConfirm")]
@@ -36,7 +36,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 	[ObservableProperty]
 	[NotifyPropertyChangedFor("CanConfirm")]
 	[NotifyCanExecuteChangedFor("ConfirmCommand")]
-	private SettingsMinecraftDirectoryItem? selectedDirectory;
+	private SettingsGameDirectoryItem? selectedDirectory;
 
 	[ObservableProperty]
 	[NotifyPropertyChangedFor("CanConfirm")]
@@ -51,7 +51,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private AsyncRelayCommand? confirmCommand;
 
-	public ObservableCollection<SettingsMinecraftDirectoryItem> Directories { get; }
+	public ObservableCollection<SettingsGameDirectoryItem> Directories { get; }
 
 	public bool IsChangeBlockedByActiveTasks => isChangeBlockedByActiveTasks();
 
@@ -61,7 +61,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 		{
 			if (IsOpen && !IsBusy && canChangeDirectory())
 			{
-				SettingsMinecraftDirectoryItem settingsMinecraftDirectoryItem = SelectedDirectory;
+				SettingsGameDirectoryItem settingsMinecraftDirectoryItem = SelectedDirectory;
 				if (settingsMinecraftDirectoryItem != null && settingsMinecraftDirectoryItem.IsAvailable)
 				{
 					return !MinecraftDirectoryPath.Equals(settingsMinecraftDirectoryItem.DirectoryPath, getCurrentDirectory());
@@ -110,7 +110,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public SettingsMinecraftDirectoryItem? SelectedDirectory
+	public SettingsGameDirectoryItem? SelectedDirectory
 	{
 		get
 		{
@@ -118,7 +118,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 		}
 		set
 		{
-			if (!EqualityComparer<SettingsMinecraftDirectoryItem>.Default.Equals(selectedDirectory, value))
+			if (!EqualityComparer<SettingsGameDirectoryItem>.Default.Equals(selectedDirectory, value))
 			{
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.SelectedDirectory);
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.CanConfirm);
@@ -164,7 +164,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IAsyncRelayCommand ConfirmCommand => confirmCommand ?? (confirmCommand = new AsyncRelayCommand(ConfirmAsync, () => CanConfirm));
 
-	internal MinecraftDirectorySwitchDialogViewModel(ObservableCollection<SettingsMinecraftDirectoryItem> directories, Func<string> getCurrentDirectory, Func<bool> canChangeDirectory, Func<bool> isChangeBlockedByActiveTasks, Func<string, Task<bool>> switchDirectory)
+	internal GameDirectorySwitchDialogViewModel(ObservableCollection<SettingsGameDirectoryItem> directories, Func<string> getCurrentDirectory, Func<bool> canChangeDirectory, Func<bool> isChangeBlockedByActiveTasks, Func<string, Task<bool>> switchDirectory)
 	{
 		Directories = directories;
 		this.getCurrentDirectory = getCurrentDirectory;
@@ -207,7 +207,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 	[RelayCommand(CanExecute = "CanConfirm")]
 	private async Task ConfirmAsync()
 	{
-		SettingsMinecraftDirectoryItem settingsMinecraftDirectoryItem = SelectedDirectory;
+		SettingsGameDirectoryItem settingsMinecraftDirectoryItem = SelectedDirectory;
 		if (settingsMinecraftDirectoryItem == null || !CanConfirm)
 		{
 			return;
@@ -233,13 +233,13 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 		SetSelectedDirectory(acceptedSelection = FindCurrentDirectory());
 	}
 
-	private SettingsMinecraftDirectoryItem? FindCurrentDirectory()
+	private SettingsGameDirectoryItem? FindCurrentDirectory()
 	{
 		string currentDirectory = getCurrentDirectory();
-		return Directories.FirstOrDefault((SettingsMinecraftDirectoryItem item) => MinecraftDirectoryPath.Equals(item.DirectoryPath, currentDirectory));
+		return Directories.FirstOrDefault((SettingsGameDirectoryItem item) => MinecraftDirectoryPath.Equals(item.DirectoryPath, currentDirectory));
 	}
 
-	private void SetSelectedDirectory(SettingsMinecraftDirectoryItem? item)
+	private void SetSelectedDirectory(SettingsGameDirectoryItem? item)
 	{
 		suppressSelectionChanged = true;
 		try
@@ -253,7 +253,7 @@ public sealed class MinecraftDirectorySwitchDialogViewModel : ObservableObject
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
-	private void OnSelectedDirectoryChanged(SettingsMinecraftDirectoryItem? value)
+	private void OnSelectedDirectoryChanged(SettingsGameDirectoryItem? value)
 	{
 		if (!suppressSelectionChanged)
 		{

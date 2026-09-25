@@ -48,7 +48,7 @@ public sealed class ResourcesModProjectItemViewModel : ObservableObject
 
 	public string TrailingText => string.Format(Strings.Resources_ModDownloadsFormat, DownloadsText);
 
-	public string SupportedMinecraftVersionsText => ResourceMinecraftVersionSupportFormatter.Format(Project.SupportedMinecraftVersions, minecraftReleaseVersionOrder);
+	public string SupportedMinecraftVersionsText => ResourceVersionSupportFormatter.Format(Project.SupportedMinecraftVersions, minecraftReleaseVersionOrder);
 
 	public string SupportedLoadersText => FormatLoaders(Project.SupportedLoaders);
 

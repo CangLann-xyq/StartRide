@@ -39,9 +39,9 @@ public sealed class GameSettingsInstanceItem : ObservableObject
 	{
 		get
 		{
-			if (!MinecraftAprilFoolsVersionClassifier.IsAprilFoolsVersion(MinecraftVersion))
+			if (!AprilFoolsVersionClassifier.IsAprilFoolsVersion(MinecraftVersion))
 			{
-				return MinecraftAprilFoolsVersionClassifier.IsAprilFoolsVersion(VersionName);
+				return AprilFoolsVersionClassifier.IsAprilFoolsVersion(VersionName);
 			}
 			return true;
 		}
@@ -51,7 +51,7 @@ public sealed class GameSettingsInstanceItem : ObservableObject
 
 	public bool IsAlpha => VersionType.Equals("old_alpha", StringComparison.OrdinalIgnoreCase);
 
-	public string TypeLabel => MinecraftVersionTypeDisplayProvider.GetLabel(VersionType);
+	public string TypeLabel => VersionTypeDisplayProvider.GetLabel(VersionType);
 
 	public string LoaderLabel => GameInstanceDisplayFormatter.GetLoaderLabel(Loader);
 
@@ -61,7 +61,7 @@ public sealed class GameSettingsInstanceItem : ObservableObject
 
 	public string UpdatedDateText => Instance.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd");
 
-	public string IconSource => MinecraftVersionIconResolver.Resolve(Instance, VersionType, MinecraftVersion);
+	public string IconSource => VersionIconResolver.Resolve(Instance, VersionType, MinecraftVersion);
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -116,7 +116,7 @@ public sealed class GameSettingsInstanceItem : ObservableObject
 
 	public static string NormalizeVersionType(string? type)
 	{
-		return MinecraftVersionIconResolver.NormalizeVersionType(type);
+		return VersionIconResolver.NormalizeVersionType(type);
 	}
 
 	private static bool Contains(string value, string query)

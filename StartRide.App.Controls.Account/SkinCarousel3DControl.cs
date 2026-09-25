@@ -269,8 +269,8 @@ public sealed class SkinCarousel3DControl : Grid
 			{
 				Children = 
 				{
-					(Model3D)MinecraftSkinPreviewModelBuilder.CreateAmbientLight(),
-					(Model3D)MinecraftSkinPreviewModelBuilder.CreateDirectionalLight()
+					(Model3D)SkinPreviewModelBuilder.CreateAmbientLight(),
+					(Model3D)SkinPreviewModelBuilder.CreateDirectionalLight()
 				}
 			};
 			AddPreparedSlot(model3DGroup, slotRequests[0], prepared, oldSlotVisuals, direction);
@@ -313,9 +313,9 @@ public sealed class SkinCarousel3DControl : Grid
 			try
 			{
 				LauncherSkinRecord skin = request.Value.Skin;
-				BitmapImage skin2 = MinecraftSkinPreviewModelBuilder.LoadSkinBitmap(skin.Source);
+				BitmapImage skin2 = SkinPreviewModelBuilder.LoadSkinBitmap(skin.Source);
 				cancellationToken.ThrowIfCancellationRequested();
-				dictionary[request.Key] = MinecraftSkinPreviewModelBuilder.BuildPlayerModel(skin2, skin.SkinModel, request.Value.Brightness);
+				dictionary[request.Key] = SkinPreviewModelBuilder.BuildPlayerModel(skin2, skin.SkinModel, request.Value.Brightness);
 			}
 			catch when (!cancellationToken.IsCancellationRequested)
 			{

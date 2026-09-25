@@ -376,7 +376,7 @@ public sealed partial class GeneralSettingsViewModel
 				? Strings.Settings_GameInstallItemCurrent
 				: Strings.Settings_GameInstallItemCandidate;
 			// canRemove: 当前使用的目录不允许在列表里删掉
-			MinecraftDirectories.Add(new SettingsMinecraftDirectoryItem(displayName, path, isAvailable: true, canRemove: !isCurrent));
+			MinecraftDirectories.Add(new SettingsGameDirectoryItem(displayName, path, isAvailable: true, canRemove: !isCurrent));
 		}
 	}
 

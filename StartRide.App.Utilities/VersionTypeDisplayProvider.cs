@@ -3,11 +3,11 @@ using StartRide.App.ViewModels.Shared;
 
 namespace StartRide.App.Utilities;
 
-internal static class MinecraftVersionTypeDisplayProvider
+internal static class VersionTypeDisplayProvider
 {
 	public static string GetLabel(string? versionType, string fallback = "")
 	{
-		return MinecraftVersionIconResolver.NormalizeVersionType(versionType) switch
+		return VersionIconResolver.NormalizeVersionType(versionType) switch
 		{
 			"release" => Strings.Download_ReleaseCategory, 
 			"snapshot" => Strings.Download_SnapshotCategory, 

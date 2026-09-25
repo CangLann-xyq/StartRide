@@ -40,7 +40,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	private DownloadVersionCategory? selectedVersionCategory;
 
 	[ObservableProperty]
-	private DownloadMinecraftVersionItem? selectedMinecraftVersion;
+	private DownloadVersionItem? selectedMinecraftVersion;
 
 	[ObservableProperty]
 	private bool isLoadingVersions;
@@ -55,7 +55,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	private string versionSearchQuery = string.Empty;
 
 	[ObservableProperty]
-	private IReadOnlyList<DownloadMinecraftVersionItem> visibleVersions = Array.Empty<DownloadMinecraftVersionItem>();
+	private IReadOnlyList<DownloadVersionItem> visibleVersions = Array.Empty<DownloadVersionItem>();
 
 	[ObservableProperty]
 	private int listEntranceAnimationToken;
@@ -67,11 +67,11 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	private RelayCommand<DownloadVersionCategory>? selectVersionCategoryCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand<DownloadMinecraftVersionItem>? selectMinecraftVersionCommand;
+	private RelayCommand<DownloadVersionItem>? selectMinecraftVersionCommand;
 
 	public ObservableCollection<DownloadVersionCategory> VersionCategories { get; } = new ObservableCollection<DownloadVersionCategory>();
 
-	public List<DownloadMinecraftVersionItem> AllVersions { get; } = new List<DownloadMinecraftVersionItem>();
+	public List<DownloadVersionItem> AllVersions { get; } = new List<DownloadVersionItem>();
 
 	public bool HasVisibleVersions => VisibleVersions.Count > 0;
 
@@ -102,7 +102,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public DownloadMinecraftVersionItem? SelectedMinecraftVersion
+	public DownloadVersionItem? SelectedMinecraftVersion
 	{
 		get
 		{
@@ -110,7 +110,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 		}
 		set
 		{
-			if (!EqualityComparer<DownloadMinecraftVersionItem>.Default.Equals(selectedMinecraftVersion, value))
+			if (!EqualityComparer<DownloadVersionItem>.Default.Equals(selectedMinecraftVersion, value))
 			{
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.SelectedMinecraftVersion);
 				selectedMinecraftVersion = value;
@@ -204,7 +204,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IReadOnlyList<DownloadMinecraftVersionItem> VisibleVersions
+	public IReadOnlyList<DownloadVersionItem> VisibleVersions
 	{
 		get
 		{
@@ -213,7 +213,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 		[MemberNotNull("visibleVersions")]
 		set
 		{
-			if (!EqualityComparer<IReadOnlyList<DownloadMinecraftVersionItem>>.Default.Equals(visibleVersions, value))
+			if (!EqualityComparer<IReadOnlyList<DownloadVersionItem>>.Default.Equals(visibleVersions, value))
 			{
 				OnPropertyChanging(__KnownINotifyPropertyChangingArgs.VisibleVersions);
 				visibleVersions = value;
@@ -252,9 +252,9 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IRelayCommand<DownloadMinecraftVersionItem> SelectMinecraftVersionCommand => selectMinecraftVersionCommand ?? (selectMinecraftVersionCommand = new RelayCommand<DownloadMinecraftVersionItem>(SelectMinecraftVersion));
+	public IRelayCommand<DownloadVersionItem> SelectMinecraftVersionCommand => selectMinecraftVersionCommand ?? (selectMinecraftVersionCommand = new RelayCommand<DownloadVersionItem>(SelectMinecraftVersion));
 
-	public event Action<DownloadMinecraftVersionItem>? VersionSelected;
+	public event Action<DownloadVersionItem>? VersionSelected;
 
 	public event Action? LocalImportRequested;
 
@@ -332,7 +332,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	public void ClearSelectedVersion()
 	{
 		SelectedMinecraftVersion = null;
-		foreach (DownloadMinecraftVersionItem allVersion in AllVersions)
+		foreach (DownloadVersionItem allVersion in AllVersions)
 		{
 			allVersion.IsSelected = false;
 		}
@@ -375,10 +375,10 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	}
 
 	[RelayCommand]
-	private void SelectMinecraftVersion(DownloadMinecraftVersionItem version)
+	private void SelectMinecraftVersion(DownloadVersionItem version)
 	{
 		SelectedMinecraftVersion = version;
-		foreach (DownloadMinecraftVersionItem allVersion in AllVersions)
+		foreach (DownloadVersionItem allVersion in AllVersions)
 		{
 			allVersion.IsSelected = allVersion == version;
 		}
@@ -401,7 +401,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 			if (loadCancellation == cancellation)
 			{
 				AllVersions.Clear();
-				AllVersions.AddRange(versions.Select((MinecraftVersionInfo version) => new DownloadMinecraftVersionItem(version)));
+				AllVersions.AddRange(versions.Select((MinecraftVersionInfo version) => new DownloadVersionItem(version)));
 				hasLoadedVersions = true;
 			}
 		}
@@ -477,7 +477,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
-	private void OnSelectedMinecraftVersionChanged(DownloadMinecraftVersionItem? value)
+	private void OnSelectedMinecraftVersionChanged(DownloadVersionItem? value)
 	{
 		OnPropertyChanged("HasSelectedMinecraftVersion");
 	}
@@ -501,7 +501,7 @@ public sealed class DownloadVersionListViewModel : ObservableObject, IDisposable
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
-	private void OnVisibleVersionsChanged(IReadOnlyList<DownloadMinecraftVersionItem> value)
+	private void OnVisibleVersionsChanged(IReadOnlyList<DownloadVersionItem> value)
 	{
 		OnPropertyChanged("HasVisibleVersions");
 		OnPropertyChanged("HasVersionEmptyMessage");

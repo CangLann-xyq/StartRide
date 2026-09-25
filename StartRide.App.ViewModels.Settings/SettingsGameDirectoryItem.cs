@@ -3,7 +3,7 @@ using StartRide.App.Resources;
 
 namespace StartRide.App.ViewModels.Settings;
 
-public sealed class SettingsMinecraftDirectoryItem : ObservableObject
+public sealed class SettingsGameDirectoryItem : ObservableObject
 {
 	private string displayName;
 
@@ -64,7 +64,7 @@ public sealed class SettingsMinecraftDirectoryItem : ObservableObject
 		}
 	}
 
-	public SettingsMinecraftDirectoryItem(string displayName, string directoryPath, bool isAvailable, bool canRemove)
+	public SettingsGameDirectoryItem(string displayName, string directoryPath, bool isAvailable, bool canRemove)
 	{
 		this.displayName = displayName;
 		DirectoryPath = directoryPath;

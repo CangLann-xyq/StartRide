@@ -5,7 +5,7 @@ using StartRide.App.Resources;
 
 namespace StartRide.App.ViewModels.Resources;
 
-public static class ResourceMinecraftVersionSupportFormatter
+public static class ResourceVersionSupportFormatter
 {
 	private readonly record struct NormalizedMinecraftVersion(string Key, string DisplayText);
 

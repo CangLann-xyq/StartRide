@@ -8,11 +8,11 @@ using StartRide.App.ViewModels.Settings;
 
 namespace StartRide.App.Views.GameSettings.Dialogs;
 
-public partial class MinecraftDirectorySwitchDialogView : UserControl, IComponentConnector
+public partial class GameDirectorySwitchDialogView : UserControl, IComponentConnector
 {
 	private bool isRestoringSelection;
 
-	public MinecraftDirectorySwitchDialogView()
+	public GameDirectorySwitchDialogView()
 	{
 		InitializeComponent();
 	}
@@ -54,7 +54,7 @@ public partial class MinecraftDirectorySwitchDialogView : UserControl, IComponen
 
 	private void DirectoryListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 	{
-		if (isRestoringSelection || !IsSelectionBlocked() || !(sender is ListBox listBox) || !(base.DataContext is MinecraftDirectorySwitchDialogViewModel minecraftDirectorySwitchDialogViewModel) || listBox.SelectedItem == minecraftDirectorySwitchDialogViewModel.SelectedDirectory)
+		if (isRestoringSelection || !IsSelectionBlocked() || !(sender is ListBox listBox) || !(base.DataContext is GameDirectorySwitchDialogViewModel minecraftDirectorySwitchDialogViewModel) || listBox.SelectedItem == minecraftDirectorySwitchDialogViewModel.SelectedDirectory)
 		{
 			return;
 		}
@@ -71,7 +71,7 @@ public partial class MinecraftDirectorySwitchDialogView : UserControl, IComponen
 
 	private bool IsSelectionBlocked()
 	{
-		if (base.DataContext is MinecraftDirectorySwitchDialogViewModel minecraftDirectorySwitchDialogViewModel)
+		if (base.DataContext is GameDirectorySwitchDialogViewModel minecraftDirectorySwitchDialogViewModel)
 		{
 			return minecraftDirectorySwitchDialogViewModel.IsChangeBlockedByActiveTasks;
 		}

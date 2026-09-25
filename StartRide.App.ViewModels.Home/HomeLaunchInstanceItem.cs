@@ -34,7 +34,7 @@ public sealed class HomeLaunchInstanceItem : ObservableObject
 
 	public string Subtitle => GameInstanceDisplayFormatter.GetSubtitle(Instance);
 
-	public string IconSource => MinecraftVersionIconResolver.Resolve(Instance, VersionType, MinecraftVersion);
+	public string IconSource => VersionIconResolver.Resolve(Instance, VersionType, MinecraftVersion);
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -58,13 +58,13 @@ public sealed class HomeLaunchInstanceItem : ObservableObject
 	public HomeLaunchInstanceItem(GameInstance instance, string versionType = "")
 	{
 		Instance = instance;
-		VersionType = MinecraftVersionIconResolver.NormalizeVersionType(versionType);
+		VersionType = VersionIconResolver.NormalizeVersionType(versionType);
 		catalogSnapshot = InstanceCatalogEntrySnapshot.Create(instance);
 	}
 
 	public bool Update(GameInstance instance, string versionType)
 	{
-		string text = MinecraftVersionIconResolver.NormalizeVersionType(versionType);
+		string text = VersionIconResolver.NormalizeVersionType(versionType);
 		InstanceCatalogEntrySnapshot instanceCatalogEntrySnapshot = InstanceCatalogEntrySnapshot.Create(instance);
 		bool num = catalogSnapshot != instanceCatalogEntrySnapshot || !string.Equals(VersionType, text, StringComparison.OrdinalIgnoreCase);
 		Instance = instance;

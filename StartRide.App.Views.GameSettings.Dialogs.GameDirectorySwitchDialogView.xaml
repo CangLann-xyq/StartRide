@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<UserControl x:Class="StartRide.App.Views.GameSettings.Dialogs.MinecraftDirectorySwitchDialogView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:settings="clr-namespace:StartRide.App.ViewModels.Settings" Focusable="False" xmlns:dialogs="clr-namespace:StartRide.App.Views.GameSettings.Dialogs">
+<UserControl x:Class="StartRide.App.Views.GameSettings.Dialogs.GameDirectorySwitchDialogView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:settings="clr-namespace:StartRide.App.ViewModels.Settings" Focusable="False" xmlns:dialogs="clr-namespace:StartRide.App.Views.GameSettings.Dialogs">
   <FrameworkElement.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
@@ -8,7 +8,7 @@
       <Style x:Key="MinecraftDirectorySwitchItemStyle" TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource SettingsChoiceListBoxItemStyle}">
         <Setter Property="IsEnabled" Value="{Binding IsAvailable}" />
       </Style>
-      <DataTemplate x:Key="MinecraftDirectorySwitchItemTemplate" DataType="{x:Type settings:SettingsMinecraftDirectoryItem}">
+      <DataTemplate x:Key="MinecraftDirectorySwitchItemTemplate" DataType="{x:Type settings:SettingsGameDirectoryItem}">
         <StackPanel>
           <TextBlock behaviors:TextOverflowToolTip.IsEnabled="True" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" />
           <TextBlock Margin="0,4,0,0" behaviors:TextOverflowToolTip.IsEnabled="True" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="12" TextTrimming="CharacterEllipsis" Text="{Binding DirectoryPath}" ToolTip="{Binding DirectoryPath}" />

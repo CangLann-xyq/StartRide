@@ -57,8 +57,8 @@ public sealed class SkinFrontPreviewControl : Image
 		}
 		try
 		{
-			BitmapImage skin = MinecraftSkinPreviewModelBuilder.LoadSkinBitmap(SkinSource);
-			base.Source = MinecraftSkinFrontPreviewRenderer.BuildFrontBitmap(skin, SkinModel);
+			BitmapImage skin = SkinPreviewModelBuilder.LoadSkinBitmap(SkinSource);
+			base.Source = SkinFrontPreviewRenderer.BuildFrontBitmap(skin, SkinModel);
 		}
 		catch
 		{

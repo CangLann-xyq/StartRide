@@ -281,7 +281,7 @@ public partial class App : System.Windows.Application
 			services.AddSingleton<MainWindowPlacementService>();
 			services.AddSingleton<LaunchStatusDialogViewModel>();
 			services.AddSingleton<UserAgreementDialogViewModel>();
-			services.AddSingleton<MinecraftDirectoryStartupRecoveryDialogViewModel>();
+			services.AddSingleton<GameDirectoryStartupRecoveryDialogViewModel>();
 			services.AddSingleton<TerracottaAgreementDialogViewModel>();
 			services.AddSingleton<LauncherBackgroundViewModel>();
 			services.AddSingleton<AccountListViewModel>();
