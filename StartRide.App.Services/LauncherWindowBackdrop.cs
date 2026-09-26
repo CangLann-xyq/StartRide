@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shell;
@@ -9,6 +9,12 @@ namespace StartRide.App.Services;
 
 public static class LauncherWindowBackdrop
 {
+	/// <summary>窗口样式被运行时改过（例如进出全屏）后重新下发一次 DWM 外观。</summary>
+	public static void Reapply(Window window, IThemeService themeService)
+	{
+		Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
+	}
+
 	public static void Attach(Window window, IThemeService themeService)
 	{
 		window.SourceInitialized += delegate
@@ -62,7 +68,10 @@ public static class LauncherWindowBackdrop
 		WindowChrome windowChrome = WindowChrome.GetWindowChrome(window);
 		if (windowChrome != null)
 		{
-			windowChrome.GlassFrameThickness = (isBackdropEnabled ? new Thickness(-1.0) : new Thickness(0.0));
+			// StartRide：恒为 0。原来亚克力开启时会设 -1（= DwmExtendFrameIntoClientArea(-1,-1,-1,-1)
+			// 的玻璃框），DWM 会在客户区外描一圈亮色玻璃边 —— 用户看到的「边缘白色渐变」就是它。
+			// 亚克力的可见性只依赖 CompositionTarget.BackgroundColor=Transparent，不依赖这圈玻璃框。
+			windowChrome.GlassFrameThickness = new Thickness(0.0);
 		}
 	}
 

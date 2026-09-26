@@ -83,6 +83,20 @@ namespace StartRide.Core
                 PushRelayStateToGame();
                 StateChanged?.Invoke();
             };
+            // 自动重连成功 = 房间身份恢复了，但游戏侧并不知道中间断过。
+            // 必须重推状态，并把断线期间攒下的远程车补发一遍，否则车里别人的车会一直空着。
+            _relay.Reconnected += _ =>
+            {
+                Log?.Invoke("中继已自动重连，正在把房间状态与远程车辆同步回游戏");
+                State.Connected = true;
+                State.LastError = "";
+                PushRelayStateToGame();
+                foreach (var v in _relay.GetCachedVehicles())
+                {
+                    try { _bridge.SendJson(v.GetRawText()); } catch { }
+                }
+                StateChanged?.Invoke();
+            };
             _relay.VehicleReceived += OnRelayVehicle;
             _relay.VehCfgReceived += p => _bridge.SendJson(p.GetRawText());
             _relay.ChatReceived += p => _bridge.SendJson(p.GetRawText());
@@ -293,6 +307,11 @@ namespace StartRide.Core
                 state = _relay.IsConnected ? "connected" : "disconnected",
                 detail = _relay.LastError,
                 roomId = _relay.CurrentRoomId,
+                // ⚠️ playerId 必须下发给游戏。游戏内模组用它当车辆标识，
+                // 以前用昵称，两个都没配昵称的玩家（都是 'Player'）会互相丢包 ——
+                // 这正是「看不见对方的车」的根因之一。
+                playerId = _relay.PlayerId,
+                playerName = _relay.PlayerName,
             });
         }
 

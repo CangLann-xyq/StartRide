@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -350,7 +350,9 @@ public partial class App : System.Windows.Application
 			await mainViewModel.PrimeAsync(startupSettings, minecraftDirectoryStartupRecovery);
 			IThemeService requiredService = serviceProvider.GetRequiredService<IThemeService>();
 			requiredService.ApplyPreference(mainViewModel.Settings.Theme, mainViewModel.Settings.ThemeFollowSystem, mainViewModel.Settings.LauncherBackgroundOpacityPercent);
-			requiredService.ApplyAccent("Blue");
+			// StartRide：这里原来硬编码 ApplyAccent("Blue")，用户在设置里选的强调色重启就没了
+			// （界面里选着色是对的，只是每次启动又被强制刷回蓝色）。改成读用户设置。
+			requiredService.ApplyAccent(mainViewModel.Settings.AccentColor);
 			requiredService.ApplyBackgroundEffect(mainViewModel.Settings.LauncherBackgroundEffect, mainViewModel.Settings.EnableImageBackgroundControlBlur);
 			MainWindow requiredService2 = serviceProvider.GetRequiredService<MainWindow>();
 			serviceProvider.GetRequiredService<MainWindowPlacementService>().Restore(requiredService2, mainViewModel.Settings);

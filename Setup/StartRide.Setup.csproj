@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <!--
+    StartRide 自研安装包（WPF）。
+
+    一个工程两种产物：
+      * 默认            → StartRideSetup.exe   安装向导（内嵌整包 payload）
+      * -p:UninstallerOnly=true → StartRide-Uninstall.exe  卸载器（不含 payload，很小）
+
+    为什么不用 MSI / Inno Setup：
+      1. StartRide 的视觉是自绘的，MSI 的向导壳改不动，做出来一定是"模板感"；
+      2. 安装目录在 %LOCALAPPDATA% 下，纯用户级安装，不需要 UAC，MSI 反而会弹权限；
+      3. payload 内嵌在 exe 里，用户拿到的是**一个文件**，双击即装。
+
+    payload 由 D:\code\all\_sr_make_installer.py 在构建前塞进 Payload\ 目录。
+  -->
+
+  <PropertyGroup>
+    <AssemblyName>StartRideSetup</AssemblyName>
+    <RootNamespace>StartRide.Setup</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>True</UseWPF>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>14.0</LangVersion>
+    <!-- 只打开可空注解上下文（不打开警告），代码里用 `string?` 表达"可能为 null"时不刷 8632 警告 -->
+    <Nullable>annotations</Nullable>
+    <ApplicationIcon>..\app.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+    <!-- 版本号由 _sr_make_installer.py 用 -p:SetupVersion=x.y.z 传进来，源码里不写死 -->
+    <Version Condition="'$(SetupVersion)' != ''">$(SetupVersion)</Version>
+    <AssemblyVersion Condition="'$(SetupVersion)' != ''">$(SetupVersion).0</AssemblyVersion>
+    <FileVersion Condition="'$(SetupVersion)' != ''">$(SetupVersion).0</FileVersion>
+  </PropertyGroup>
+
+  <!-- 卸载器模式：同一个工程，去掉安装向导与内嵌 payload -->
+  <PropertyGroup Condition="'$(UninstallerOnly)' == 'true'">
+    <AssemblyName>StartRide-Uninstall</AssemblyName>
+    <DefineConstants>$(DefineConstants);UNINSTALLER_ONLY</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 反编译工程里 ApplicationDefinition 是显式声明的，这里同理：文件名不是 App.xaml -->
+    <Page Remove="SetupApp.xaml" />
+    <ApplicationDefinition Include="SetupApp.xaml" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UninstallerOnly)' == 'true'">
+    <Page Remove="InstallerWindow.xaml" />
+    <Compile Remove="InstallerWindow.xaml.cs" />
+  </ItemGroup>
+
+  <!-- 品牌图：两个产物都要用（卸载器也要显示 logo） -->
+  <ItemGroup>
+    <Resource Include="..\assets\branding\startride_logo_full_dark.png" Link="Assets\startride_logo_full_dark.png" />
+    <Resource Include="..\assets\branding\startride_icon_128.png" Link="Assets\startride_icon_128.png" />
+  </ItemGroup>
+
+  <!-- payload：整包 zip + 卸载器 zip，都必须先由构建脚本放进 Payload\ -->
+  <ItemGroup Condition="'$(UninstallerOnly)' != 'true'">
+    <EmbeddedResource Include="Payload\StartRide-app.zip" LogicalName="StartRide.Setup.Payload.app.zip" />
+    <EmbeddedResource Include="Payload\StartRide-Uninstall.zip" LogicalName="StartRide.Setup.Payload.uninstall.zip" />
+  </ItemGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -597,12 +597,9 @@ public sealed partial class LaunchMemorySettingsViewModel : SettingsSectionViewM
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	private void OnDefaultCheckFilesBeforeLaunchChanged(bool value)
 	{
-		if (base.CanPersist && !synchronizingLaunchCheck && DefaultAutoRepairMissingFiles != value)
-		{
-			synchronizingLaunchCheck = true;
-			DefaultAutoRepairMissingFiles = value;
-			synchronizingLaunchCheck = false;
-		}
+		// StartRide：以前这里把「自动修复缺失文件」强制跟着「启动前检查文件」走，
+		// 两项永远相等 → 用户怎么点都没区别。现在两项独立，各自的消费方见
+		// LaunchMemorySettingsViewModel.StartRide.cs 的 SyncStartRideLaunchBehaviorSettings。
 		PersistAndNotify();
 	}
 

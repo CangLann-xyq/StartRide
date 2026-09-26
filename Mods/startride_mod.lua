@@ -27,7 +27,7 @@ local CHAT_COOLDOWN = 0.3
 --   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
 -- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
 -- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
-local MOD_VERSION = '2.9.13'
+local MOD_VERSION = '2.10.0'
 
 
 
@@ -62,6 +62,13 @@ local mpPlayers = {}
 local roomInfo = { name = '', count = 0, capacity = 0, host = '', closed = false }
 local chat = {}
 local playerName = 'Player'
+-- 启动器下发的稳定联机 ID（SR-XXXX-XXXX-XXXX）。车辆标识用它，不用昵称：
+-- 昵称可以两个人一样，ID 不会。取不到时 myId() 自动回退成昵称（兼容旧启动器）。
+local playerId = nil
+local function myId()
+  if playerId and playerId ~= '' then return playerId end
+  return playerName
+end
 local initialized = false
 
 
@@ -471,7 +478,9 @@ end
 
 local function onRemoteVehiclePacket(data)
   local id = data.id
-  if not id or id == playerName then return end
+  -- ⚠️ 这里以前比的是 playerName。两个都没配昵称的玩家在游戏里都是 'Player'，
+  -- 于是双方的包互相被当成"自己的"丢掉 —— 房间里人齐了却一辆车都看不见。
+  if not id or id == myId() then return end
   
   
   
@@ -705,7 +714,7 @@ local function sendLocalVehicle()
 
   queuePacket({
     type = 'vehicle',
-    id = playerName,
+    id = myId(),
     name = playerName,
     model = lastJbeam or 'pickup',
     map = localMap,
@@ -725,7 +734,7 @@ local function sendLocalVehicle()
         local cfg = serialize(vd.config)
         if cfg and #cfg < 60000 and cfg ~= lastCfgJson then
           lastCfgJson = cfg
-          queuePacket({ type = 'vehcfg', id = playerName, name = playerName, cfg = cfg })
+          queuePacket({ type = 'vehcfg', id = myId(), name = playerName, cfg = cfg })
         end
       end
     end)
@@ -803,6 +812,18 @@ local function onPacket(data)
     relayState = data.state or 'unknown'
     relayDetail = data.detail or ''
     if data.roomId then relayRoomId = data.roomId end
+    -- 启动器是身份的权威来源：它下发的 ID 与昵称直接采信。
+    -- 昵称只在"游戏里没自己配过"（还是默认的 'Player'）时才跟随启动器，
+    -- 免得把用户手写进 multiplayer.json 的名字盖掉。
+    if data.playerId and data.playerId ~= '' and data.playerId ~= playerId then
+      playerId = data.playerId
+      logMsg('联机 ID:', playerId)
+    end
+    if data.playerName and data.playerName ~= '' and (playerName == 'Player' or playerName == '')
+       and playerName ~= data.playerName then
+      playerName = data.playerName
+      logMsg('昵称已按启动器账户同步:', playerName)
+    end
 
   elseif data.type == 'stats' then
     statGameIn = tonumber(data.gameIn) or 0

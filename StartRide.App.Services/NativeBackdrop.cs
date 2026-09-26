@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls.Primitives;
@@ -49,7 +49,7 @@ internal static class NativeBackdrop
 		};
 	}
 
-	public static bool ApplyToWindow(Window window, DwmSystemBackdropType backdropType, EffectiveTheme theme, bool extendIntoClientArea = true)
+	public static bool ApplyToWindow(Window window, DwmSystemBackdropType backdropType, EffectiveTheme theme, bool useTransparentSurface = true)
 	{
 		nint handle = new WindowInteropHelper(window).Handle;
 		if (handle == IntPtr.Zero)
@@ -59,9 +59,14 @@ internal static class NativeBackdrop
 		HwndSource hwndSource = HwndSource.FromHwnd(handle);
 		if (hwndSource?.CompositionTarget != null)
 		{
-			hwndSource.CompositionTarget.BackgroundColor = (extendIntoClientArea ? Colors.Transparent : GetOpaqueWindowBackgroundColor(theme));
+			// ⚠️ 亚克力能不能透出来，只取决于这里 —— WPF 的合成表面必须透明，
+			// 否则 WPF 会用自己的底色把 DWM backdrop 盖掉（和 MainWindow 里那层
+			// 硬编码不透明的 #FF0F1014 是同一个道理，只是层级更低）。
+			hwndSource.CompositionTarget.BackgroundColor = (useTransparentSurface ? Colors.Transparent : GetOpaqueWindowBackgroundColor(theme));
 		}
-		return TryApply(handle, backdropType, theme, extendIntoClientArea);
+		// StartRide：不再把 DWM 的玻璃框撑进客户区（原来是传 -1，会产生一圈亮边）。
+		// DWMWA_SYSTEMBACKDROP_TYPE 本身就是整窗生效的，不需要 ExtendFrameIntoClientArea。
+		return TryApply(handle, backdropType, theme);
 	}
 
 	public static bool TryApplyToPopup(Popup popup, DwmSystemBackdropType backdropType, EffectiveTheme theme)

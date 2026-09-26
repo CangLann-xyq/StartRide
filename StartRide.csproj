@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <AssemblyName>StartRide</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
@@ -21,6 +21,18 @@
          反编译出的文件名不是约定的 App.xaml，所以要显式声明，否则报 CS5001。 -->
     <Page Remove="StartRide.App.App.xaml" />
     <ApplicationDefinition Include="StartRide.App.App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- ⚠️ Setup\ 是**独立工程**（自研安装包，有自己的 csproj）。
+         SDK 风格的默认通配会把 Setup\ 下的 .cs/.xaml 一并吸进主工程，
+         轻则重名冲突、重则抢走 ApplicationDefinition 导致启动即崩。
+         这里必须显式排除，且要放在所有 Include 之前。 -->
+    <Compile Remove="Setup\**" />
+    <Page Remove="Setup\**" />
+    <ApplicationDefinition Remove="Setup\**" />
+    <Resource Remove="Setup\**" />
+    <EmbeddedResource Remove="Setup\**" />
+    <None Remove="Setup\**" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="assets\icons\block\forge_logo.svg" />
@@ -209,6 +221,8 @@
     <Resource Include="assets\icons\beamng\folder.svg" />
     <Resource Include="assets\icons\general\general_window_minimize.svg" />
     <Resource Include="assets\icons\general\general_window_close.svg" />
+    <Resource Include="assets\icons\general\general_window_maximize.svg" />
+    <Resource Include="assets\icons\general\general_window_restore.svg" />
     <Resource Include="assets\icons\account_page\account_page_add_account_dialog_steam.svg" />
     <Resource Include="assets\icons\general\general_home.svg" />
     <Resource Include="assets\icons\general\general_person.svg" />

@@ -1,10 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Window x:Class="StartRide.App.Views.Shell.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:shellViews="clr-namespace:StartRide.App.Views.Shell" xmlns:homeViews="clr-namespace:StartRide.App.Views.Home" xmlns:downloadViews="clr-namespace:StartRide.App.Views.Download" xmlns:downloadDialogViews="clr-namespace:StartRide.App.Views.Download.Dialogs" xmlns:installViews="clr-namespace:StartRide.App.Views.Install" xmlns:accountViews="clr-namespace:StartRide.App.Views.Account" xmlns:accountDialogViews="clr-namespace:StartRide.App.Views.Account.Dialogs" xmlns:gameSettingsViews="clr-namespace:StartRide.App.Views.GameSettings" xmlns:gameSettingsDialogViews="clr-namespace:StartRide.App.Views.GameSettings.Dialogs" xmlns:multiplayerViews="clr-namespace:StartRide.App.Views.Multiplayer" xmlns:resourcesViews="clr-namespace:StartRide.App.Views.Resources" xmlns:generalViews="clr-namespace:StartRide.App.Views.General" xmlns:settingsViews="clr-namespace:StartRide.App.Views.Settings" xmlns:vehiclesViews="clr-namespace:StartRide.App.Views.Vehicles" xmlns:modsViews="clr-namespace:StartRide.App.Views.Mods" xmlns:replaysViews="clr-namespace:StartRide.App.Views.Replays" xmlns:res="clr-namespace:StartRide.App.Resources" x:Name="RootWindow" Title="{x:Static res:Strings.App_Title}" Width="1000" Height="700" AllowDrop="True" MinWidth="960" MinHeight="600" WindowStyle="SingleBorderWindow" AllowsTransparency="False" Background="#00FFFFFF" FontFamily="Microsoft YaHei UI" ResizeMode="CanResize" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale" TextOptions.TextHintingMode="Fixed" PreviewDragEnter="Window_OnPreviewDragEnter" PreviewDragOver="Window_OnPreviewDragOver" PreviewDragLeave="Window_OnPreviewDragLeave" PreviewDrop="Window_OnPreviewDrop">
+<Window x:Class="StartRide.App.Views.Shell.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:shellViews="clr-namespace:StartRide.App.Views.Shell" xmlns:homeViews="clr-namespace:StartRide.App.Views.Home" xmlns:downloadViews="clr-namespace:StartRide.App.Views.Download" xmlns:downloadDialogViews="clr-namespace:StartRide.App.Views.Download.Dialogs" xmlns:installViews="clr-namespace:StartRide.App.Views.Install" xmlns:accountViews="clr-namespace:StartRide.App.Views.Account" xmlns:accountDialogViews="clr-namespace:StartRide.App.Views.Account.Dialogs" xmlns:gameSettingsViews="clr-namespace:StartRide.App.Views.GameSettings" xmlns:gameSettingsDialogViews="clr-namespace:StartRide.App.Views.GameSettings.Dialogs" xmlns:multiplayerViews="clr-namespace:StartRide.App.Views.Multiplayer" xmlns:resourcesViews="clr-namespace:StartRide.App.Views.Resources" xmlns:generalViews="clr-namespace:StartRide.App.Views.General" xmlns:settingsViews="clr-namespace:StartRide.App.Views.Settings" xmlns:vehiclesViews="clr-namespace:StartRide.App.Views.Vehicles" xmlns:modsViews="clr-namespace:StartRide.App.Views.Mods" xmlns:replaysViews="clr-namespace:StartRide.App.Views.Replays" xmlns:res="clr-namespace:StartRide.App.Resources" x:Name="RootWindow" Title="{x:Static res:Strings.App_Title}" Width="1000" Height="700" AllowDrop="True" MinWidth="960" MinHeight="600" WindowStyle="SingleBorderWindow" AllowsTransparency="False" Background="#00FFFFFF" FontFamily="Microsoft YaHei UI" ResizeMode="CanResize" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale" TextOptions.TextHintingMode="Fixed" PreviewDragEnter="Window_OnPreviewDragEnter" PreviewDragOver="Window_OnPreviewDragOver" PreviewDragLeave="Window_OnPreviewDragLeave" PreviewDrop="Window_OnPreviewDrop" PreviewKeyDown="Window_OnPreviewKeyDown" StateChanged="Window_OnStateChanged">
   <shell:WindowChrome.WindowChrome>
-    <shell:WindowChrome CaptionHeight="0" CornerRadius="12" GlassFrameThickness="-1" ResizeBorderThickness="8" UseAeroCaptionButtons="False" />
+    <shell:WindowChrome CaptionHeight="0" CornerRadius="12" GlassFrameThickness="0" ResizeBorderThickness="8" UseAeroCaptionButtons="False" />
   </shell:WindowChrome.WindowChrome>
-  <Border CornerRadius="12" BorderBrush="{DynamicResource Brush.Surface.WindowBorder}" BorderThickness="{DynamicResource Thickness.Surface.WindowBorder}" SnapsToDevicePixels="True" ClipToBounds="True">
-    <Grid Background="#FF0F1014">
+  <Border x:Name="WindowRootBorder" CornerRadius="12" BorderBrush="{DynamicResource Brush.Surface.WindowBorder}" BorderThickness="{DynamicResource Thickness.Surface.WindowBorder}" SnapsToDevicePixels="True" ClipToBounds="True">
+    <Grid>
+      <!-- ⚠️ 这里原来是一层**硬编码不透明**的底色 <Grid Background="#FF0F1014">，
+           它把 DWM 亚克力（TransientWindow）整个盖死 —— 所以「磨砂玻璃」以前从来透不出来。
+           现在换成一层半透明底色膜：颜色仍用主题的页面底色，透明度交给设置里的
+           「启动器背景不透明度」滑块（它写的就是 Opacity.Page.Background）。
+           0% = 纯亚克力（完全透出桌面），100% = 完全不透明。
+           Image 背景模式下整层让位（Opacity=0），交给下面 AmbientBackdropRoot 的图片。 -->
+      <Border Name="WindowSurfaceTint" Background="{DynamicResource Brush.Page.Background}">
+        <FrameworkElement.Style>
+          <Style TargetType="{x:Type Border}">
+            <Setter Property="UIElement.Opacity" Value="{DynamicResource Opacity.Page.Background}" />
+            <Style.Triggers>
+              <DataTrigger Value="True" Binding="{Binding LauncherBackground.IsActive}">
+                <Setter Property="UIElement.Opacity" Value="0" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </FrameworkElement.Style>
+      </Border>
       <!-- StartRide 自绘氛围背景：纯色底（无渐变、无色块），保留空层作为侧栏亚克力模糊源 -->
       <Grid Name="AmbientBackdropRoot" IsHitTestVisible="False">
         <controls:ImageBackdropSource x:Name="LauncherBackgroundVisualSource" OverlayBrush="{DynamicResource Brush.LauncherBackground.Image.DimOverlay}" ImageSource="{Binding LauncherBackground.ImageSource}">
@@ -29,24 +47,13 @@
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-          <RowDefinition Height="52" />
+          <RowDefinition x:Name="TitleBarRow" Height="52" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <!-- 顶部拖拽区（z 序在导航之下：点空白拖动窗口，点标签正常切换） -->
-        <Border Grid.Column="1" Grid.Row="0" Background="#00FFFFFF" MouseLeftButtonDown="TitleBarDragArea_OnMouseLeftButtonDown" />
-        <shellViews:ShellNavigationView Grid.Column="1" Grid.Row="0" />
-        <Border Grid.Column="1" Grid.Row="1" Background="{DynamicResource Brush.Page.Background}">
-          <FrameworkElement.Style>
-            <Style TargetType="{x:Type Border}">
-              <Setter Property="UIElement.Opacity" Value="{DynamicResource Opacity.Page.Background}" />
-              <Style.Triggers>
-                <DataTrigger Value="True" Binding="{Binding LauncherBackground.IsActive}">
-                  <Setter Property="UIElement.Opacity" Value="0" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </FrameworkElement.Style>
-        </Border>
+        <Border x:Name="TitleBarDragArea" Grid.Column="1" Grid.Row="0" Background="#00FFFFFF" MouseLeftButtonDown="TitleBarDragArea_OnMouseLeftButtonDown" />
+        <shellViews:ShellNavigationView x:Name="ShellNavView" Grid.Column="1" Grid.Row="0" />
+        <!-- 内容区不再单独铺底色：见上面 WindowSurfaceTint（避免两层叠加把透光压到 4%） -->
         <Grid Name="PageTransitionHost" Grid.Column="1" Grid.Row="1" ClipToBounds="True">
           <homeViews:HomePageView x:Name="HomePageView" DataContext="{Binding HomePage}" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Home}" />
           <vehiclesViews:VehiclesPageView x:Name="VehiclesPageView" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Download}" />
@@ -58,9 +65,18 @@
           <settingsViews:SettingsPageView x:Name="SettingsPageView" DataContext="{Binding SettingsPage}" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Settings}" />
           <generalViews:GeneralPageView x:Name="GeneralPageView" />
         </Grid>
-        <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
+        <!-- 窗口按钮浮层：RowSpan=2 + ZIndex，全屏时导航行高度归零也依然浮在右上角。
+             Margin 上 12 = 在原本 52 高的标题行里垂直居中（12 + 28 + 12）。
+             容器自身 Background 为 null（不可命中测试），只有按钮接收鼠标。 -->
+        <StackPanel Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Panel.ZIndex="99" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,14,0">
           <Button Style="{StaticResource WindowCaptionButtonStyle}" Command="{Binding MinimizeWindowCommand}">
             <controls:SvgIcon Width="14" Height="14" IconKey="general/general_window_minimize" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+          </Button>
+          <Button x:Name="MaximizeWindowButton" Style="{StaticResource WindowCaptionButtonStyle}" Click="MaximizeWindowButton_OnClick">
+            <controls:SvgIcon Width="14" Height="14" IconKey="general/general_window_maximize" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
+          </Button>
+          <Button x:Name="RestoreWindowButton" Style="{StaticResource WindowCaptionButtonStyle}" Click="RestoreWindowButton_OnClick" Visibility="Collapsed">
+            <controls:SvgIcon Width="14" Height="14" IconKey="general/general_window_restore" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
           </Button>
           <Button Style="{StaticResource WindowCaptionCloseButtonStyle}" Command="{Binding CloseWindowCommand}">
             <controls:SvgIcon Width="14" Height="14" IconKey="general/general_window_close" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -123,6 +123,7 @@ public sealed partial class LaunchMemorySettingsViewModel
 			LoadState(delegate
 			{
 				DefaultCheckFilesBeforeLaunch = app.CheckFilesBeforeLaunch;
+				DefaultAutoRepairMissingFiles = app.AutoRepairGameConfig;
 				DefaultMinimizeLauncherAfterLaunch = app.MinimizeToTray;
 				DefaultLaunchFullScreen = app.LaunchFullScreen;
 				DefaultPreLaunchCommand = app.PreLaunchCommand;
@@ -144,6 +145,10 @@ public sealed partial class LaunchMemorySettingsViewModel
 		{
 			var app = AppSettings.Current;
 			app.CheckFilesBeforeLaunch = DefaultCheckFilesBeforeLaunch;
+			// 「自动修复缺失文件」原来只写 LauncherSettings.DefaultAutoRepairMissingFiles，
+			// 而真正调用 ConfigRepairService 的是 StartRideLaunchService（读 AppSettings.AutoRepairGameConfig）
+			// → 开关是死的。现在接到同一个键上。
+			app.AutoRepairGameConfig = DefaultAutoRepairMissingFiles;
 			app.MinimizeToTray = DefaultMinimizeLauncherAfterLaunch;
 			app.LaunchFullScreen = DefaultLaunchFullScreen;
 			app.PreLaunchCommand = NormalizeText(DefaultPreLaunchCommand) ?? "";

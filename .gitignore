@@ -49,6 +49,12 @@ __pycache__/
 *.pyc
 *.pyo
 
+# ---- 安装包工程的构建输入 ----
+# Setup/Payload/ 里放的是**已发布的整包 zip 与卸载器 zip**（约 5.6 MB），
+# 它们是 _sr_make_installer.py 构建时从 _sr_pkg 拷进来的中间产物，
+# 每次发版都会变 —— 入库只会让仓库无谓地长大，且两份副本容易不一致。
+Setup/Payload/
+
 # ---- 编辑器 ----
 .idea/
 .vscode/

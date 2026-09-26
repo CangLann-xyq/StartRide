@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using StartRide.App.Controls;
 using StartRide.App.Diagnostics;
@@ -62,6 +63,16 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private bool isShutdownComplete;
 
+	private readonly IThemeService themeService;
+
+	private bool isFullscreen;
+
+	private WindowState preFullscreenState = WindowState.Normal;
+
+	private ResizeMode preFullscreenResizeMode = ResizeMode.CanResize;
+
+	private WindowStyle preFullscreenWindowStyle = WindowStyle.SingleBorderWindow;
+
 	public FrameworkElement LauncherPreblurredBackdropSourceElement => AmbientBackdropRoot;
 
 	public bool IsMenuExpanded
@@ -80,6 +91,7 @@ public partial class MainWindow : Window, IComponentConnector
 	{
 		InitializeComponent();
 		this.viewModel = viewModel;
+		this.themeService = themeService;
 		this.accountDialogService = accountDialogService;
 		this.floatingMessageService = floatingMessageService;
 		this.stateSyncService = stateSyncService;
@@ -136,10 +148,126 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private void ToggleWindowMaximizedState()
 	{
+		if (isFullscreen)
+		{
+			return;
+		}
 		ResizeMode resizeMode = base.ResizeMode;
 		if ((uint)resizeMode > 1u)
 		{
 			base.WindowState = ((base.WindowState != WindowState.Maximized) ? WindowState.Maximized : WindowState.Normal);
+		}
+	}
+
+	/// <summary>
+	/// F11 进出全屏；Esc 只负责退出。全屏时把 WindowStyle 换成 None（否则盖不住任务栏），
+	/// 同时把顶上的标题行收成 0 高、隐藏导航条 —— 窗口按钮是浮层（RowSpan=2 + ZIndex），
+	/// 所以仍然浮在内容右上角，用户不会被"关在里面出不来"。
+	/// </summary>
+	private void ToggleFullscreen()
+	{
+		if (!isFullscreen)
+		{
+			preFullscreenState = base.WindowState;
+			preFullscreenResizeMode = base.ResizeMode;
+			preFullscreenWindowStyle = base.WindowStyle;
+			// ⚠️ WindowStyle / ResizeMode 在「已最大化」状态下改会被系统忽略，必须先回 Normal。
+			base.WindowState = WindowState.Normal;
+			base.WindowStyle = WindowStyle.None;
+			base.ResizeMode = ResizeMode.NoResize;
+			base.WindowState = WindowState.Maximized;
+			isFullscreen = true;
+		}
+		else
+		{
+			base.WindowState = WindowState.Normal;
+			base.WindowStyle = preFullscreenWindowStyle;
+			base.ResizeMode = preFullscreenResizeMode;
+			base.WindowState = preFullscreenState;
+			isFullscreen = false;
+		}
+		ApplyFullscreenChrome();
+		// WindowStyle 变化会让 WindowChrome 的圆角/边框失效，DWM 属性也可能被重置，重新下发一次。
+		LauncherWindowBackdrop.Reapply(this, themeService);
+		UpdateCaptionButtons();
+	}
+
+	private void ApplyFullscreenChrome()
+	{
+		WindowChrome windowChrome = WindowChrome.GetWindowChrome(this);
+		if (windowChrome != null)
+		{
+			windowChrome.CornerRadius = (isFullscreen ? new CornerRadius(0.0) : new CornerRadius(12.0));
+			windowChrome.ResizeBorderThickness = (isFullscreen ? new Thickness(0.0) : new Thickness(8.0));
+		}
+		if (WindowRootBorder != null)
+		{
+			WindowRootBorder.CornerRadius = (isFullscreen ? new CornerRadius(0.0) : new CornerRadius(12.0));
+		}
+		if (TitleBarRow != null)
+		{
+			TitleBarRow.Height = (isFullscreen ? new GridLength(0.0) : new GridLength(52.0));
+		}
+		if (ShellNavView != null)
+		{
+			ShellNavView.Visibility = (isFullscreen ? Visibility.Collapsed : Visibility.Visible);
+		}
+		if (TitleBarDragArea != null)
+		{
+			TitleBarDragArea.Visibility = (isFullscreen ? Visibility.Collapsed : Visibility.Visible);
+		}
+	}
+
+	private void UpdateCaptionButtons()
+	{
+		bool flag = base.WindowState == WindowState.Maximized;
+		if (MaximizeWindowButton != null)
+		{
+			MaximizeWindowButton.Visibility = (flag ? Visibility.Collapsed : Visibility.Visible);
+		}
+		if (RestoreWindowButton != null)
+		{
+			RestoreWindowButton.Visibility = (flag ? Visibility.Visible : Visibility.Collapsed);
+		}
+	}
+
+	// XAML 里挂的 StateChanged：最大化状态一变就换图标。
+	private void Window_OnStateChanged(object? sender, EventArgs e)
+	{
+		UpdateCaptionButtons();
+	}
+
+	private void MaximizeWindowButton_OnClick(object sender, RoutedEventArgs e)
+	{
+		if (!isFullscreen)
+		{
+			base.WindowState = WindowState.Maximized;
+		}
+	}
+
+	private void RestoreWindowButton_OnClick(object sender, RoutedEventArgs e)
+	{
+		if (isFullscreen)
+		{
+			ToggleFullscreen();
+		}
+		else
+		{
+			base.WindowState = WindowState.Normal;
+		}
+	}
+
+	private void Window_OnPreviewKeyDown(object sender, KeyEventArgs e)
+	{
+		if (e.Key == Key.F11)
+		{
+			ToggleFullscreen();
+			e.Handled = true;
+		}
+		else if (e.Key == Key.Escape && isFullscreen)
+		{
+			ToggleFullscreen();
+			e.Handled = true;
 		}
 	}
 

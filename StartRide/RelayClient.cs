@@ -34,6 +34,20 @@ namespace StartRide.Core
         private readonly object _sendLock = new();
         private bool _stopping;
 
+        // ── 2.10.0 自动重连相关 ──────────────────────────────────────────────
+        // _joinLine：join 报文原样存下来。断线重连只需把它重发一遍，中继就知道
+        // 还是同一个玩家回到了同一个房间（房间码、playerId 都不变）。
+        private string _joinLine = "";
+        // 房主关房后不该再重连 —— 否则房间明明关了，我们还在后台不停敲门。
+        private volatile bool _roomClosed;
+        // 0/1 闸门，保证同时只有一条重连循环在跑。
+        private int _reconnectRunning;
+        // 最近一次收到下行的时间（TickCount64）。中继每 25 秒推一次 ping，
+        // 所以"静默超时"是比 TCP 报错更早、更可靠的断线判据。
+        private long _lastInboundTicks;
+        private Timer? _watchdog;
+        private int _reconnectAttempts;
+
         /// <summary>远程车辆缓存：游戏侧重连时补发，避免车辆凭空消失。</summary>
         private readonly Dictionary<string, JsonElement> _vehicleCache = new();
         private readonly object _cacheLock = new();
@@ -42,6 +56,21 @@ namespace StartRide.Core
         public string Transport { get; private set; } = "";
         public string CurrentRoomId { get; private set; } = "";
         public string LastError { get; private set; } = "";
+
+        /// <summary>
+        /// 本机联机 ID（<c>SR-XXXX-XXXX-XXXX</c>）。join 时按昵称算一次，重连沿用它 ——
+        /// 重连如果换了 ID，在别人眼里就等于"老车消失、新车入场"，白抖一下。
+        /// 游戏侧也拿它当车辆标识（见 relay-state 下发）。
+        /// </summary>
+        public string PlayerId { get; private set; } = "";
+
+        /// <summary>本机昵称（join 时确定，重连沿用）。</summary>
+        public string PlayerName { get; private set; } = "";
+
+        /// <summary>自动重连成功后触发。与 <see cref="ConnectionChanged"/> 的区别：
+        /// 后者只说"连接状态变了"，这个说"房间身份已经恢复" ——
+        /// 上层收到后应该把房间状态与远程车缓存重新推给游戏，否则游戏里别人的车会一直空着。</summary>
+        public event Action<string>? Reconnected;
 
         /// <summary>
         /// 中继下行帧数（**不含心跳**）。给游戏内 F8 面板的「中继下行 /10秒」
@@ -69,29 +98,36 @@ namespace StartRide.Core
             await LeaveAsync();
 
             _stopping = false;
+            _roomClosed = false;
             _cts = new CancellationTokenSource();
             CurrentRoomId = roomId;
             _seenTypes.Clear();
+            _reconnectAttempts = 0;
 
-            string join = JsonSerializer.Serialize(new
+            string safeName = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName.Trim();
+            PlayerName = safeName;
+
+            // ⚠️ 这里原来写的是 playerId = 昵称。后果不是"看起来难看"，是真丢车：
+            // 游戏内模组用 `id == playerName` 丢自己的包，而玩家在游戏里多半没配昵称
+            // （默认全是 'Player'），于是两个人的包互相被当成"自己的"丢掉 ——
+            // 「进得去房间但看不见对方的车」就是这么来的，而且是**看运气**的：
+            // 谁改过昵称谁正常，两个都没改就互相看不见。
+            // 现在改成昵称哈希出的稳定 ID：与昵称解耦，同名不冲突，改名不换身份。
+            PlayerId = StartRidePlayerId.Create(safeName);
+
+            _joinLine = JsonSerializer.Serialize(new
             {
                 type = "join",
                 roomId,
-                playerName = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName,
-                playerId = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName,
+                playerName = safeName,
+                playerId = PlayerId,
                 host = meta.Host,
                 capacity = meta.Capacity,
                 roomName = meta.RoomName,
                 token,
             });
 
-            var attempts = new List<Func<Task>>();
-
-            if (_settings.PreferWebSocket)
-                attempts.Add(() => ConnectWebSocketAsync(join));
-            attempts.Add(() => ConnectTcpAsync(join));
-            if (!_settings.PreferWebSocket)
-                attempts.Add(() => ConnectWebSocketAsync(join));
+            var attempts = BuildAttempts();
 
             foreach (var attempt in attempts)
             {
@@ -101,6 +137,8 @@ namespace StartRide.Core
                     if (!IsConnected) continue;
 
                     Log?.Invoke($"中继已连接（{Transport}）");
+                    LastError = "";
+                    StartWatchdog();
                     ConnectionChanged?.Invoke(true, "");
                     return true;
                 }
@@ -128,9 +166,13 @@ namespace StartRide.Core
             ws.MessageReceived += OnRelayLine;
             ws.Closed += reason =>
             {
+                // ⚠️ 必须确认"关掉的还是当前这条"。重连时会 CleanupTransport() 掉旧 socket，
+                // 旧 socket 的 Closed 若延迟到达，会把刚建好的新连接又标成断线 —— 死循环。
+                if (!ReferenceEquals(_ws, ws)) return;
                 if (_stopping) return;
                 IsConnected = false;
                 ConnectionChanged?.Invoke(false, reason);
+                BeginReconnect();
             };
 
             await ws.ConnectAsync(_settings.RelayHost, _settings.RelayWebSocketPort,
@@ -164,6 +206,7 @@ namespace StartRide.Core
         public async Task LeaveAsync()
         {
             _stopping = true;
+            StopWatchdog();
             var cts = _cts;
             try { cts?.Cancel(); } catch { }
 
@@ -177,9 +220,116 @@ namespace StartRide.Core
             CleanupTransport();
             IsConnected = false;
             CurrentRoomId = "";
+            _joinLine = "";
             cts?.Dispose();
             _cts = null;
             await Task.CompletedTask;
+        }
+
+        // ==================== 重连与存活看门狗 ====================
+
+        private List<Func<Task>> BuildAttempts()
+        {
+            var attempts = new List<Func<Task>>();
+            if (_settings.PreferWebSocket)
+                attempts.Add(() => ConnectWebSocketAsync(_joinLine));
+            attempts.Add(() => ConnectTcpAsync(_joinLine));
+            if (!_settings.PreferWebSocket)
+                attempts.Add(() => ConnectWebSocketAsync(_joinLine));
+            return attempts;
+        }
+
+        private void StartWatchdog()
+        {
+            _lastInboundTicks = Environment.TickCount64;
+            _watchdog ??= new Timer(_ => WatchdogTick(), null, Timeout.Infinite, Timeout.Infinite);
+            try { _watchdog.Change(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)); } catch { }
+        }
+
+        private void StopWatchdog()
+        {
+            try { _watchdog?.Change(Timeout.Infinite, Timeout.Infinite); } catch { }
+        }
+
+        /// <summary>
+        /// 存活看门狗。中继每 25 秒主动推一次 <c>ping</c>，正常情况下行不可能静默 75 秒。
+        /// 拔网线、笔记本合盖、NAT 表项过期这些场景 TCP 不会立刻报错，SendLine 也照样
+        /// "成功"（直到内核缓冲区写满），只有"发得出、收不到"这个特征能提前判死。
+        /// </summary>
+        private void WatchdogTick()
+        {
+            if (_stopping || _roomClosed || !IsConnected) return;
+
+            long idle = Environment.TickCount64 - Interlocked.Read(ref _lastInboundTicks);
+            if (idle <= 75000) return;
+
+            Log?.Invoke($"中继 {idle / 1000} 秒无任何下行，判定链路已死，开始重连");
+            IsConnected = false;
+            CleanupTransport();
+            ConnectionChanged?.Invoke(false, "中继无响应");
+            BeginReconnect();
+        }
+
+        private void BeginReconnect()
+        {
+            if (_stopping || _roomClosed) return;
+            if (string.IsNullOrEmpty(_joinLine) || _cts == null) return;
+            if (Interlocked.CompareExchange(ref _reconnectRunning, 1, 0) != 0) return;
+            _ = Task.Run(ReconnectLoopAsync);
+        }
+
+        /// <summary>
+        /// 自动重连。退避 1→2→4→8→10 秒封顶，一直试到成功、用户退房或房间被关。
+        /// 重连成功必须**重发 join**：中继是收到 join 才把这条 socket 挂进房间的，
+        /// 光连上不 join 等于连了个寂寞（能发不能收，正是最坑的那种"看起来通了"）。
+        /// </summary>
+        private async Task ReconnectLoopAsync()
+        {
+            try
+            {
+                var cts = _cts;
+                if (cts == null) return;
+
+                int delayMs = 1000;
+                while (!_stopping && !_roomClosed && !cts.IsCancellationRequested && !IsConnected)
+                {
+                    _reconnectAttempts++;
+                    try { await Task.Delay(delayMs, cts.Token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { return; }
+                    if (_stopping || _roomClosed) return;
+
+                    foreach (var attempt in BuildAttempts())
+                    {
+                        if (_stopping || _roomClosed) return;
+                        try
+                        {
+                            CleanupTransport();
+                            await attempt().ConfigureAwait(false);
+                            if (!IsConnected) continue;
+
+                            _reconnectAttempts = 0;
+                            LastError = "";
+                            StartWatchdog();
+                            Log?.Invoke($"中继已自动重连（{Transport}）");
+                            ConnectionChanged?.Invoke(true, "连接已恢复");
+                            Reconnected?.Invoke(Transport);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            LastError = ex.Message;
+                            CleanupTransport();
+                        }
+                    }
+
+                    Log?.Invoke($"中继重连失败（第 {_reconnectAttempts} 次），{delayMs / 1000} 秒后重试");
+                    delayMs = Math.Min(delayMs * 2, 10000);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _reconnectRunning, 0);
+            }
         }
 
         private void CleanupTransport()
@@ -218,6 +368,9 @@ namespace StartRide.Core
             catch (Exception ex)
             {
                 Log?.Invoke("中继发送失败：" + ex.Message);
+                // 写失败基本等于链路已死。这里直接交给重连，不用等看门狗到期。
+                IsConnected = false;
+                BeginReconnect();
             }
         }
 
@@ -245,8 +398,11 @@ namespace StartRide.Core
                     if (n == 0) break;
                     pending.Append(Encoding.UTF8.GetString(buffer, 0, n));
 
+                    // ⚠️ 原来是 pending.ToString().IndexOf('\n')：每切一行就把整个缓冲
+                    // 复制成一个新字符串。车辆包每秒几十条、缓冲上千字节时这叫 O(n^2)，
+                    // 收包线程会被自己的分配拖住，表现出来就是"同步一卡一卡"。
                     int idx;
-                    while ((idx = pending.ToString().IndexOf('\n')) >= 0)
+                    while ((idx = IndexOfNewline(pending)) >= 0)
                     {
                         string line = pending.ToString(0, idx).Trim();
                         pending.Remove(0, idx + 1);
@@ -263,12 +419,23 @@ namespace StartRide.Core
             }
             finally
             {
-                if (!_stopping)
+                if (!_stopping && !_roomClosed)
                 {
                     IsConnected = false;
                     ConnectionChanged?.Invoke(false, "中继连接断开");
+                    BeginReconnect();
                 }
             }
+        }
+
+        /// <summary>StringBuilder 版查换行，避免每行一次整串复制。</summary>
+        private static int IndexOfNewline(StringBuilder sb)
+        {
+            for (int i = 0; i < sb.Length; i++)
+            {
+                if (sb[i] == '\n') return i;
+            }
+            return -1;
         }
 
         /// <summary>
@@ -278,6 +445,8 @@ namespace StartRide.Core
         private void OnRelayLine(string line)
         {
             if (string.IsNullOrWhiteSpace(line)) return;
+            // 任何一条下行（含中继的 ping）都说明链路是活的。
+            Interlocked.Exchange(ref _lastInboundTicks, Environment.TickCount64);
             foreach (var chunk in line.Split('\n'))
             {
                 var one = chunk.Trim();
@@ -339,6 +508,8 @@ namespace StartRide.Core
                         break;
 
                     case "room-closed":
+                        // 房主关房是"正常终局"，不是掉线 —— 不要再去重连把房间敲回来。
+                        _roomClosed = true;
                         RoomClosed?.Invoke(d.Clone());
                         break;
                 }
@@ -352,8 +523,11 @@ namespace StartRide.Core
         public void Dispose()
         {
             _stopping = true;
+            StopWatchdog();
             try { _cts?.Cancel(); } catch { }
             CleanupTransport();
+            try { _watchdog?.Dispose(); } catch { }
+            _watchdog = null;
             _cts?.Dispose();
         }
     }

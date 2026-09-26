@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -335,5 +335,29 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 			SettingsPageSection.ControlList => ControlList, 
 			_ => General, 
 		};
+		ReloadCrossPageSections();
+	}
+
+	/// <summary>
+	/// 「通用」与「内存与启动」两页共享同一批 AppSettings（检查文件 / 最小化 / 全屏 /
+	/// 启动前命令 / 退出后命令 / 游戏参数 / 自动修复）。各页 VM 只在启动时 Load 过一次，
+	/// 所以在 A 页改完切到 B 页会看到旧值 —— 这里在切页时重新读一遍源。
+	/// Load 内部用 LoadState 包着，不会回写触发持久化。
+	/// </summary>
+	private void ReloadCrossPageSections()
+	{
+		if (!persistence.IsPrimed)
+		{
+			return;
+		}
+		LauncherSettings settings = persistence.Settings;
+		if ((object)General != null)
+		{
+			General.Load(settings);
+		}
+		if ((object)LaunchMemory != null)
+		{
+			LaunchMemory.Load(settings);
+		}
 	}
 }
