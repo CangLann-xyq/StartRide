@@ -23,6 +23,14 @@ internal static class ShortcutFactory
         object? shell = null;
         try
         {
+            // 目标目录不存在的话，WScript.Shell 的 Save() 会直接抛，快捷方式就没了。
+            // 开始菜单那一层是我们自己拼的，第一次装的时候目录本来就还不存在。
+            string? parent = Path.GetDirectoryName(linkPath);
+            if (!string.IsNullOrEmpty(parent) && !Directory.Exists(parent))
+            {
+                Directory.CreateDirectory(parent);
+            }
+
             Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
             if (shellType == null) return false;
 

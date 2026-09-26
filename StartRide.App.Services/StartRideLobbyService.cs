@@ -185,6 +185,19 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		string code = current?.RoomCode ?? "";
 		if (isHost && code.Length > 0)
 		{
+			// ⚠️ 顺序要紧：先让中继关房，再调后端把房间从大厅列表摘掉。
+			// 只调后端的话中继根本不知情 —— 别人的 socket 会留在一个「房间里只剩自己」
+			// 的状态里，还以为是网络卡了。中继收到 close-room 会给同房所有人推
+			// room-closed（启动器据此停止自动重连）再把连接断开。
+			try
+			{
+				session.CloseRoomOnRelay();
+			}
+			catch (Exception exception2)
+			{
+				PluginLog("通知中继关房失败（不影响本机退出）：" + exception2.Message);
+			}
+
 			try
 			{
 				await api.CloseRoomAsync(code, playerName).ConfigureAwait(false);

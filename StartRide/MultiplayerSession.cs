@@ -182,6 +182,12 @@ namespace StartRide.Core
         private string LastErrorText() =>
             string.IsNullOrWhiteSpace(State.LastError) ? "无响应" : State.LastError;
 
+        /// <summary>
+        /// 房主关房：让中继把房间关掉。同房其他人会收到 <c>room-closed</c> 并被断开，
+        /// 不会留在「房间里只剩自己」的幽灵房间里。必须在 <see cref="LeaveRoomAsync"/> 之前调。
+        /// </summary>
+        public void CloseRoomOnRelay(string reason = "房主已关闭房间") => _relay.CloseRoom(reason);
+
         public async Task LeaveRoomAsync()
         {
             await _relay.LeaveAsync();

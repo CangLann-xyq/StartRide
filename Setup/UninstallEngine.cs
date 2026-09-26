@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace StartRide.Setup;
 
@@ -42,10 +43,31 @@ internal static class UninstallEngine
 
     public static void Run(string installDir, bool removeUserData, Action<string> report)
     {
+        // ⚠️ 必须先读、后删。安装时建没建快捷方式是有记录的，卸载只该删自己建过的那条：
+        //    以前这里两条都无条件删 —— 用户装的时候勾掉了「创建桌面快捷方式」，
+        //    卸载却照样把桌面上同名的 .lnk 删掉，而那个很可能是他自己做的。
+        //    （2026-09-26 实测踩到：跑一次 --no-desktop 的静默安装+卸载，
+        //      用户桌面上那个启动器图标就没了。）
+        bool hadDesktop = true;
+        bool hadStartMenu = true;
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(ProductInfo.UninstallRegistryKey);
+            hadDesktop = ReadFlag(key, "ShortcutDesktop");
+            hadStartMenu = ReadFlag(key, "ShortcutStartMenu");
+        }
+        catch
+        {
+            // 读不到就沿用老行为（都删），不能让卸载卡在这
+        }
+
         report("正在删除快捷方式…");
-        ShortcutFactory.TryDelete(ShortcutFactory.DesktopLink);
-        ShortcutFactory.TryDelete(ShortcutFactory.StartMenuLink);
-        TryDeleteStartMenuFolder();
+        if (hadDesktop) ShortcutFactory.TryDelete(ShortcutFactory.DesktopLink);
+        if (hadStartMenu)
+        {
+            ShortcutFactory.TryDelete(ShortcutFactory.StartMenuLink);
+            TryDeleteStartMenuFolder();
+        }
 
         report("正在注销卸载信息…");
         try
@@ -88,6 +110,24 @@ internal static class UninstallEngine
         else
         {
             InstallEngine.SafeDeleteDirectory(installDir);
+        }
+    }
+
+    /// <summary>
+    /// 读注册表里那两个 0/1 标记。没有这一项（老版本装的、或读不到）一律按「建过」处理，
+    /// 保持原来的卸载行为不变。
+    /// </summary>
+    private static bool ReadFlag(RegistryKey? key, string name)
+    {
+        try
+        {
+            object? v = key?.GetValue(name);
+            if (v == null) return true;
+            return Convert.ToInt32(v) != 0;
+        }
+        catch
+        {
+            return true;
         }
     }
 

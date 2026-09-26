@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -184,17 +186,21 @@ public partial class InstallerWindow : Window
 
         _cts = new CancellationTokenSource();
         var progress = new Progress<InstallProgress>(OnProgress);
+        var notes = new List<string>();
 
         try
         {
-            await InstallEngine.RunAsync(_options, progress, _cts.Token);
+            await InstallEngine.RunAsync(_options, progress, _cts.Token, notes.Add);
             _finished = true;
 
             GoToStep(3);
             PanelProgress.Visibility = Visibility.Collapsed;
             PanelDone.Visibility = Visibility.Visible;
 
-            DoneLead.Text = "StartRide 已经装好了。可以直接从桌面快捷方式或开始菜单启动。";
+            string? warn = notes.FirstOrDefault(n => n.StartsWith("⚠"));
+            DoneLead.Text = warn != null
+                ? "StartRide 已经装好了。" + warn
+                : "StartRide 已经装好了。桌面和开始菜单都能找到它，也可以直接从那儿启动。";
             DonePath.Text = "安装位置：" + _options.TargetDir;
             FooterHint.Text = "安装位置：" + _options.TargetDir;
 

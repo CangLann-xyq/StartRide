@@ -73,9 +73,17 @@ public partial class SetupApp : Application
             // 投回 DispatcherSynchronizationContext —— 主线程正阻塞着等它 → 死锁。
             Task.Run(() =>
             {
+                // ⚠️ progress 必须**在这个线程池线程里**构造，不能提到主线程上构造。
+                // Progress<T> 会捕获创建它的 SynchronizationContext：在主线程（Dispatcher
+                // 上下文）构造的话，每次 Report 都被 Post 回 UI 队列，而静默模式下主线程
+                // 正阻塞在 GetResult() —— 那些回调永远轮不到执行，--log 里就只剩首尾两行，
+                // 中间的进度全丢。放这儿构造，上下文为 null，回调直接跑在线程池上。
                 var progress = new Progress<InstallProgress>(
                     p => log?.Invoke($"  {p.Percent:0}%  {p.Stage}  {p.Message}"));
-                return InstallEngine.RunAsync(options, progress, CancellationToken.None);
+
+                // 快捷方式成功/失败单独报一行 —— 用户反馈"桌面没图标"时，看日志就能定位。
+                return InstallEngine.RunAsync(options, progress, CancellationToken.None,
+                    m => log?.Invoke("  " + m));
             }).GetAwaiter().GetResult();
             log?.Invoke("安装成功");
             Console.Out.WriteLine("StartRide 安装成功: " + options.TargetDir);

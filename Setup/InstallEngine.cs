@@ -51,8 +51,13 @@ internal sealed class InstallOptions
 /// </summary>
 internal static class InstallEngine
 {
+    /// <param name="note">
+    /// 给"人看"的补充信息（快捷方式落在哪、失败了没有），不走 <see cref="IProgress{T}"/>。
+    /// 为什么不复用 progress：静默模式下 progress 的回调是 Post 到 UI 线程的，
+    /// 而那时主线程正阻塞等着安装结束 —— 投过去的消息没人执行，--log 里就一片空白。
+    /// </param>
     public static async Task RunAsync(InstallOptions options, IProgress<InstallProgress> progress,
-                                      CancellationToken ct)
+                                      CancellationToken ct, Action<string>? note = null)
     {
         string target = options.TargetDir;
         string staging = Path.Combine(Path.GetTempPath(), "StartRide-setup-" + Environment.ProcessId);
@@ -102,22 +107,31 @@ internal static class InstallEngine
             await Task.Run(() =>
             {
                 string exe = ProductInfo.ExePathIn(target);
+
                 if (options.DesktopShortcut)
                 {
-                    ShortcutFactory.TryCreate(ShortcutFactory.DesktopLink, exe, target,
+                    string link = ShortcutFactory.DesktopLink;
+                    bool made = ShortcutFactory.TryCreate(link, exe, target,
                         ProductInfo.ProductName + " — " + ProductInfo.Tagline, exe);
+                    note?.Invoke(made ? "桌面快捷方式：" + link
+                                      : "⚠ 桌面快捷方式没能创建：" + link +
+                                        "（可手动把 " + exe + " 的快捷方式拖到桌面）");
                 }
+
                 if (options.StartMenuShortcut)
                 {
+                    string link = ShortcutFactory.StartMenuLink;
                     Directory.CreateDirectory(ProductInfo.StartMenuDir);
-                    ShortcutFactory.TryCreate(ShortcutFactory.StartMenuLink, exe, target,
+                    bool made = ShortcutFactory.TryCreate(link, exe, target,
                         ProductInfo.ProductName + " — " + ProductInfo.Tagline, exe);
+                    note?.Invoke(made ? "开始菜单快捷方式：" + link
+                                      : "⚠ 开始菜单快捷方式没能创建：" + link);
                 }
             }, ct);
 
             // ── 注册卸载信息 ──────────────────────────────────────────────
             progress.Report(new InstallProgress(InstallStage.Registering, 97, "正在登记卸载信息…"));
-            await Task.Run(() => WriteUninstallRegistry(target, uninstaller), ct);
+            await Task.Run(() => WriteUninstallRegistry(target, uninstaller, options), ct);
 
             progress.Report(new InstallProgress(InstallStage.Finished, 100, "安装完成"));
         }
@@ -238,7 +252,8 @@ internal static class InstallEngine
         }
     }
 
-    private static void WriteUninstallRegistry(string target, string? uninstallerPath)
+    private static void WriteUninstallRegistry(string target, string? uninstallerPath,
+                                               InstallOptions options)
     {
         using RegistryKey key = Registry.CurrentUser.CreateSubKey(ProductInfo.UninstallRegistryKey)
             ?? throw new InvalidOperationException("无法写入卸载信息（注册表被拒绝访问）。");
@@ -257,6 +272,11 @@ internal static class InstallEngine
         key.SetValue("UninstallString", uninstallCmd);
         key.SetValue("QuietUninstallString", uninstallCmd + " --quiet");
         key.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
+        // ⚠️ 这两项是给卸载器看的"我建过哪几个快捷方式"。
+        // 不记的话卸载只能两条都删 —— 用户装的时候勾掉了桌面快捷方式，
+        // 卸载却照样把桌面上那个同名的 .lnk 删掉，而那个可能是他自己做的。
+        key.SetValue("ShortcutDesktop", options.DesktopShortcut ? 1 : 0, RegistryValueKind.DWord);
+        key.SetValue("ShortcutStartMenu", options.StartMenuShortcut ? 1 : 0, RegistryValueKind.DWord);
         key.SetValue("EstimatedSize", Math.Max(1, EstimateSizeKb(target)), RegistryValueKind.DWord);
         key.SetValue("NoModify", 1, RegistryValueKind.DWord);
         key.SetValue("NoRepair", 1, RegistryValueKind.DWord);

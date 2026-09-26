@@ -47,7 +47,31 @@ internal static class ProductInfo
     public static string StartMenuDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.Programs), StartMenuFolder);
 
-    public static string DesktopDir => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+    /// <summary>
+    /// 桌面目录。
+    ///
+    /// ⚠️ 不要图省事写成 <c>%USERPROFILE%\Desktop</c>：桌面被 OneDrive 接管
+    /// （Known Folder Move，国内装机默认就会开）之后，真实桌面在
+    /// <c>%USERPROFILE%\OneDrive\桌面</c>，往旧路径建的 lnk 用户根本看不见。
+    /// <c>GetFolderPath(DesktopDirectory)</c> 走的是 shell 的 Known Folder 解析，
+    /// 出来的才是屏幕上那个桌面。
+    ///
+    /// 再兜一层：解析结果为空、或那目录当下不存在（OneDrive 还没同步下来），
+    /// 就退到公共桌面 —— 至少装了之后图标一定能看见。
+    /// </summary>
+    public static string DesktopDir
+    {
+        get
+        {
+            string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir)) return dir;
+
+            string common = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+            if (!string.IsNullOrWhiteSpace(common) && Directory.Exists(common)) return common;
+
+            return dir;
+        }
+    }
 
     public static string ExePathIn(string installDir) => Path.Combine(installDir, AppExeName);
 

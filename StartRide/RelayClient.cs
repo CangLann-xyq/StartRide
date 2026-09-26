@@ -202,6 +202,48 @@ namespace StartRide.Core
             _ = Task.Run(() => TcpReceiveLoopAsync(_cts!.Token));
         }
 
+        /// <summary>
+        /// 房主关房：请中继把整个房间真正关掉 —— 同房其他人会收到 <c>room-closed</c>，
+        /// 连接随后被中继断开。
+        ///
+        /// ⚠️ 为什么不能只关本地：以前「关闭房间」只调了后端 HTTP（把房间从大厅列表里摘掉），
+        /// 中继完全不知情 —— 中继里那个房间还在、别人的 socket 还挂着。房主一走，
+        /// 其他人那边只会显示「房间里就剩我自己」，没有任何提示说要退房。
+        ///
+        /// 中继的关房契约是 <c>{"type":"close-room","by":房主昵称,"token":房间令牌}</c>，
+        /// 且 <c>by</c> 必须与建房时那一个房主一致才认（relay-server.js 的 closeRoom）。
+        /// 注意报文类型是 <c>close-room</c>（带连字符）—— 发成 <c>close</c> 中继不认识，
+        /// 会被当成普通数据广播给同房的人，什么都不会发生。
+        /// </summary>
+        public bool CloseRoom(string reason = "")
+        {
+            if (!IsConnected) return false;
+
+            // ⚠️ 必须先立 _roomClosed 再发：中继收到 close-room 之后会把房里**所有人**
+            // 的 socket 直接 destroy（包括我们自己），Closed 事件马上就到。
+            // 不先置这个标志的话，房主会立刻触发自动重连 —— 又把自己 join 回一个
+            // 刚被关掉的房间，白折腾一圈。
+            _roomClosed = true;
+
+            try
+            {
+                SendLine(JsonSerializer.Serialize(new
+                {
+                    type = "close-room",
+                    by = PlayerName,
+                    token = "",
+                    reason,
+                }));
+                Log?.Invoke("已通知中继关闭房间");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke("通知中继关房失败：" + ex.Message);
+                return false;
+            }
+        }
+
         /// <summary>离开房间并断开。</summary>
         public async Task LeaveAsync()
         {
