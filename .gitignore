@@ -24,6 +24,10 @@ ssh_*.py
 restart_*.py
 deploy_*.py
 
+# 例外：tools/ 下的是**仓库维护脚本**（法律文书同步、由 LICENSE 生成文书等），
+# 不含任何凭据，而且 README 与 docs/legal/ 里直接引用了它们 —— 不入库就成了死引用。
+!tools/_sr_*.py
+
 # ---- 凭据与密钥 ----
 .env
 .env.*

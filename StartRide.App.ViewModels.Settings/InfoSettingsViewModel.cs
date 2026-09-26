@@ -106,13 +106,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	private RelayCommand<InfoReferenceProjectItem?>? openReferenceProjectCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand? openCopyrightNoticeCommand;
-
-	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand? openOpenSourceLicenseCommand;
-
-	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	private RelayCommand? openUserAgreementCommand;
+	private RelayCommand<LegalDocumentItem?>? openLegalDocumentCommand;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private AsyncRelayCommand? checkUpdatesCommand;
@@ -129,6 +123,16 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	public string LauncherVersionText { get; }
 
 	public IReadOnlyList<InfoReferenceProjectItem> ReferenceProjects { get; }
+
+	/// <summary>
+	/// 「版权及法律声明」里的全部条目（用户协议 / 隐私政策 / 未成年人保护规则 /
+	/// 免责声明 / 联机规范 / 第三方许可声明 / 版权声明 / 开源协议）。
+	///
+	/// ⚠️ 以前这里是三行**硬编码**的 &lt;Grid&gt;，加一份文件得同时改 XAML、VM、
+	/// 四套 resx 和 <c>SiteLinks</c> —— 漏一处界面就少一项。现在清单只有一份
+	/// （<see cref="StartRide.Core.LegalDocuments"/>），设置页与首次运行弹窗都遍历它。
+	/// </summary>
+	public IReadOnlyList<LegalDocumentItem> LegalDocuments { get; }
 
 	public ObservableCollection<SettingsUpdateChannelOption> UpdateChannelOptions { get; }
 
@@ -382,15 +386,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
-	public IRelayCommand OpenCopyrightNoticeCommand => openCopyrightNoticeCommand ?? (openCopyrightNoticeCommand = new RelayCommand(OpenCopyrightNotice));
-
-	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	[ExcludeFromCodeCoverage]
-	public IRelayCommand OpenOpenSourceLicenseCommand => openOpenSourceLicenseCommand ?? (openOpenSourceLicenseCommand = new RelayCommand(OpenOpenSourceLicense));
-
-	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
-	[ExcludeFromCodeCoverage]
-	public IRelayCommand OpenUserAgreementCommand => openUserAgreementCommand ?? (openUserAgreementCommand = new RelayCommand(OpenUserAgreement));
+	public IRelayCommand<LegalDocumentItem?> OpenLegalDocumentCommand => openLegalDocumentCommand ?? (openLegalDocumentCommand = new RelayCommand<LegalDocumentItem?>(OpenLegalDocument));
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
@@ -491,28 +487,32 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
+	/// <summary>
+	/// 打开一份法律文件。
+	///
+	/// 地址来自 <see cref="StartRide.Core.LegalDocuments"/>：线上（腾讯文档）优先，
+	/// 该文件还没上云时自动退回仓库里的 Markdown —— 不会出现"按钮点了是死链"。
+	/// </summary>
 	[RelayCommand]
-	private void OpenCopyrightNotice()
+	private void OpenLegalDocument(LegalDocumentItem? document)
 	{
-		OpenLegalDocument(StartRide.Core.SiteLinks.GitHubRepo);
+		if (document is null || string.IsNullOrWhiteSpace(document.Url))
+		{
+			logger.LogWarning("About page: legal document link is empty. Id={Id}", document?.Id ?? "<null>");
+			ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
+			return;
+		}
+
+		OpenLegalDocument(document.Url, document.Id);
 	}
 
-	[RelayCommand]
-	private void OpenOpenSourceLicense()
-	{
-		OpenLegalDocument(StartRide.Core.SiteLinks.LicenseUrl);
-	}
-
-	[RelayCommand]
-	private void OpenUserAgreement()
-	{
-		OpenLegalDocument(StartRide.Core.SiteLinks.UserAgreementUrl);
-	}
-
-	private void OpenLegalDocument(string url)
+	private void OpenLegalDocument(string url, string documentId)
 	{
 		try
 		{
+			// 关于页每个按钮的目标地址都记一行日志 —— 「点了按钮跳到别人仓库」这种反馈，
+			// 有这行日志就能一秒分辨是旧包（日志里的 URL 是上游地址）还是真的改错了。
+			logger.LogInformation("About page external link. Target=legal-document Id={Id} Url={Url}", documentId, url);
 			if (externalLinkService.TryOpen(url))
 			{
 				return;
@@ -520,11 +520,11 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 		catch (Exception exception)
 		{
-			logger.LogWarning(exception, "Failed to open a legal document link.");
+			logger.LogWarning(exception, "Failed to open a legal document link. Id={Id}", documentId);
 			ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
 			return;
 		}
-		logger.LogWarning("Failed to open a legal document link.");
+		logger.LogWarning("Failed to open a legal document link. Id={Id}", documentId);
 		ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
 	}
 
@@ -751,6 +751,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		this.logger = logger ?? NullLogger<InfoSettingsViewModel>.Instance;
 		LauncherVersionText = ResolveLauncherVersion();
 		ReferenceProjects = referenceProjectCatalog.GetProjects();
+		LegalDocuments = LegalDocumentItemFactory.CreateAll();
 		// StartRide 不是 Minecraft，不存在快照版/测试版之类的「特殊版本」，
 		// 更新通道固定只留官方正式版，避免用户切到不存在的通道。
 		UpdateChannelOptions = new ObservableCollection<SettingsUpdateChannelOption>

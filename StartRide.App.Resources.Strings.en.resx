@@ -45,7 +45,7 @@
 
 <data name="Settings_BackgroundImageRefreshButton" xml:space="preserve"><value>Change one</value></data>
 
-<data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>Agree</value></data>
+<data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>Agree and continue</value></data>
 
 <data name="Download_LoaderVersionStableTag" xml:space="preserve"><value>Stable version</value></data>
 
@@ -143,7 +143,7 @@
 
 <data name="Multiplayer_LobbyLatencyFormat" xml:space="preserve"><value>{0} ms</value></data>
 
-<data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>Welcome to the StartRide launcher. By using this software, you indicate that you have read, understood, and agreed to the user agreement. Please read the agreement before continuing.</value></data>
+<data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>Welcome to StartRide. Please read the documents below first. Clicking “Agree and continue” means you have read, understood and accepted all of them.</value></data>
 
 <data name="Dialog_ReplaceModImportTitle" xml:space="preserve"><value>Replacement module</value></data>
 
@@ -2575,7 +2575,7 @@ The current game folder will be automatically backed up before restoration.</val
 
 <data name="Status_ModInstalledFormat" xml:space="preserve"><value>{0} installed</value></data>
 
-<data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>User Agreement</value></data>
+<data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>Terms and Notices</value></data>
 
 <data name="Dialog_JavaCompatibilityNotMetMessageFormat" xml:space="preserve"><value>No Java meeting the current game and loader compatibility requirements was found during automatic Java selection (recommended Java {0}). Please refresh or import a suitable Java in the settings before starting the game.</value></data>
 
@@ -3164,5 +3164,22 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>The launcher is still v{0}; this update could not be applied.&#10;{1}</value></data>
   <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>Retry update</value></data>
   <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>Got it</value></data>
+  <data name="Dialog_UserAgreementHint" xml:space="preserve"><value>Confirmation is required on first launch. If you disagree, click “Disagree and exit”.</value></data>
+  <data name="Legal_Doc_UserAgreement_Title" xml:space="preserve"><value>Terms of Service</value></data>
+  <data name="Legal_Doc_UserAgreement_Description" xml:space="preserve"><value>The complete agreement between you and us for using this software</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Title" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Description" xml:space="preserve"><value>What we collect, why we collect it, and how you can manage it</value></data>
+  <data name="Legal_Doc_MinorProtection_Title" xml:space="preserve"><value>Minors' Personal Information Protection Rules</value></data>
+  <data name="Legal_Doc_MinorProtection_Description" xml:space="preserve"><value>Dedicated rules for minors and their guardians</value></data>
+  <data name="Legal_Doc_Disclaimer_Title" xml:space="preserve"><value>Disclaimer and Risk Notice</value></data>
+  <data name="Legal_Doc_Disclaimer_Description" xml:space="preserve"><value>Risks to understand before using mods, multiplayer or backups</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Title" xml:space="preserve"><value>Multiplayer Service Conduct Rules</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Description" xml:space="preserve"><value>Rules that apply to room names, chat and comments</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Title" xml:space="preserve"><value>Third-Party Components and Open Source Notices</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Description" xml:space="preserve"><value>Open source components shipped with this software and their licenses</value></data>
+  <data name="Legal_Doc_Copyright_Title" xml:space="preserve"><value>Copyright Notice</value></data>
+  <data name="Legal_Doc_Copyright_Description" xml:space="preserve"><value>Copyright © 2026 肖又祺 · StartRide</value></data>
+  <data name="Legal_Doc_License_Title" xml:space="preserve"><value>Open Source License</value></data>
+  <data name="Legal_Doc_License_Description" xml:space="preserve"><value>Released under the GNU General Public License v3.0 (GPL-3.0)</value></data>
+  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>View all terms and notices ↓</value></data>
 </root>
-

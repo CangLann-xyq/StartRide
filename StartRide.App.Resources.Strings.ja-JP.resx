@@ -36,7 +36,7 @@
 <data name="Resources_WorldVersionsEmpty" xml:space="preserve"><value>このゲームに適したワールドバージョンがありません</value></data>
 <data name="Multiplayer_LobbyRoomCodeCopyFailed" xml:space="preserve"><value>部屋コードのコピーに失敗しました。後でもう一度お試しください。</value></data>
 <data name="Settings_BackgroundImageRefreshButton" xml:space="preserve"><value>変更する</value></data>
-<data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>同意</value></data>
+<data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>同意して続行</value></data>
 <data name="Download_LoaderVersionStableTag" xml:space="preserve"><value>安定版</value></data>
 <data name="Download_BetaCategory" xml:space="preserve"><value>ベータ版</value></data>
 <data name="Dialog_TerracottaDownloadComplete" xml:space="preserve"><value>オンラインモジュールは準備完了です。</value></data>
@@ -85,7 +85,7 @@
 <data name="Resources_ModRequiredDependencyVersionFormat" xml:space="preserve"><value>バージョン：{0}</value></data>
 <data name="GameSettings_BackupDefaultNameFormat" xml:space="preserve"><value>バックアップ {0}</value></data>
 <data name="Multiplayer_LobbyLatencyFormat" xml:space="preserve"><value>{0} ms</value></data>
-<data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>StartRide ランチャーへようこそ。本ソフトウェアを使用することで、ユーザー契約を読み、理解し、同意したものとみなされます。続行する前に契約内容をお読みください。</value></data>
+<data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>StartRide へようこそ。まず以下の文書をお読みください。「同意して続行」をクリックすると、すべての内容を読み、理解し、同意したものとみなされます。</value></data>
 <data name="Dialog_ReplaceModImportTitle" xml:space="preserve"><value>モッドを置き換え</value></data>
 <data name="Dialog_Replace_Button" xml:space="preserve"><value>置き換え</value></data>
 <data name="GameSettings_ExportVersionLabel" xml:space="preserve"><value>バージョン</value></data>
@@ -1314,7 +1314,7 @@
 <data name="Resources_ShaderPackFilterTypeCursed" xml:space="preserve"><value>奇妙</value></data>
 <data name="Status_OpenLocalResourcePackLocationFailed" xml:space="preserve"><value>リソースパックのファイル位置を開くことに失敗しました。後で再試行してください。</value></data>
 <data name="Status_ModInstalledFormat" xml:space="preserve"><value>{0} インストール済み</value></data>
-<data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>ユーザー契約</value></data>
+<data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>利用規約とご案内</value></data>
 <data name="Dialog_JavaCompatibilityNotMetMessageFormat" xml:space="preserve"><value>Java の自動選択時に、現在のゲームとランチャーの互換条件を満たす Java（推奨 Java {0}）が見つかりませんでした。設定で適切な Java を更新またはインポートしてからゲームを起動してください。</value></data>
 <data name="Account_SkinHeader" xml:space="preserve"><value>スキン</value></data>
 <data name="Status_MicrosoftReauthenticationSuccessful" xml:space="preserve"><value>正規アカウントの再ログインに成功しました。起動を続行しています。</value></data>
@@ -1617,4 +1617,22 @@
   <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>ランチャーはまだ v{0} です。今回の更新は適用できませんでした。&#10;{1}</value></data>
   <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>更新を再試行</value></data>
   <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>了解しました</value></data>
+  <data name="Dialog_UserAgreementHint" xml:space="preserve"><value>初回起動時は確認が必要です。同意しない場合は「同意しないで終了」をクリックしてください。</value></data>
+  <data name="Legal_Doc_UserAgreement_Title" xml:space="preserve"><value>利用規約</value></data>
+  <data name="Legal_Doc_UserAgreement_Description" xml:space="preserve"><value>本ソフトウェアの利用に関する、あなたと当方との完全な合意</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Title" xml:space="preserve"><value>プライバシーポリシー</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Description" xml:space="preserve"><value>取得する情報、利用目的、そして管理の方法</value></data>
+  <data name="Legal_Doc_MinorProtection_Title" xml:space="preserve"><value>未成年者の個人情報保護規則</value></data>
+  <data name="Legal_Doc_MinorProtection_Description" xml:space="preserve"><value>未成年者と保護者のための専用ルール</value></data>
+  <data name="Legal_Doc_Disclaimer_Title" xml:space="preserve"><value>免責事項とリスクのご案内</value></data>
+  <data name="Legal_Doc_Disclaimer_Description" xml:space="preserve"><value>MOD・マルチプレイ・バックアップの前に知っておくべきリスク</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Title" xml:space="preserve"><value>マルチプレイサービス利用規範</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Description" xml:space="preserve"><value>ルーム名・チャット・コメントで守るべきルール</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Title" xml:space="preserve"><value>サードパーティコンポーネントおよびオープンソースライセンス表示</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Description" xml:space="preserve"><value>同梱されるオープンソースコンポーネントとそのライセンス</value></data>
+  <data name="Legal_Doc_Copyright_Title" xml:space="preserve"><value>著作権表示</value></data>
+  <data name="Legal_Doc_Copyright_Description" xml:space="preserve"><value>Copyright © 2026 肖又祺 · StartRide</value></data>
+  <data name="Legal_Doc_License_Title" xml:space="preserve"><value>オープンソースライセンス</value></data>
+  <data name="Legal_Doc_License_Description" xml:space="preserve"><value>GNU General Public License v3.0（GPL-3.0）に基づいて公開されています</value></data>
+  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>すべての規約とご案内を見る ↓</value></data>
 </root>

@@ -98,6 +98,29 @@ StartRide 的界面层基于一个开源 Minecraft 启动器（GPL-3.0）的既�
 
 ---
 
+## 法律文件
+
+使用本软件前请阅读下列文件。**软件内「设置 → 版权及法律声明」以及首次启动的
+同意条款弹窗里都能直接点开它们**（正文托管在腾讯文档，国内直连可访问）。
+
+| 文件 | 仓库源文 |
+|---|---|
+| 用户服务协议 | [docs/legal/01-user-agreement.md](docs/legal/01-user-agreement.md) |
+| 隐私政策 | [docs/legal/02-privacy-policy.md](docs/legal/02-privacy-policy.md) |
+| 未成年人个人信息保护规则 | [docs/legal/03-minor-protection.md](docs/legal/03-minor-protection.md) |
+| 免责声明与风险提示 | [docs/legal/04-disclaimer.md](docs/legal/04-disclaimer.md) |
+| 联机服务使用规范 | [docs/legal/05-multiplayer-conduct.md](docs/legal/05-multiplayer-conduct.md) |
+| 第三方组件与开源许可声明 | [docs/legal/06-third-party-notices.md](docs/legal/06-third-party-notices.md) |
+| 开源许可与版权声明（GPL-3.0 全文） | [docs/legal/07-open-source-license.md](docs/legal/07-open-source-license.md) |
+
+仓库里的 Markdown 是**正文源**；腾讯文档上的版本与之内容一致，供普通用户阅读。
+改条款时两处都要动，改完跑 `python tools/_sr_tencent_legal.py` 同步腾讯文档并回填
+`StartRide/SiteLinks.cs` 里的 `Legal.*Doc` 常量（细节见 [docs/legal/README.md](docs/legal/README.md)）。
+
+> `07-open-source-license.md` 是脚本从根目录 `LICENSE` 生成的，不要手改。
+
+---
+
 ## 相关链接
 
 - 项目主页：[startride.top](https://startride.top)

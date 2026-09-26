@@ -729,7 +729,7 @@
           </StackPanel>
         </Grid>
       </controls:DialogHost>
-      <controls:DialogHost Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="460" UseIntegratedOverlay="True" IsOpen="{Binding IsOpen}" DataContext="{Binding UserAgreementDialog}">
+      <controls:DialogHost Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="520" UseIntegratedOverlay="True" IsOpen="{Binding IsOpen}" DataContext="{Binding UserAgreementDialog}">
         <Grid Style="{StaticResource DialogContentGridStyle}">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -739,11 +739,28 @@
           <TextBlock Text="{x:Static res:Strings.Dialog_UserAgreementTitle}" Style="{StaticResource DialogTitleTextStyle}" />
           <StackPanel Grid.Row="1" Margin="0,16,0,24">
             <TextBlock Text="{x:Static res:Strings.Dialog_UserAgreementMessage}" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" />
-            <TextBlock Margin="0,12,0,0" Style="{StaticResource DialogBodyTextStyle}">
-              <Hyperlink Foreground="{DynamicResource LauncherAccentBrush}" Command="{Binding OpenAgreementCommand}">
-                <Run Text="{x:Static res:Strings.Dialog_UserAgreementLink}" />
+            <!-- 逐条列出需要同意的文件（用户协议 / 隐私政策 / 未成年人保护规则 / 免责声明 /
+                 联机规范 / 第三方许可声明）。清单来自 StartRide.Core.LegalDocuments，
+                 地址走腾讯文档（国内直连可开）；原先是单个指向 GitHub 的链接，国内点开是白屏。 -->
+            <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Documents}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Margin="0,0,0,4" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap">
+                    <Hyperlink Foreground="{DynamicResource LauncherAccentBrush}" Command="{Binding DataContext.OpenLegalDocumentCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}">
+                      <Run Text="{Binding Title}" />
+                    </Hyperlink>
+                  </TextBlock>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <!-- 弹窗只列「需要明确同意」的六份；版权声明与开源协议不在同意之列，
+                 但同样要看得到，所以再给一个总目录入口（腾讯文档上的汇总页）。 -->
+            <TextBlock Margin="0,6,0,0" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap">
+              <Hyperlink Foreground="{DynamicResource LauncherAccentBrush}" Command="{Binding OpenAllDocumentsCommand}">
+                <Run Text="{x:Static res:Strings.Dialog_UserAgreementIndexLink}" />
               </Hyperlink>
             </TextBlock>
+            <TextBlock Margin="0,10,0,0" Text="{x:Static res:Strings.Dialog_UserAgreementHint}" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" />
           </StackPanel>
           <StackPanel Grid.Row="2" Style="{StaticResource DialogFooterStyle}">
             <Button Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Dialog_UserAgreementDisagreeButton}" Command="{Binding DisagreeAndExitCommand}" />

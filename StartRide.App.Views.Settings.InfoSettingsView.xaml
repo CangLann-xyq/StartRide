@@ -50,43 +50,32 @@
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LegalSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
-          <Grid Margin="0,0,0,20">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="{x:Static res:Strings.Settings_CopyrightNotice}" Style="{StaticResource SettingsOptionTextStyle}" />
-              <TextBlock Margin="0,4,16,0" Text="{x:Static res:Strings.Settings_CopyrightNoticeDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-            </StackPanel>
-            <Button Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Content="{x:Static res:Strings.Settings_ViewLegalDocumentButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenCopyrightNoticeCommand}" />
-          </Grid>
-          <Grid Margin="0,0,0,20">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="{x:Static res:Strings.Settings_OpenSourceLicense}" Style="{StaticResource SettingsOptionTextStyle}" />
-              <TextBlock Margin="0,4,16,0" Text="{x:Static res:Strings.Settings_OpenSourceLicenseDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-            </StackPanel>
-            <Button Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Content="{x:Static res:Strings.Settings_ViewLegalDocumentButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenOpenSourceLicenseCommand}" />
-          </Grid>
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="{x:Static res:Strings.Settings_UserAgreement}" Style="{StaticResource SettingsOptionTextStyle}" />
-              <TextBlock Margin="0,4,16,0" Text="{x:Static res:Strings.Settings_UserAgreementDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-            </StackPanel>
-            <Button Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Content="{x:Static res:Strings.Settings_ViewLegalDocumentButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding OpenUserAgreementCommand}" />
-          </Grid>
+          <!-- 清单驱动：条目来自 StartRide.Core.LegalDocuments（用户协议 / 隐私政策 /
+               未成年人保护规则 / 免责声明 / 联机规范 / 第三方许可声明 / 版权声明 / 开源协议）。
+               以前这里是一行行硬编码的 Grid，加一份文件要同时改 XAML、VM、四套 resx 和 SiteLinks，
+               漏一处界面上就少一项；现在只改清单一处。
+               ⚠️ 正文托管在腾讯文档（国内直连可开），某项尚未上云时会自动退回仓库里的 Markdown。 -->
+          <ItemsControl ItemsSource="{Binding LegalDocuments}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,20" HorizontalAlignment="Stretch">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource SettingsOptionTextStyle}" TextWrapping="Wrap" />
+                    <TextBlock Margin="0,4,16,0" Text="{Binding Description}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Content="{x:Static res:Strings.Settings_ViewLegalDocumentButton}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding DataContext.OpenLegalDocumentCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
           <!-- GPL-3.0 要求衍生作品显著保留原始版权与许可声明。
                这段文案原本只躺在 resx 里、界面上从来没出现过，属于合规缺口，补在版权章节末。 -->
-          <Border Style="{StaticResource RideHairlineStyle}" Margin="0,20,0,14" />
-          <TextBlock Text="{x:Static res:Strings.Settings_DerivationNotice}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+          <Border Style="{StaticResource RideHairlineStyle}" Margin="0,0,0,14" />
+          <TextBlock Text="{x:Static res:Strings.Settings_DerivationNotice}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
     </GroupBox>

@@ -36,7 +36,7 @@
   <data name="Resources_WorldVersionsEmpty" xml:space="preserve"><value>没有适用于该游戏的世界版本</value></data>
   <data name="Multiplayer_LobbyRoomCodeCopyFailed" xml:space="preserve"><value>复制房间代码失败，请稍后重试。</value></data>
   <data name="Settings_BackgroundImageRefreshButton" xml:space="preserve"><value>换一张</value></data>
-  <data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>同意</value></data>
+  <data name="Dialog_UserAgreementAgreeButton" xml:space="preserve"><value>同意并继续</value></data>
   <data name="Download_LoaderVersionStableTag" xml:space="preserve"><value>稳定版</value></data>
   <data name="Download_BetaCategory" xml:space="preserve"><value>beta版</value></data>
   <data name="Dialog_TerracottaDownloadComplete" xml:space="preserve"><value>联机模块已就绪。</value></data>
@@ -85,7 +85,7 @@
   <data name="Resources_ModRequiredDependencyVersionFormat" xml:space="preserve"><value>版本：{0}</value></data>
   <data name="GameSettings_BackupDefaultNameFormat" xml:space="preserve"><value>备份 {0}</value></data>
   <data name="Multiplayer_LobbyLatencyFormat" xml:space="preserve"><value>{0} ms</value></data>
-  <data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>欢迎使用 StartRide 启动器。使用本软件即表示您已阅读、理解并同意用户协议。请在继续前阅读协议内容。</value></data>
+  <data name="Dialog_UserAgreementMessage" xml:space="preserve"><value>欢迎使用 StartRide 启动器。请先阅读下列文件；点击「同意并继续」即表示你已阅读、理解并同意全部内容。</value></data>
   <data name="Dialog_ReplaceModImportTitle" xml:space="preserve"><value>替换模组</value></data>
   <data name="Dialog_Replace_Button" xml:space="preserve"><value>替换</value></data>
   <data name="GameSettings_ExportVersionLabel" xml:space="preserve"><value>版本</value></data>
@@ -1314,7 +1314,7 @@
   <data name="Resources_ShaderPackFilterTypeCursed" xml:space="preserve"><value>怪奇</value></data>
   <data name="Status_OpenLocalResourcePackLocationFailed" xml:space="preserve"><value>打开资源包文件位置失败，请稍后重试。</value></data>
   <data name="Status_ModInstalledFormat" xml:space="preserve"><value>{0} 已安装</value></data>
-  <data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>用户协议</value></data>
+  <data name="Dialog_UserAgreementTitle" xml:space="preserve"><value>使用条款与说明</value></data>
   <data name="Dialog_JavaCompatibilityNotMetMessageFormat" xml:space="preserve"><value>自动选择 Java 时没有找到满足当前游戏及加载器兼容要求的 Java（推荐 Java {0}）。请到设置中刷新或导入合适的 Java 后再启动游戏。</value></data>
   <data name="Account_SkinHeader" xml:space="preserve"><value>皮肤</value></data>
   <data name="Status_MicrosoftReauthenticationSuccessful" xml:space="preserve"><value>正版账户重新登录成功，正在继续启动。</value></data>
@@ -1623,4 +1623,22 @@
   <data name="Dialog_UpdateResultFailureFormat" xml:space="preserve"><value>启动器当前仍是 v{0}，这次更新没能装成功。&#10;{1}</value></data>
   <data name="Dialog_UpdateResultRetry" xml:space="preserve"><value>重新更新</value></data>
   <data name="Dialog_UpdateResultClose" xml:space="preserve"><value>知道了</value></data>
+  <data name="Dialog_UserAgreementHint" xml:space="preserve"><value>首次使用需要确认。不同意时请点击「不同意并退出」。</value></data>
+  <data name="Legal_Doc_UserAgreement_Title" xml:space="preserve"><value>用户服务协议</value></data>
+  <data name="Legal_Doc_UserAgreement_Description" xml:space="preserve"><value>使用本软件时你与我们之间的完整约定</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Title" xml:space="preserve"><value>隐私政策</value></data>
+  <data name="Legal_Doc_PrivacyPolicy_Description" xml:space="preserve"><value>我们收集哪些信息、用途是什么、你能怎么管理</value></data>
+  <data name="Legal_Doc_MinorProtection_Title" xml:space="preserve"><value>未成年人个人信息保护规则</value></data>
+  <data name="Legal_Doc_MinorProtection_Description" xml:space="preserve"><value>面向未成年人与监护人的专门规则</value></data>
+  <data name="Legal_Doc_Disclaimer_Title" xml:space="preserve"><value>免责声明与风险提示</value></data>
+  <data name="Legal_Doc_Disclaimer_Description" xml:space="preserve"><value>使用模组、联机与备份之前务必了解的风险</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Title" xml:space="preserve"><value>联机服务使用规范</value></data>
+  <data name="Legal_Doc_MultiplayerConduct_Description" xml:space="preserve"><value>房间名、聊天与评论中必须遵守的行为准则</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Title" xml:space="preserve"><value>第三方组件与开源许可声明</value></data>
+  <data name="Legal_Doc_ThirdPartyNotices_Description" xml:space="preserve"><value>随本软件分发的开源组件及其许可协议</value></data>
+  <data name="Legal_Doc_Copyright_Title" xml:space="preserve"><value>版权声明</value></data>
+  <data name="Legal_Doc_Copyright_Description" xml:space="preserve"><value>Copyright © 2026 肖又祺 · StartRide</value></data>
+  <data name="Legal_Doc_License_Title" xml:space="preserve"><value>开源协议</value></data>
+  <data name="Legal_Doc_License_Description" xml:space="preserve"><value>本软件依据 GNU 通用公共许可证第 3 版（GPL-3.0）发布</value></data>
+  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>查看全部条款与说明 ↓</value></data>
 </root>

@@ -669,6 +669,27 @@ public static class Strings
 
 	public static string Settings_ViewLegalDocumentButton => Get("Settings_ViewLegalDocumentButton");
 
+	public static string Dialog_UserAgreementIndexLink => Get("Dialog_UserAgreementIndexLink");
+
+
+	public static string Legal_Doc_UserAgreement_Title => Get("Legal_Doc_UserAgreement_Title");
+	public static string Legal_Doc_UserAgreement_Description => Get("Legal_Doc_UserAgreement_Description");
+	public static string Legal_Doc_PrivacyPolicy_Title => Get("Legal_Doc_PrivacyPolicy_Title");
+	public static string Legal_Doc_PrivacyPolicy_Description => Get("Legal_Doc_PrivacyPolicy_Description");
+	public static string Legal_Doc_MinorProtection_Title => Get("Legal_Doc_MinorProtection_Title");
+	public static string Legal_Doc_MinorProtection_Description => Get("Legal_Doc_MinorProtection_Description");
+	public static string Legal_Doc_Disclaimer_Title => Get("Legal_Doc_Disclaimer_Title");
+	public static string Legal_Doc_Disclaimer_Description => Get("Legal_Doc_Disclaimer_Description");
+	public static string Legal_Doc_MultiplayerConduct_Title => Get("Legal_Doc_MultiplayerConduct_Title");
+	public static string Legal_Doc_MultiplayerConduct_Description => Get("Legal_Doc_MultiplayerConduct_Description");
+	public static string Legal_Doc_ThirdPartyNotices_Title => Get("Legal_Doc_ThirdPartyNotices_Title");
+	public static string Legal_Doc_ThirdPartyNotices_Description => Get("Legal_Doc_ThirdPartyNotices_Description");
+	public static string Legal_Doc_Copyright_Title => Get("Legal_Doc_Copyright_Title");
+	public static string Legal_Doc_Copyright_Description => Get("Legal_Doc_Copyright_Description");
+	public static string Legal_Doc_License_Title => Get("Legal_Doc_License_Title");
+	public static string Legal_Doc_License_Description => Get("Legal_Doc_License_Description");
+	public static string Dialog_UserAgreementHint => Get("Dialog_UserAgreementHint");
+
 	public static string Status_OpenLegalDocumentFailed => Get("Status_OpenLegalDocumentFailed");
 
 	public static string Dialog_UpdateAvailableTitle => Get("Dialog_UpdateAvailableTitle");
@@ -2721,6 +2742,22 @@ public static class Strings
 	public static string Dialog_LaunchAnalysisOutOfMemoryDetail => Get("Dialog_LaunchAnalysisOutOfMemoryDetail");
 
 	public static string Dialog_LaunchAnalysisOutOfMemoryRecommendation => Get("Dialog_LaunchAnalysisOutOfMemoryRecommendation");
+
+	/// <summary>
+	/// 取文案，**键缺失时返回空串**（而 <see cref="Get(string)"/> 会退回键名本身）。
+	///
+	/// 需要它的场景：界面上会遍历一份"数据驱动"的清单（例如法律文件列表），
+	/// 键名是运行时才知道的字符串。这种情况下把 "Legal_Doc_Xxx_Title" 这种内部键名
+	/// 摊到用户面前，比少显示一行糟糕得多。
+	/// </summary>
+	public static string GetOrDefault(string name)
+	{
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			return string.Empty;
+		}
+		return ResourceManager.GetString(name, CultureInfo.CurrentUICulture) ?? string.Empty;
+	}
 
 	private static string Get(string name)
 	{

@@ -905,7 +905,7 @@ local function onInit()
   end)
   if not readyLogged then
     readyLogged = true
-    logI('v2.10.1 已加载, physicsFPS=' .. tostring(physicsFPS),
+    logI('v2.10.2 已加载, physicsFPS=' .. tostring(physicsFPS),
       'refNode=' .. tostring(getRefNode()), 'type=' .. tostring(v.mpVehicleType),
       '施力=' .. (#nodes > PER_NODE_LIMIT and 'cluster' or '逐节点'))
   end
