@@ -382,6 +382,24 @@
     <Setter Property="SnapsToDevicePixels" Value="True" />
   </Style>
 
+  <!-- 列表侧栏：主从布局里"贴边铺满"的那半边。
+
+       与上面 RideListSurfaceStyle 的区别就是用户提的那一点：四边内缩 + 大圆角的
+       "悬浮卡片"改成传统侧栏 —— 左/上/下都贴到窗口边，只有右侧一条 1px 竖线
+       当作与详情区的分隔。卡片感来自内缩与圆角，"浮"的观感就没有了。
+
+       2026-09-26 再调：用户要"侧边栏的角圆润一些" —— 右侧两个角给 18px 圆角
+       （与 `SecondaryMenuSidebarBackdropStyle` 同一口径），左边两角保持 0（贴窗口左缘）。
+       列表条目自带 8px 横向 / 12px 纵向内边距（ItemsPanel 的 Margin），不会画进圆角区。 -->
+  <Style x:Key="RideSidebarSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="#15FFFFFF" />
+    <Setter Property="BorderThickness" Value="0,1,1,0" />
+    <Setter Property="Border.CornerRadius" Value="0,18,18,0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
   <!-- 右详情面板 -->
   <Style x:Key="RideDetailSurfaceStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource SectionFieldSurfaceStyle}">
     <Setter Property="Border.CornerRadius" Value="16" />

@@ -139,6 +139,9 @@ public sealed class MainViewModel : ObservableObject
 
 	public UserAgreementDialogViewModel UserAgreementDialog { get; }
 
+	/// <summary>内置条款阅读器：首次运行弹窗与设置页的「查看」共用这一个实例。</summary>
+	public LegalReaderViewModel LegalReader { get; }
+
 	public GameDirectoryStartupRecoveryDialogViewModel MinecraftDirectoryStartupRecoveryDialog { get; }
 
 	public TerracottaAgreementDialogViewModel TerracottaAgreementDialog { get; }
@@ -426,7 +429,7 @@ public sealed class MainViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand CloseWindowCommand => closeWindowCommand ?? (closeWindowCommand = new RelayCommand(CloseWindow));
 
-	public MainViewModel(ISettingsService settingsService, LauncherSessionCoordinator sessionCoordinator, AccountPageViewModel accountPage, DownloadPageViewModel downloadPage, DownloadTasksPageViewModel downloadTasksPage, GameSettingsPageViewModel gameSettingsPage, MultiplayerPageViewModel multiplayerPage, ResourcesPageViewModel resourcesPage, SettingsPageViewModel settingsPage, GameManagementViewModel gameManagement, IWindowService windowService, IStatusService statusService, IFloatingMessageService floatingMessageService, IUiDispatcher uiDispatcher, IHomePageViewModelFactory homePageFactory, LaunchStatusDialogViewModel launchStatusDialog, UserAgreementDialogViewModel userAgreementDialog, GameDirectoryStartupRecoveryDialogViewModel minecraftDirectoryStartupRecoveryDialog, TerracottaAgreementDialogViewModel terracottaAgreementDialog, LauncherBackgroundViewModel launcherBackground, ILogger<MainViewModel>? logger = null)
+	public MainViewModel(ISettingsService settingsService, LauncherSessionCoordinator sessionCoordinator, AccountPageViewModel accountPage, DownloadPageViewModel downloadPage, DownloadTasksPageViewModel downloadTasksPage, GameSettingsPageViewModel gameSettingsPage, MultiplayerPageViewModel multiplayerPage, ResourcesPageViewModel resourcesPage, SettingsPageViewModel settingsPage, GameManagementViewModel gameManagement, IWindowService windowService, IStatusService statusService, IFloatingMessageService floatingMessageService, IUiDispatcher uiDispatcher, IHomePageViewModelFactory homePageFactory, LaunchStatusDialogViewModel launchStatusDialog, UserAgreementDialogViewModel userAgreementDialog, LegalReaderViewModel legalReader, GameDirectoryStartupRecoveryDialogViewModel minecraftDirectoryStartupRecoveryDialog, TerracottaAgreementDialogViewModel terracottaAgreementDialog, LauncherBackgroundViewModel launcherBackground, ILogger<MainViewModel>? logger = null)
 	{
 		this.settingsService = settingsService;
 		this.sessionCoordinator = sessionCoordinator;
@@ -443,6 +446,7 @@ public sealed class MainViewModel : ObservableObject
 		GameManagement = gameManagement;
 		LaunchStatusDialog = launchStatusDialog;
 		UserAgreementDialog = userAgreementDialog;
+		LegalReader = legalReader;
 		MinecraftDirectoryStartupRecoveryDialog = minecraftDirectoryStartupRecoveryDialog;
 		TerracottaAgreementDialog = terracottaAgreementDialog;
 		LauncherBackground = launcherBackground;

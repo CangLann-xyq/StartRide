@@ -27,6 +27,12 @@ internal sealed class CommandLine
     public bool NoDesktopShortcut { get; private set; }
     public bool NoStartMenuShortcut { get; private set; }
 
+    /// <summary>
+    /// 静默安装时**保留**目标目录里已有的文件（默认会先清空程序文件）。
+    /// 界面版由"是否覆盖"确认框决定，这里给脚本一个显式退路。
+    /// </summary>
+    public bool KeepOldFiles { get; private set; }
+
     public static CommandLine Parse(string[] args)
     {
         var cl = new CommandLine();
@@ -43,6 +49,7 @@ internal sealed class CommandLine
             else if (IsFlag(a, "--purge-data")) cl.PurgeData = true;
             else if (IsFlag(a, "--no-desktop")) cl.NoDesktopShortcut = true;
             else if (IsFlag(a, "--no-startmenu")) cl.NoStartMenuShortcut = true;
+            else if (IsFlag(a, "--keep-old")) cl.KeepOldFiles = true;
             else if (TryValue(a, "--dir", out string dir)) cl.Dir = dir;
             else if (TryValue(a, "--log", out string log)) cl.LogPath = log;
         }

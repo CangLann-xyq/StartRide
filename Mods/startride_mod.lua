@@ -27,7 +27,7 @@ local CHAT_COOLDOWN = 0.3
 --   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
 -- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
 -- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
-local MOD_VERSION = '2.10.2'
+local MOD_VERSION = '2.12.0'
 
 
 
@@ -922,6 +922,429 @@ end
 
 
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 高光时刻（GE 侧）
+--
+-- 车辆层（startrideHL.lua）认出"值得回看的瞬间"后，用
+--   obj:queueGameEngineLua("startride.onHighlight(type, value, extra, speed)")
+-- 把事件扔上来。这里负责：汇总 → 截图 → 落盘 → HUD 提示 → 并入游戏自身统计。
+--
+-- 顺手还管一件事：**联机期间自动开回放录制**。没有录像，高光就只是一行文字；
+-- 有了录像 + 时间码，才能在游戏里跳回去看。录制分段（默认每段 SEGMENT 秒），
+-- 这样单个文件不会无限大，且"跳到那一刻"不用等一个几小时的录像加载完。
+--
+-- ⚠️ 绝不动用户手动开的录制：只有自己调 startRecording() 成功的才会去 stopRecording()
+--    （HL.ownRecording 记账）。用户自己按了录制键 / 开着任务自动回放时，我们只借它
+--    当前的文件名与时间码来打点。
+--
+-- ⚠️ 落盘目录 = <userpath>/replays/startride/，与 .rpl 同根。选这里的唯一原因是
+--    启动器已经知道怎么解析回放目录（ResolveReplaysDirectory），两边不用再约定别的东西。
+--    配置也放同一个目录：<replays>/startride/config.json，由启动器写、模组读。
+--
+-- ⚠️ 截图走引擎自带的 screenshot.doScreenshot(nil, nil, path, 'jpg')：
+--    传的是**不含扩展名**的路径（引擎自己补 .jpg，见 timeslip.lua 的用法）。
+--    截图是 GPU 回读 + JPEG 编码，有开销 → 用 HL.shotBusy 串行化，不并发发起。
+-- ═══════════════════════════════════════════════════════════════════════════
+local HL = {
+  active = false,
+  sessionId = '',
+  startedWall = '',
+  duration = 0,
+  events = {},
+  shots = 0,
+  shotBusy = false,
+  shotBusyUntil = 0,
+  replays = {},          -- { {file=, from=, to=} }
+  curReplay = '',
+  curReplayFrom = 0,
+  ownRecording = false,
+  --- 本段录制已进行的秒数。**必须自己计时**：core_replay.getState() 的
+  --- positionSeconds 在录制态下恒为 0（那是"回放进度"，录制时没有进度可言），
+  --- 依赖它会让时间码全 0、分段录制永不触发。
+  recElapsed = 0,
+  lastLine = '',
+  toastUntil = 0,
+  lastTick = 0,
+  lastPos = 0,
+  -- 配置（启动器写 config.json；读不到就用下面的默认值）
+  enabled = true,
+  autoRecord = true,
+  segmentSeconds = 300,   -- 实测录制约 1~2 MB/s，15 分钟一段会到 1 GB 以上
+  maxShots = 40,
+  onlyInSession = true,
+  dir = '',
+  dirReady = false,
+  cfgLoaded = false,     -- 配置是否已读（首帧读，不能等开会话时才读）
+  sessionMap = '',       -- 本局所在地图，换图即分局
+  savedAt = 0,           -- 距上次落盘秒数（定时落盘用）
+}
+
+--- 会话进行中每隔这么久落一次盘。联机一局可能几十分钟，
+--- 中途崩溃/断电不能把整局高光带走（实测游戏崩过一次，日志还没 flush）。
+local AUTOSAVE_INTERVAL = 30
+
+--- <userpath> 归一成斜杠，**并吃掉末尾斜杠**。
+--- ⚠️ FS:getUserPath() 实测返回 "…\current\"（带尾斜杠），不处理就会拼出
+---    "…/current//replays/startride" —— 实测在这个双斜杠路径下
+---    jsonReadFile 读不回、screenshot.doScreenshot 连文件都不生成（返回不报错但静默失败）。
+--- 高光目录，**相对 userpath 的路径**。
+--- ⚠️ 绝不能拼 FS:getUserPath() 出来的绝对 Windows 路径（"D:/…/current/replays/startride"）：
+---    BeamNG 的 FS 是虚拟文件系统，**路径基准就是 userpath**，绝对路径一律找不到。
+---    而且失败方式极度迷惑 —— directoryCreate 照样返回 true、jsonWriteFile 不抛错、
+---    截图调用也不抛错，但文件一个都没落地（实测白排查两轮，最后靠对照引擎自身写法定位）。
+---    引擎代码用的就是这种相对写法：replay.lua 的 FS:directoryCreate("/replays/")、
+---    timeslip.lua 的 screenshot.doScreenshot(nil, nil, "screenshots/timeslips/<时间>", 'jpg')。
+local function hlDir()
+  if HL.dirReady then return HL.dir ~= '' and HL.dir or nil end
+  HL.dirReady = true
+  local dir = 'replays/startride'
+  pcall(function()
+    if not FS:directoryExists(dir) then FS:directoryCreate(dir, true) end
+  end)
+  HL.dir = dir
+  return dir
+end
+
+--- 读启动器写下来的配置。读不到/坏掉都不能让功能整体挂掉 —— 用默认值继续。
+local function hlLoadConfig()
+  local dir = hlDir()
+  if not dir then return end
+  local ok, cfg = pcall(function() return jsonReadFile(dir .. '/config.json') end)
+  if not ok or type(cfg) ~= 'table' then return end
+  if cfg.enabled ~= nil then HL.enabled = cfg.enabled ~= false end
+  if cfg.autoRecord ~= nil then HL.autoRecord = cfg.autoRecord ~= false end
+  if tonumber(cfg.segmentSeconds) then
+    local s = tonumber(cfg.segmentSeconds)
+    if s >= 120 and s <= 7200 then HL.segmentSeconds = s end
+  end
+  if tonumber(cfg.maxShots) then
+    local n = tonumber(cfg.maxShots)
+    if n >= 0 and n <= 500 then HL.maxShots = n end
+  end
+  if cfg.onlyInSession ~= nil then HL.onlyInSession = cfg.onlyInSession ~= false end
+  logMsg('高光配置: enabled=' .. tostring(HL.enabled), 'autoRecord=' .. tostring(HL.autoRecord),
+    '分段=' .. tostring(HL.segmentSeconds) .. 's')
+end
+
+local function hlLabel(typ)
+  if typ == 'jump' then return '大跳跃' end
+  if typ == 'impact' then return '重击' end
+  if typ == 'rollover' then return '翻车' end
+  if typ == 'burnout' then return '烧胎' end
+  if typ == 'topspeed' then return '极速' end
+  return typ
+end
+
+--- 数值 + 单位，给 HUD 和列表共用。
+local function hlValueText(typ, value, extra)
+  if typ == 'jump' then
+    if extra and extra >= 1 then
+      return string.format('%.1f 秒 · %.0f 米', value, extra)
+    end
+    return string.format('%.1f 秒', value)
+  end
+  if typ == 'impact' then return string.format('%.0f 能量', value) end
+  if typ == 'rollover' then return string.format('翻滚 %.1f 秒', value) end
+  if typ == 'burnout' then return string.format('%.1f 秒', value) end
+  if typ == 'topspeed' then
+    return string.format('%.0f km/h', value * 3.6)
+  end
+  return string.format('%.2f', value)
+end
+
+local function hlMapName()
+  local name = ''
+  pcall(function()
+    local f = getMissionFilename()
+    if f and core_levels and core_levels.getLevelName then
+      name = tostring(core_levels.getLevelName(f) or '')
+    end
+    if (name == '' or name == 'nil') and f then name = tostring(f) end
+  end)
+  if name == 'nil' then name = '' end
+  return name
+end
+
+-- ── 录制 ───────────────────────────────────────────────────────────────────
+local function hlReplayState()
+  local st = nil
+  pcall(function() st = core_replay.getState() end)
+  if type(st) ~= 'table' then return nil end
+  return st
+end
+
+--- 开录。返回 true 表示**是我们**开的（会话结束时要负责停）。
+local function hlStartRecording()
+  local st = hlReplayState()
+  if st and st.state == 'recording' then
+    -- 已经在录（用户手动 / 任务自动回放）→ 借用，不接管
+    HL.curReplay = tostring(st.loadedFile or '')
+    HL.ownRecording = false
+    logMsg('高光：检测到已有录制，借用不接管 →', HL.curReplay)
+    return false
+  end
+  local ok, res = pcall(function() return core_replay.startRecording() end)
+  if ok and type(res) == 'table' and res.success then
+    HL.curReplay = tostring(res.filename or '')
+    HL.curReplayFrom = 0
+    HL.recElapsed = 0
+    HL.ownRecording = true
+    table.insert(HL.replays, { file = HL.curReplay, from = 0, to = 0 })
+    logMsg('高光：已开始录制 →', HL.curReplay)
+    return true
+  end
+  logMsg('高光：开始录制失败', ok and tostring(res and res.message or '?') or tostring(res))
+  HL.ownRecording = false
+  return false
+end
+
+local function hlStopRecording()
+  if not HL.ownRecording then return end
+  local st = hlReplayState()
+  if not st or st.state ~= 'recording' then
+    HL.ownRecording = false
+    return
+  end
+  -- 段尾用自己计的时长（positionSeconds 在录制态下恒为 0，见 HL.recElapsed 注释）
+  local pos = HL.recElapsed or 0
+  local seg = HL.replays[#HL.replays]
+  if seg then seg.to = HL.curReplayFrom + pos end
+  pcall(function() core_replay.stopRecording() end)
+  HL.ownRecording = false
+  logMsg('高光：录制已停止并保存', HL.curReplay, '时长', string.format('%.1fs', pos))
+end
+
+--- 录制分段：一段录满 segmentSeconds 就停掉再开一段。
+--- 不分段的话，两小时的联机会得到一个几百 MB、加载半天的文件。
+local function hlRotateIfNeeded()
+  if not HL.ownRecording then return end
+  local st = hlReplayState()
+  if not st or st.state ~= 'recording' then return end
+  -- ⚠️ 用 recElapsed 而不是 st.positionSeconds：后者在录制态下恒为 0，
+  --    拿它判分段会让 `pos < segmentSeconds` 永远成立 —— 分段从不触发。
+  local pos = HL.recElapsed or 0
+  HL.lastPos = pos
+  if pos < HL.segmentSeconds then return end
+
+  local seg = HL.replays[#HL.replays]
+  if seg then seg.to = HL.curReplayFrom + pos end
+  HL.curReplayFrom = HL.curReplayFrom + pos
+  pcall(function() core_replay.stopRecording() end)
+  HL.ownRecording = false
+  hlStartRecording()          -- 内部会把 recElapsed 清零
+  logMsg('高光：录制已分段，本段', string.format('%.0fs', pos))
+end
+
+-- ── 截图 ───────────────────────────────────────────────────────────────────
+local function hlTakeShot(typ)
+  if HL.shots >= HL.maxShots then return nil end
+  if HL.shotBusy and os.clock() < HL.shotBusyUntil then return nil end
+  local dir = hlDir()
+  if not dir then return nil end
+
+  HL.shots = HL.shots + 1
+  local base = string.format('%s/hl-%s-%02d', dir, HL.sessionId, HL.shots)
+  HL.shotBusy = true
+  HL.shotBusyUntil = os.clock() + 2.0   -- 2 秒内不再发起（截图是异步的，没有可靠的回调时序）
+  local ok = pcall(function() screenshot.doScreenshot(nil, nil, base, 'jpg') end)
+  if not ok then
+    HL.shotBusy = false
+    HL.shots = HL.shots - 1
+    return nil
+  end
+  return 'hl-' .. HL.sessionId .. string.format('-%02d', HL.shots) .. '.jpg'
+end
+
+-- ── 落盘 ───────────────────────────────────────────────────────────────────
+local function hlSave(reason)
+  local dir = hlDir()
+  if not dir or HL.sessionId == '' then return end
+
+  -- 段尾兜底。正常退出时 hlStopRecording 已经记过 to；但**游戏被强杀**、
+  -- 或退出时扩展在卸载阶段拿不到 core_replay 状态（实测这条路径会走提前 return），
+  -- to 就会一直是 0 —— 界面上看到的就是"0 秒的录像段"。
+  -- 这里用我们自己的计时补上，宁可粗一点也不能是 0。
+  local tail = HL.curReplayFrom + (HL.recElapsed or 0)
+  for _, seg in ipairs(HL.replays) do
+    if (tonumber(seg.to) or 0) <= 0 then seg.to = tail end
+  end
+
+  local counts = {}
+  for _, e in ipairs(HL.events) do
+    counts[e.type] = (counts[e.type] or 0) + 1
+  end
+
+  local data = {
+    version = 1,
+    sessionId = HL.sessionId,
+    reason = reason or 'normal',
+    player = playerName,
+    map = hlMapName(),
+    room = { id = relayRoomId or '', name = roomInfo.name or '', players = roomInfo.count or 0 },
+    startedAt = HL.startedWall,
+    endedAt = os.date('%Y-%m-%d %H:%M:%S'),
+    durationSeconds = HL.duration,
+    replays = HL.replays,
+    highlights = HL.events,
+    counts = counts,
+  }
+
+  local path = dir .. '/session-' .. HL.sessionId .. '.json'
+  local ok = pcall(function() return jsonWriteFile(path, data) end)
+  logMsg('高光：已落盘', path, '共', tostring(#HL.events), '条', ok and 'ok' or 'FAILED')
+end
+
+-- ── 会话 ───────────────────────────────────────────────────────────────────
+local function hlStartSession()
+  if HL.active then return end
+  HL.active = true
+  HL.sessionId = os.date('%Y-%m-%d_%H-%M-%S')
+  HL.startedWall = os.date('%Y-%m-%d %H:%M:%S')
+  HL.duration = 0
+  HL.events = {}
+  HL.replays = {}
+  HL.shots = 0
+  HL.curReplay = ''
+  HL.curReplayFrom = 0
+  HL.recElapsed = 0
+  HL.lastPos = 0
+  HL.ownRecording = false
+  HL.lastLine = ''
+  HL.savedAt = 0
+  HL.sessionMap = localMap or ''
+
+  hlLoadConfig()
+  if not HL.enabled then
+    HL.active = false
+    return
+  end
+
+  logMsg('高光：联机会话开始', HL.sessionId, '地图', hlMapName())
+  if HL.autoRecord then
+    pcall(hlStartRecording)
+  end
+end
+
+local function hlEndSession(reason)
+  if not HL.active then return end
+  HL.active = false
+  pcall(hlStopRecording)
+  local n = #HL.events
+  pcall(function() hlSave(reason or 'normal') end)
+  logMsg('高光：会话结束，共记录', tostring(n), '条高光')
+  HL.events = {}
+  HL.replays = {}
+end
+
+--- 车辆层报上来的高光事件入口。
+--- ⚠️ 签名必须与 startrideHL.lua 里 string.format 的那串严格一致。
+--- ⚠️ 只有**联机中**（或配置里 onlyInSession=false）才落盘：单人开车也检测，
+---    但不往磁盘写 —— 否则随便开一圈就多一个 JSON 文件。
+function M.onHighlight(typ, value, extra, speed)
+  pcall(function()
+    if type(typ) ~= 'string' then return end
+    value = tonumber(value) or 0
+    extra = tonumber(extra) or 0
+    speed = tonumber(speed) or 0
+
+    -- 并入游戏自带的玩法统计（F1 统计面板 / 生涯里程碑都能读到）
+    pcall(function()
+      if gameplay_statistic and gameplay_statistic.metricAdd then
+        gameplay_statistic.metricAdd('startride/highlight/' .. typ, 1)
+      end
+    end)
+
+    local capturing = HL.active or not HL.onlyInSession
+    local line = hlLabel(typ) .. ' ' .. hlValueText(typ, value, extra)
+
+    -- HUD 上的"最近一条"始终更新，哪怕没在联机也让人看得见检测在工作
+    HL.lastLine = line
+    HL.toastUntil = os.clock() + 5
+
+    if not capturing then
+      -- 没在记录也留一行日志（单人开车同样检测，只是不落盘）。
+      -- 这一行也是实机验证的唯一判据 —— 见 _sr_shots/_hl_ingame.py。
+      logMsg('高光(未记录)：' .. line)
+      return
+    end
+
+    -- 时间码 = 本段之前各段的累计时长 + 本段已录时长。
+    -- 借用的录制没有我们的起点，只能退回 positionSeconds（可能为 0）。
+    local offset = HL.curReplayFrom + (HL.recElapsed or 0)
+    local st = hlReplayState()
+    if st and st.state == 'recording' then
+      local p = tonumber(st.positionSeconds)
+      if p and p > 0 then offset = HL.curReplayFrom + p end
+    end
+
+    local ev = {
+      type = typ,
+      label = hlLabel(typ),
+      value = value,
+      extra = extra,
+      speed = speed,
+      offset = offset,
+      replay = HL.curReplay ~= '' and HL.curReplay or nil,
+      at = os.date('%H:%M:%S'),
+      wall = os.time(),
+    }
+    local shot = hlTakeShot(typ)
+    if shot then ev.shot = shot end
+    table.insert(HL.events, ev)
+
+    logMsg('高光：' .. line, '时间码=' .. string.format('%.1fs', offset),
+      ev.replay and ('录像=' .. ev.replay) or '无录像', shot or '无截图')
+  end)
+end
+
+--- 每帧调用。做三件事：会话边界检测（中继连上/断开）、录制分段、截图串行化超时复位。
+local function hlTick(dtSim, dtReal)
+  if HL.duration then HL.duration = HL.duration + (dtSim or 0) end
+  -- 自己给录制计时（见 HL.recElapsed 注释）。只在本模组开的录制期间计，
+  -- 借用的录制没有起点，计了反而错。
+  if HL.ownRecording then HL.recElapsed = (HL.recElapsed or 0) + (dtSim or 0) end
+  if HL.shotBusy and os.clock() > HL.shotBusyUntil then HL.shotBusy = false end
+
+  -- 配置必须首帧就读：onlyInSession 参与下面「要不要开会话」的判断，
+  -- 放在 hlStartSession 里读会变成先有鸡还是先有蛋（永远读不到 false）。
+  if not HL.cfgLoaded then
+    HL.cfgLoaded = true
+    pcall(hlLoadConfig)
+  end
+
+  -- 会话边界：中继连上（且房间没关）算一局；
+  -- 关掉「仅联机」后，只要进了地图也算一局（单人开车同样留档）。
+  -- 放在每帧轮询而不是改写 relayState 的赋值点，是因为那个状态有两条写入路径
+  -- （relay-state 消息、stats 消息），改两处容易漏一处。
+  local live = (relayState == 'connected') and not roomInfo.closed
+  local always = (HL.onlyInSession == false) and (localMap ~= '')
+  local want = live or always
+
+  if want and HL.active and HL.sessionMap ~= '' and localMap ~= ''
+     and localMap ~= HL.sessionMap then
+    pcall(hlEndSession, 'map-change')          -- 换图 = 上一局结束
+  end
+  if want and not HL.active then
+    pcall(hlStartSession)
+  elseif (not want) and HL.active then
+    pcall(hlEndSession, live and 'disconnect' or 'left-level')
+  end
+
+  -- 以下不必每帧做，1 秒一次足够（getState 是跨 VM 调用）
+  HL.lastTick = HL.lastTick + (dtReal or 0)
+  if HL.lastTick < 1.0 then return end
+  HL.lastTick = 0
+  if not HL.active then return end
+  if HL.ownRecording then pcall(hlRotateIfNeeded) end
+
+  -- 定时落盘（同一文件覆盖写）
+  HL.savedAt = (HL.savedAt or 0) + 1
+  if HL.savedAt >= AUTOSAVE_INTERVAL then
+    HL.savedAt = 0
+    pcall(function() hlSave('autosave') end)
+  end
+end
+
 local function relayStateText()
   if relayState == 'connected' then return '已连接', C.ok end
   if relayState == 'connecting' then return '连接中', C.warn end
@@ -932,7 +1355,7 @@ local function relayStateText()
 end
 
 local function drawHUD()
-  local W, H = 268, 104
+  local W, H = 268, 126
   local opened = false
   local ok, err = pcall(function()
     im.SetNextWindowPos(im.ImVec2(18, 18), im.Cond_FirstUseEver)
@@ -1000,6 +1423,20 @@ local function drawHUD()
     im.TextColored(C.dim, '  收包')
     im.SameLine()
     im.TextColored(remotePacketCount > 0 and C.ok or C.dim, tostring(remotePacketCount))
+
+    -- 高光：本场次数 + 最近一条。刚触发 5 秒内用亮色，之后转暗，一眼看得出"刚发生"。
+    im.Dummy(im.ImVec2(10, 4))
+    im.SameLine()
+    im.TextColored(C.dim, '高光')
+    im.SameLine()
+    im.TextColored(#HL.events > 0 and C.accent or C.dim, tostring(#HL.events))
+    im.SameLine()
+    if HL.lastLine ~= '' then
+      local fresh = os.clock() < HL.toastUntil
+      im.TextColored(fresh and C.ok or C.dim, '  ' .. HL.lastLine)
+    else
+      im.TextColored(C.dim, '  还没有')
+    end
   end)
   
   
@@ -1445,6 +1882,7 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
   end
 
   if not initialized then return end
+  safeCall('hlTick', hlTick, dtSim, dtReal)
   handleKeys()
   if panelOpen[0] then drawPanel() end
   if hudOn[0] then drawHUD() end
@@ -1482,6 +1920,8 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 end
 
 function M.onExtensionUnloaded()
+  -- 卸载前把当前高光会话存档，否则这一场就白录了
+  pcall(hlEndSession, 'unload')
   for _, rec in pairs(remoteVehicles) do despawnRemote(rec) end
   remoteVehicles = {}
   dropConnection('扩展卸载')

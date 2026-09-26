@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -94,6 +94,7 @@ public sealed class VehiclesPageViewModel : ObservableObject
 	private int sortMode;
 	private bool isScanning = true;
 	private string selectedSource = "全部";
+	private string searchText = "";
 	private RelayCommand? openVehiclesFolderCommand;
 	private RelayCommand<VehicleItem>? openVehicleLocationCommand;
 	private RelayCommand<VehicleItem>? selectVehicleCommand;
@@ -101,6 +102,9 @@ public sealed class VehiclesPageViewModel : ObservableObject
 	private RelayCommand? sortByNameCommand;
 	private RelayCommand? sortBySizeCommand;
 	private RelayCommand? revealSelectedCommand;
+	private RelayCommand? refreshCommand;
+	private RelayCommand? openModsFolderCommand;
+	private RelayCommand<VehicleItem>? copyVehicleIdCommand;
 
 	private FileSetSummary summary = new();
 	private List<VehicleItem> allVehicles = new();
@@ -114,7 +118,14 @@ public sealed class VehiclesPageViewModel : ObservableObject
 	public bool IsScanning
 	{
 		get => isScanning;
-		private set => SetProperty(ref isScanning, value);
+		private set
+		{
+			if (SetProperty(ref isScanning, value))
+			{
+				// 统计条右侧那行小字要跟着变（扫描中 / 显示 N / 共 M）
+				OnPropertyChanged(nameof(StatBandText));
+			}
+		}
 	}
 
 	/// <summary>顶部统计条的四格数字。</summary>
@@ -126,20 +137,37 @@ public sealed class VehiclesPageViewModel : ObservableObject
 
 	public string StatMaxText => summary.MaxText;
 
-	/// <summary>内置 / 模组 各自多少辆。</summary>
+	/// <summary>
+	/// 统计条最右侧那行小字，三种状态：
+	///   · 扫描中 —— "正在扫描…"（列表里已有内容时，这是唯一的进度反馈）
+	///   · 有搜索/筛选 —— "显示 N / 共 M"（N = 当前视图，M = 全量）
+	///   · 否则 —— "内置 X · 模组 Y"
+	/// 长度刻意控制在 10 字上下：统计条是 DockPanel，这行字太宽会把左边四个胶囊挤扁。
+	/// </summary>
 	public string StatBandText
 	{
 		get
 		{
+			if (IsScanning)
+			{
+				return "正在扫描…";
+			}
 			if (summary.IsEmpty)
 			{
 				return "";
+			}
+			if (IsViewFiltered)
+			{
+				return $"显示 {Vehicles.Count} / 共 {allVehicles.Count}";
 			}
 			int builtIn = allVehicles.Count(v => v.IsBuiltIn);
 			int mod = allVehicles.Count - builtIn;
 			return $"内置 {builtIn} · 模组 {mod}";
 		}
 	}
+
+	/// <summary>当前视图是否被搜索词或来源筛选收窄过。</summary>
+	private bool IsViewFiltered => !string.IsNullOrWhiteSpace(searchText) || SelectedSource != "全部";
 
 	public string StatusMessage
 	{
@@ -162,6 +190,23 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		set
 		{
 			if (SetProperty(ref selectedSource, value))
+			{
+				ApplyView();
+			}
+		}
+	}
+
+	/// <summary>
+	/// 搜索框内容。按 车辆名 / 车辆ID / 承载它的包文件名 匹配，
+	/// 空格分隔的多个关键词要**全部**命中才留下（跟主流文件管理器一致）。
+	/// 每敲一个字就重新过滤一遍：324 辆车 Clear + Add 实测不卡，所以不做防抖。
+	/// </summary>
+	public string SearchText
+	{
+		get => searchText;
+		set
+		{
+			if (SetProperty(ref searchText, value))
 			{
 				ApplyView();
 			}
@@ -229,15 +274,37 @@ public sealed class VehiclesPageViewModel : ObservableObject
 			SourceOptions.Add(s);
 		}
 		StatusMessage = "正在扫描内置车辆与模组车辆…";
-		_ = ScanAsync();
+		_ = RescanAsync();
 	}
 
-	private async Task ScanAsync()
+	/// <summary>重新扫描（工具条上的「刷新」）。装完新模组不用重启启动器。</summary>
+	private void Refresh()
+	{
+		if (IsScanning)
+		{
+			return; // 已经在扫了，再点没有意义
+		}
+		IsScanning = true;
+		StatusMessage = "正在重新扫描内置车辆与模组车辆…";
+		AppState.Current.Notify("正在重新扫描车辆…");
+		_ = RescanAsync(announce: true);
+	}
+
+	/// <summary>
+	/// 扫描 → 应用视图 → 云同步。首次进页面与手动「刷新」共用这一条路径
+	/// （首次进页面静默，手动刷新完给一句 toast —— 列表非空时状态文案是看不见的）。
+	/// </summary>
+	private async Task RescanAsync(bool announce = false)
 	{
 		List<VehicleItem> found = await Task.Run(ScanAll).ConfigureAwait(true);
 		allVehicles = found;
 		ApplyView();
 		IsScanning = false;
+
+		if (announce)
+		{
+			AppState.Current.Notify($"已重新扫描：{allVehicles.Count} 辆车");
+		}
 
 		// 云同步：车辆库列表上报云端
 		try
@@ -327,6 +394,14 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 
 		return result;
+	}
+
+	/// <summary>单个关键词命中判定：车辆名 / 车辆ID / 包文件名，忽略大小写。</summary>
+	private static bool MatchesToken(VehicleItem v, string token)
+	{
+		return v.Name.Contains(token, StringComparison.OrdinalIgnoreCase)
+			|| v.VehicleId.Contains(token, StringComparison.OrdinalIgnoreCase)
+			|| v.FileName.Contains(token, StringComparison.OrdinalIgnoreCase);
 	}
 
 	private static IEnumerable<string> SafeDirs(string dir)
@@ -444,6 +519,10 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>重新扫描（装完模组不用重启启动器）。</summary>
+	public IRelayCommand RefreshCommand =>
+		refreshCommand ?? (refreshCommand = new RelayCommand(Refresh));
+
 	/// <summary>在资源管理器中打开游戏车辆目录（content/vehicles）。</summary>
 	public IRelayCommand OpenVehiclesFolderCommand =>
 		openVehiclesFolderCommand ?? (openVehiclesFolderCommand = new RelayCommand(OpenVehiclesFolder));
@@ -462,6 +541,14 @@ public sealed class VehiclesPageViewModel : ObservableObject
 	/// <summary>右侧面板的「在资源管理器中定位」。</summary>
 	public IRelayCommand RevealSelectedCommand =>
 		revealSelectedCommand ?? (revealSelectedCommand = new RelayCommand(() => OpenVehicleLocation(selectedVehicle)));
+
+	/// <summary>右侧面板的「复制车辆ID」。</summary>
+	public IRelayCommand<VehicleItem> CopyVehicleIdCommand =>
+		copyVehicleIdCommand ?? (copyVehicleIdCommand = new RelayCommand<VehicleItem>(CopyVehicleId));
+
+	/// <summary>打开 mods 目录（手动装模组的入口）。</summary>
+	public IRelayCommand OpenModsFolderCommand =>
+		openModsFolderCommand ?? (openModsFolderCommand = new RelayCommand(OpenModsFolder));
 
 	public IRelayCommand SortByNameCommand =>
 		sortByNameCommand ?? (sortByNameCommand = new RelayCommand(() => ApplySort(0)));
@@ -504,6 +591,25 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>复制车辆ID（= vehicles/&lt;id&gt; 的目录名，改 jbeam 时用得上）。</summary>
+	private void CopyVehicleId(VehicleItem? item)
+	{
+		string id = item?.VehicleId ?? "";
+		if (string.IsNullOrWhiteSpace(id))
+		{
+			return;
+		}
+		try
+		{
+			Clipboard.SetText(id);
+			AppState.Current.Notify("车辆ID 已复制：" + id);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show("复制车辆ID失败：" + ex.Message, "StartRide", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
 	private void ApplySort(int mode)
 	{
 		if (sortMode == mode)
@@ -531,6 +637,13 @@ public sealed class VehiclesPageViewModel : ObservableObject
 			query = query.Where(v => !v.IsBuiltIn);
 		}
 
+		// 搜索：空格分隔的每个关键词都要命中（车辆名 / 车辆ID / 包文件名 任一含它就算命中）
+		string[] tokens = (searchText ?? "").Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+		if (tokens.Length > 0)
+		{
+			query = query.Where(v => tokens.All(t => MatchesToken(v, t)));
+		}
+
 		List<VehicleItem> entries = (sortMode == 1)
 			? query.OrderByDescending(v => v.Bytes).ThenBy(v => v.Name, StringComparer.OrdinalIgnoreCase).ToList()
 			: query.OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase).ToList();
@@ -554,7 +667,10 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 		else if (entries.Count == 0)
 		{
-			StatusMessage = "当前筛选下没有车辆。";
+			string keyword = (searchText ?? "").Trim();
+			StatusMessage = keyword.Length > 0
+				? "没有匹配「" + keyword + "」的车辆。换个关键词，或把工具条上的来源切回「全部」。"
+				: "当前筛选下没有车辆。";
 		}
 		else
 		{
@@ -597,6 +713,28 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		catch (Exception ex)
 		{
 			MessageBox.Show("无法打开文件位置：" + ex.Message, "StartRide", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
+	/// <summary>打开 mods 目录（解压目录形的模组、zip 形模组都放在这儿）。</summary>
+	private void OpenModsFolder()
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(ModsDirectory) || !Directory.Exists(ModsDirectory))
+			{
+				MessageBox.Show("未找到模组目录：" + (ModsDirectory ?? ""), "StartRide", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+			Process.Start(new ProcessStartInfo
+			{
+				FileName = ModsDirectory,
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show("无法打开模组目录：" + ex.Message, "StartRide", MessageBoxButton.OK, MessageBoxImage.Error);
 		}
 	}
 

@@ -160,6 +160,106 @@ public sealed partial class GeneralSettingsViewModel
 	public ObservableCollection<GameConfigFileItem> GameConfigFiles { get; } =
 		new ObservableCollection<GameConfigFileItem>();
 
+	// ── 精彩瞬间自动捕捉 ──────────────────────────────────────────────────────
+	// 三个开关都只做两件事：写启动器设置 + **把配置推给游戏内模组**。
+	// 第二件事不能漏 —— 用户在界面上关了，游戏里还在录，是最招骂的那种 bug。
+
+	private bool highlightCaptureEnabled = true;
+	private bool highlightAutoRecord = true;
+	private bool highlightInSinglePlayer;
+
+	/// <summary>总开关。关掉后模组仍检测（HUD 上看得见）但不落盘。</summary>
+	public bool HighlightCaptureEnabled
+	{
+		get => highlightCaptureEnabled;
+		set
+		{
+			if (highlightCaptureEnabled != value)
+			{
+				highlightCaptureEnabled = value;
+				AppSettings.Current.HighlightCaptureEnabled = value;
+				AppSettings.Current.Save();
+				OnPropertyChanged("HighlightCaptureEnabled");
+				PushHighlightConfig();
+			}
+		}
+	}
+
+	/// <summary>联机时自动开始录制回放。</summary>
+	public bool HighlightAutoRecord
+	{
+		get => highlightAutoRecord;
+		set
+		{
+			if (highlightAutoRecord != value)
+			{
+				highlightAutoRecord = value;
+				AppSettings.Current.HighlightAutoRecord = value;
+				AppSettings.Current.Save();
+				OnPropertyChanged("HighlightAutoRecord");
+				PushHighlightConfig();
+			}
+		}
+	}
+
+	/// <summary>单人开车也记录（默认关：随便跑一圈也生成记录会白占磁盘）。</summary>
+	public bool HighlightInSinglePlayer
+	{
+		get => highlightInSinglePlayer;
+		set
+		{
+			if (highlightInSinglePlayer != value)
+			{
+				highlightInSinglePlayer = value;
+				AppSettings.Current.HighlightInSinglePlayer = value;
+				AppSettings.Current.Save();
+				OnPropertyChanged("HighlightInSinglePlayer");
+				PushHighlightConfig();
+			}
+		}
+	}
+
+	/// <summary>把高光设置写到 &lt;回放目录&gt;/startride/config.json。失败不抛。</summary>
+	private void PushHighlightConfig()
+	{
+		try
+		{
+			HighlightStore.PushModConfig(AppSettings.Current);
+		}
+		catch
+		{
+			// 目录不可写（游戏装在只读盘等）不该让设置页崩掉，模组也有内置默认值
+		}
+	}
+
+	/// <summary>在资源管理器中打开高光目录（截图 + JSON + 自动录的录像都在这一带）。</summary>
+	public IRelayCommand OpenHighlightsFolderCommand =>
+		openHighlightsFolderCommand ?? (openHighlightsFolderCommand = new RelayCommand(OpenHighlightsFolder));
+
+	private RelayCommand? openHighlightsFolderCommand;
+
+	private void OpenHighlightsFolder()
+	{
+		try
+		{
+			string dir = HighlightStore.ResolveDirectory(AppSettings.Current.ResolveReplaysDirectory());
+			if (string.IsNullOrWhiteSpace(dir) || !System.IO.Directory.Exists(dir))
+			{
+				System.Windows.MessageBox.Show(
+					"还没有高光记录。启动游戏并跑一局，这里就会出现截图与记录文件。",
+					"StartRide",
+					System.Windows.MessageBoxButton.OK,
+					System.Windows.MessageBoxImage.Information);
+				return;
+			}
+			System.Diagnostics.Process.Start("explorer.exe", "\"" + dir + "\"");
+		}
+		catch (Exception ex)
+		{
+			System.Windows.MessageBox.Show("无法打开目录：" + ex.Message, "StartRide", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+		}
+	}
+
 	[GeneratedCode("HandWritten", "1.0.0.0")]
 	public IRelayCommand AutoDetectBeamNgDirectoryCommand =>
 		autoDetectBeamNgDirectoryCommand ?? (autoDetectBeamNgDirectoryCommand = new RelayCommand(AutoDetectBeamNgDirectory));

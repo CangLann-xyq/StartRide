@@ -171,7 +171,68 @@ public partial class InstallerWindow : Window
         _options.StartMenuShortcut = StartMenuCheck.IsChecked == true;
         _options.LaunchAfterwards = LaunchCheck.IsChecked == true;
 
+        // 目标位置已经有 StartRide（或已有别的文件）时先问一句，见 ConfirmOverwrite
+        if (!ConfirmOverwrite(target)) return;
+
         await RunInstallAsync();
+    }
+
+    /// <summary>
+    /// 目标位置已经有 StartRide 时问一句"是否覆盖"。
+    ///
+    /// 为什么非要问：覆盖安装一直是"点完就没了"的重灾区，用户不知道自己要付出什么。
+    /// 这里把两件事摊开讲清楚 ——
+    ///   ① 会先**删掉**该目录下的程序文件（不清的话旧版本多出来的文件会永远留着）；
+    ///   ② 用户自己的东西（Mods、账户、设置）不在这个目录里，不受影响。
+    /// 返回 false = 用户点了"否"，整个安装中止，停在欢迎页。
+    /// </summary>
+    private bool ConfirmOverwrite(string target)
+    {
+        // 只有"看起来确实是 StartRide 安装目录"才允许清空；否则只做普通覆盖（绝不清空别人的目录）
+        bool installDir = InstallEngine.LooksLikeInstallDirectory(target);
+
+        bool nonEmpty;
+        try
+        {
+            nonEmpty = Directory.Exists(target) && Directory.EnumerateFileSystemEntries(target).Any();
+        }
+        catch
+        {
+            nonEmpty = false;
+        }
+
+        if (!installDir && !nonEmpty) return true;      // 空目录 / 新目录：直接装，不打扰
+
+        string title;
+        string body;
+
+        if (installDir)
+        {
+            string? installed = ProductInfo.InstalledVersion();
+            string from = string.IsNullOrEmpty(installed) ? "" : $"（当前 {installed}）";
+            title = "检测到已安装的 StartRide";
+            body = "这个位置已经装了 StartRide" + from + "：\n\n"
+                 + target + "\n\n"
+                 + "继续将先删除该位置下的程序文件，再写入本次安装包提供的 "
+                 + ProductInfo.Version + "。\n\n"
+                 + "你的账户、设置、车辆与模组不在这个目录里，不会被删除。\n\n"
+                 + "是否覆盖安装？";
+        }
+        else
+        {
+            title = "目标文件夹不是空的";
+            body = "这个文件夹里已经有别的文件：\n\n"
+                 + target + "\n\n"
+                 + "继续会把 StartRide 写进去（同名文件会被覆盖），本次不会清空这个文件夹。\n\n"
+                 + "是否继续？";
+        }
+
+        MessageBoxResult answer = MessageBox.Show(this, body, title,
+            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes) return false;
+
+        _options.ClearBeforeInstall = installDir;
+        return true;
     }
 
     private async System.Threading.Tasks.Task RunInstallAsync()
@@ -237,6 +298,7 @@ public partial class InstallerWindow : Window
         {
             InstallStage.Preparing => "检查环境",
             InstallStage.Unpacking => "解包应用数据",
+            InstallStage.Cleaning => "清理旧版本",
             InstallStage.Copying => "写入安装目录",
             InstallStage.Shortcuts => "创建快捷方式",
             InstallStage.Registering => "登记卸载信息",

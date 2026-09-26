@@ -14,6 +14,7 @@ using CommunityToolkit.Mvvm.Input;
 using StartRide.App.Models;
 using StartRide.App.Resources;
 using StartRide.App.Services;
+using StartRide.App.ViewModels.Shell;
 using Launcher.Application.Services;
 using Launcher.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,8 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	private readonly IFloatingMessageService floatingMessageService;
 
 	private readonly IExternalLinkService externalLinkService;
+
+	private readonly LegalReaderViewModel legalReader;
 
 	private readonly ILauncherUpdateService launcherUpdateService;
 
@@ -490,42 +493,21 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	/// <summary>
 	/// 打开一份法律文件。
 	///
-	/// 地址来自 <see cref="StartRide.Core.LegalDocuments"/>：线上（腾讯文档）优先，
-	/// 该文件还没上云时自动退回仓库里的 Markdown —— 不会出现"按钮点了是死链"。
+	/// 2.11.0 起正文随包内嵌，点「查看」在软件内置的阅读器里直接读 —— 不跳浏览器，
+	/// 离线可读，国内也一定打得开（以前跳腾讯文档，网络一差就是白屏）。
 	/// </summary>
 	[RelayCommand]
 	private void OpenLegalDocument(LegalDocumentItem? document)
 	{
-		if (document is null || string.IsNullOrWhiteSpace(document.Url))
+		if (document is null)
 		{
-			logger.LogWarning("About page: legal document link is empty. Id={Id}", document?.Id ?? "<null>");
+			logger.LogWarning("About page: legal document entry is missing.");
 			ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
 			return;
 		}
 
-		OpenLegalDocument(document.Url, document.Id);
-	}
-
-	private void OpenLegalDocument(string url, string documentId)
-	{
-		try
-		{
-			// 关于页每个按钮的目标地址都记一行日志 —— 「点了按钮跳到别人仓库」这种反馈，
-			// 有这行日志就能一秒分辨是旧包（日志里的 URL 是上游地址）还是真的改错了。
-			logger.LogInformation("About page external link. Target=legal-document Id={Id} Url={Url}", documentId, url);
-			if (externalLinkService.TryOpen(url))
-			{
-				return;
-			}
-		}
-		catch (Exception exception)
-		{
-			logger.LogWarning(exception, "Failed to open a legal document link. Id={Id}", documentId);
-			ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
-			return;
-		}
-		logger.LogWarning("Failed to open a legal document link. Id={Id}", documentId);
-		ReportVisibleStatus(Strings.Status_OpenLegalDocumentFailed);
+		logger.LogInformation("About page: opening built-in legal reader. Id={Id}", document.Id);
+		legalReader.Open(document);
 	}
 
 	[RelayCommand(CanExecute = "CanCheckUpdates", AllowConcurrentExecutions = true)]
@@ -739,12 +721,13 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		return !IsStartingUpdate;
 	}
 
-	internal InfoSettingsViewModel(SettingsPersistenceCoordinator persistence, IStatusService statusService, IFloatingMessageService floatingMessageService, IExternalLinkService externalLinkService, ILauncherUpdateService launcherUpdateService, ILauncherSelfUpdateService launcherSelfUpdateService, IApplicationExitService applicationExitService, IInfoReferenceProjectCatalog referenceProjectCatalog, ILogger<InfoSettingsViewModel>? logger = null)
+	internal InfoSettingsViewModel(SettingsPersistenceCoordinator persistence, IStatusService statusService, IFloatingMessageService floatingMessageService, IExternalLinkService externalLinkService, ILauncherUpdateService launcherUpdateService, ILauncherSelfUpdateService launcherSelfUpdateService, IApplicationExitService applicationExitService, IInfoReferenceProjectCatalog referenceProjectCatalog, LegalReaderViewModel legalReader, ILogger<InfoSettingsViewModel>? logger = null)
 		: base(persistence)
 	{
 		this.statusService = statusService;
 		this.floatingMessageService = floatingMessageService;
 		this.externalLinkService = externalLinkService;
+		this.legalReader = legalReader;
 		this.launcherUpdateService = launcherUpdateService;
 		this.launcherSelfUpdateService = launcherSelfUpdateService;
 		this.applicationExitService = applicationExitService;

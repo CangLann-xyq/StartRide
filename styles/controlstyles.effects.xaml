@@ -73,11 +73,49 @@
     <Setter Property="controls:BackdropBlurBorder.TintBrush" Value="#38101318" />
     <Setter Property="controls:BackdropBlurBorder.OverlayBrush" Value="#00FFFFFF" />
     <Setter Property="controls:BackdropBlurBorder.IsTintEnabled" Value="{DynamicResource Is.ImageBackground.ControlTint.Enabled}" />
+    <!-- 四边 1px 描边 + 18px 圆角 = 悬浮卡片观感。
+
+         ⚠️ 这个键**不只**给那六个页面的左栏用 —— 主页的启动菜单面板
+         （`HomeLaunchGameListView.xaml` 的 `HomeLaunchMenuPanel`）也挂着它，
+         那是一张真·悬浮卡片（配 14px 圆角的阴影层 + 圆角底边）。
+
+         2026-09-26 曾把这里整体改成"贴边竖栏"（描边只留右侧、圆角归零），
+         顺手把主页那张卡片也改坏了 —— 所以现在**拆成两个键**：
+         本键恢复卡片原样，贴边竖栏走下面的 `SecondaryMenuSidebarBackdropStyle`。
+         教训：共享样式改之前先 grep 全部引用方，别只看自己正在改的那一处。 -->
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.SecondaryMenu.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="controls:BackdropBlurBorder.CornerRadius" Value="18" />
     <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="behaviors:RoundedClip.Radius" Value="18" />
+    <Style.Triggers>
+      <Trigger Property="controls:BackdropBlurBorder.IsTintEnabled" Value="True">
+        <Setter Property="controls:BackdropBlurBorder.BaseBrush" Value="#00FFFFFF" />
+        <Setter Property="controls:BackdropBlurBorder.TintBrush" Value="{DynamicResource Brush.SecondaryMenu.BackdropTint}" />
+        <Setter Property="controls:BackdropBlurBorder.OverlayBrush" Value="{DynamicResource Brush.SurfaceBackdrop.ContrastOverlay}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <!-- 侧栏专用（贴边竖栏）：左 / 上 / 下都贴住页面边，只有右侧一条 1px 分隔线，
+       但**右侧两个角留 18px 圆角** —— 竖栏从页面顶铺到底，右缘的两个转角不再是死直角。
+
+       ⚠️ `CornerRadius` 必须写 "0,18,18,0"（左上 / 右上 / 右下 / 左下）：
+       左边两个角贴着窗口左缘，圆了会露出后面的页面底色，变成两个缺口。
+       ⚠️ 逐角圆角**只能靠 `CornerRadius`** —— `behaviors:RoundedClip.Radius` 是 `double`，
+       底层 `RectangleGeometry(rect, rx, ry)` 只能均匀圆角，给不出"只圆右边两角"。
+       模板里三层填充（Base / Tint / Overlay）与描边层都绑 `CornerRadius`，所以逐角值是有效的。
+       子元素不会画进圆角区：侧栏内容左右各留 14px 边距（`SecondaryMenuItemsPanelStyle`），
+       滚动条也在边距之内。 -->
+  <Style x:Key="SecondaryMenuSidebarBackdropStyle" TargetType="{x:Type controls:BackdropBlurBorder}" BasedOn="{StaticResource BackdropBlurBorderStyle}">
+    <Setter Property="controls:BackdropBlurBorder.IsBlurEnabled" Value="{DynamicResource Is.SecondaryMenu.BackdropBlur.Enabled}" />
+    <Setter Property="controls:BackdropBlurBorder.BaseBrush" Value="{DynamicResource Brush.SecondaryMenu.Panel}" />
+    <Setter Property="controls:BackdropBlurBorder.TintBrush" Value="#38101318" />
+    <Setter Property="controls:BackdropBlurBorder.OverlayBrush" Value="#00FFFFFF" />
+    <Setter Property="controls:BackdropBlurBorder.IsTintEnabled" Value="{DynamicResource Is.ImageBackground.ControlTint.Enabled}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.SecondaryMenu.Border}" />
+    <Setter Property="BorderThickness" Value="0,1,1,0" />
+    <Setter Property="controls:BackdropBlurBorder.CornerRadius" Value="0,18,18,0" />
+    <Setter Property="ClipToBounds" Value="True" />
     <Style.Triggers>
       <Trigger Property="controls:BackdropBlurBorder.IsTintEnabled" Value="True">
         <Setter Property="controls:BackdropBlurBorder.BaseBrush" Value="#00FFFFFF" />

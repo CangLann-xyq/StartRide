@@ -35,6 +35,21 @@ internal static class NativeCaptionButtons
 		}
 	}
 
+	/// <summary>
+	/// 重新剥一次窗口的原生标题栏样式位（<see cref="Hide"/> 只管首次，这里管"事后"）。
+	/// </summary>
+	/// <remarks>
+	/// 只在窗口的 <c>WindowStyle</c> 被改回来之后需要：WPF 写回 SingleBorderWindow 时会把
+	/// 整套样式位重设一遍，把这里剥掉的边框/系统菜单又装回去。装回来之后，任何一次最大化
+	/// 都会按「工作区再往每边扩 8px 边框」算尺寸 —— 实测 Esc 退出全屏后窗口矩形变成
+	/// (-8,-8)-(1928,1040)（1936x1048），四边都探到屏幕外面去，底部还被任务栏压住。
+	/// SourceInitialized 不会再触发第二次，所以必须能从外面主动调。
+	/// </remarks>
+	public static void Reapply(Window window)
+	{
+		Apply(window);
+	}
+
 	private static void Apply(Window window)
 	{
 		nint handle = new WindowInteropHelper(window).Handle;

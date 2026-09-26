@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ internal enum InstallStage
 {
     Preparing,
     Unpacking,
+    Cleaning,
     Copying,
     Shortcuts,
     Registering,
@@ -39,6 +41,17 @@ internal sealed class InstallOptions
     public bool DesktopShortcut { get; set; } = true;
     public bool StartMenuShortcut { get; set; } = true;
     public bool LaunchAfterwards { get; set; } = true;
+
+    /// <summary>
+    /// 覆盖安装时是否先清空目标目录里的程序文件（<see cref="PreservedDirectoryNames"/> 除外）。
+    ///
+    /// 为什么需要它：原来的逻辑是逐个 <c>File.Copy(overwrite: true)</c>，只覆盖"同名"文件 ——
+    /// 旧版本多出来、新版本已经删掉的那些文件（旧 DLL、旧资源、旧的联机 Lua）会**永远留在
+    /// 安装目录里**，而且还会被游戏/启动器扫到。所以升级前必须把程序文件清干净。
+    ///
+    /// 由界面上的"检测到已安装 → 是否覆盖"确认框置位；静默模式默认打开（见 --keep-old）。
+    /// </summary>
+    public bool ClearBeforeInstall { get; set; }
 }
 
 /// <summary>
@@ -77,6 +90,17 @@ internal static class InstallEngine
             // ── 解包 ──────────────────────────────────────────────────────
             progress.Report(new InstallProgress(InstallStage.Unpacking, 4, "正在解包应用文件…"));
             long totalBytes = await Task.Run(() => ExtractPackage(staging, progress, ct), ct);
+
+            // ── 清理旧版本 ────────────────────────────────────────────────
+            // ⚠️ 时机：必须放在"解包成功之后、往安装目录写之前"。
+            //    解包失败时安装目录还完好无损，用户重试或放弃都不会面对一个"半空"的目录；
+            //    而一旦开始写，就必须先清干净 —— 否则旧版本多出来的文件会留下来（见 ClearBeforeInstall）。
+            if (options.ClearBeforeInstall && LooksLikeInstallDirectory(target))
+            {
+                progress.Report(new InstallProgress(InstallStage.Cleaning, 67, "正在清理旧版本文件…"));
+                int removed = await Task.Run(() => ClearForOverwrite(target), ct);
+                note?.Invoke($"已清理旧版本程序文件 {removed} 项（已保留 Mods 等数据目录）");
+            }
 
             // ── 搬到安装目录 ──────────────────────────────────────────────
             List<string> files = await Task.Run(() => EnumerateFiles(staging), ct);
@@ -298,6 +322,124 @@ internal static class InstallEngine
             return 8192;
         }
         return (int)Math.Min(Math.Max(total / 1024, 1), int.MaxValue);
+    }
+
+    /// <summary>
+    /// 安装目录里**不属于程序本体**的顶层目录 —— 覆盖安装清理时原样保留。
+    ///
+    /// <c>Mods</c> 是运行期真实会有用户数据的：玩家往"模组文件夹"里丢的东西就放在
+    /// <c>&lt;EXE&gt;\Mods</c>（见 ModInstaller / GameFileHealthService）。
+    /// 其余几个（<c>BHL</c> / <c>.minecraft</c> / <c>cache</c> / <c>images</c> / <c>tools</c>）
+    /// 是反编译框架时代的遗留目录 —— 不是我们建的，也就没资格替用户删。
+    ///
+    /// 不在这张表里的（含 <c>Uninstall\</c>）都是安装包放进去的，删掉后会被重新写一遍。
+    /// </summary>
+    private static readonly string[] PreservedDirectoryNames =
+    {
+        "Mods", "BHL", ".minecraft", "cache", "images", "tools"
+    };
+
+    /// <summary>
+    /// 目标目录看起来是不是"我们已经装过的 StartRide 目录"。
+    ///
+    /// ⚠️ 只有判断为真才允许清空式覆盖。用户完全可能手点"浏览…"选到自己的文档目录、
+    /// 游戏根目录甚至盘根 —— 那种情况下只能"往里写文件"，绝不能清空。
+    /// </summary>
+    internal static bool LooksLikeInstallDirectory(string dir)
+    {
+        try
+        {
+            if (!Directory.Exists(dir)) return false;
+            if (IsUnsafeTarget(dir)) return false;
+            // 里面就躺着 StartRide.exe —— 这是最强的证据
+            if (File.Exists(ProductInfo.ExePathIn(dir))) return true;
+
+            string full = Normalize(dir);
+            if (full == Normalize(ProductInfo.DefaultInstallDir)) return true;
+            string? registered = ProductInfo.FindInstalledDir();
+            if (!string.IsNullOrEmpty(registered) && full == Normalize(registered!)) return true;
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 危险目标：盘根、用户主目录、桌面、文档、Program Files、Windows…
+    /// 清空这些是灾难，一律判否（只比较"完全相等"，不动它们的子目录）。
+    /// </summary>
+    private static bool IsUnsafeTarget(string dir)
+    {
+        string full = Normalize(dir);
+        if (full.Length == 0) return true;
+
+        string root = Normalize(Path.GetPathRoot(full) ?? "");
+        if (root.Length > 0 && full == root) return true;            // C:\ 这种
+
+        string[] guarded =
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            Environment.GetFolderPath(Environment.SpecialFolder.System),
+        };
+        foreach (string g in guarded)
+        {
+            if (g.Length > 0 && full == Normalize(g)) return true;
+        }
+        return false;
+    }
+
+    private static string Normalize(string path)
+        => Path.GetFullPath(path)
+               .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+    /// <summary>
+    /// 清空安装目录里的程序文件，返回删掉的文件/目录项数。
+    /// 只遍历**顶层**：命中 <see cref="PreservedDirectoryNames"/> 的整个子树都不碰。
+    /// </summary>
+    internal static int ClearForOverwrite(string dir)
+    {
+        if (!Directory.Exists(dir)) return 0;
+        int removed = 0;
+
+        foreach (string file in Directory.EnumerateFiles(dir))
+        {
+            try
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+                File.Delete(file);
+                removed++;
+            }
+            catch
+            {
+                // 被占用的先留着：后面 File.Copy 会再撞一次，报出来的错误比这里静默吞掉有用
+            }
+        }
+
+        foreach (string sub in Directory.EnumerateDirectories(dir))
+        {
+            string name = Path.GetFileName(sub);
+            if (PreservedDirectoryNames.Any(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+            try
+            {
+                SafeDeleteDirectory(sub);
+                removed++;
+            }
+            catch
+            {
+                // 同上
+            }
+        }
+        return removed;
     }
 
     /// <summary>

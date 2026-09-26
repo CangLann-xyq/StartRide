@@ -39,42 +39,58 @@ local abs = math.abs
 local min = math.min
 local max = math.max
 
--- ── 位置/角度修正参数（数值与 BeamMP positionVE 完全一致；tpRotAdd 0.5→0.8 是主动放宽）──
-local posCorrectMul = 5
-local posForceMul = 5
-local minPosForce = 0.04
-local maxPosForce = 100
-local maxAcc = 100
-local maxAccError = 3
+-- ── 调参常量 ─────────────────────────────────────────────────────────────────
+-- ⚠️ 必须收进一张表，**绝不能平铺成一堆 local**：
+--    Lua 5.1 每个函数的 upvalue 上限是 60，而 updateGFX 会平铺引用这里全部常量，
+--    实测到 70 个 → 超限是**编译期**错误，整个 startrideVE 模块直接 load 失败。
+--    后果：GE 下发的 setVehicleType('R') 没人接、逐节点施力与传送全不跑，
+--    用户看到的就是"联机时看不见对方的车"，而报错只在 beamng.log 里留一行：
+--      error loading module 'lua/vehicle/extensions/auto/startrideVE'
+--      startrideVE.lua:807: function at line 638 has more than 60 upvalues
+--    改成表之后，每个函数只捕获 1 个 upvalue（表本身），实测 70 → 49。
+--    新增常量一律加进这张表，别再写 local。
+--    复核手段：node _sr_shots/_sr_upvals.js Mods/startrideVE.lua
+local TUNE = {
+  -- 位置/角度修正（数值与 BeamMP positionVE 完全一致；tpRotAdd 0.5→0.8 是主动放宽）
+  posCorrectMul = 5,
+  posForceMul = 5,
+  minPosForce = 0.04,
+  maxPosForce = 100,
+  maxAcc = 100,
+  maxAccError = 3,
 
-local rotCorrectMul = 7
-local rotForceMul = 7
-local minRotForce = 0.02
-local maxRotForce = 50
-local maxRacc = 50
-local maxRaccError = 3
+  rotCorrectMul = 7,
+  rotForceMul = 7,
+  minRotForce = 0.02,
+  maxRotForce = 50,
+  maxRacc = 50,
+  maxRaccError = 3,
 
-local tpDelayAdd = 1
-local tpDistAdd = 1
-local tpDistMul1 = 0.1
-local tpDistMul2 = 0.5
--- BeamMP 用 0.5。阈值过小会让高速行驶的远程车频繁被硬传送，
--- 每次硬传送都会打断一次物理解算 —— 看起来就是"抖 + 穿模"。这里放宽到 0.8。
-local tpRotAdd = 0.8
-local tpRotMul1 = 0.2
-local tpRotMul2 = 0.5
+  -- BeamMP 用 0.5。阈值过小会让高速行驶的远程车频繁被硬传送，
+  -- 每次硬传送都会打断一次物理解算 —— 看起来就是"抖 + 穿模"。这里放宽到 0.8。
+  tpDelayAdd = 1,
+  tpDistAdd = 1,
+  tpDistMul1 = 0.1,
+  tpDistMul2 = 0.5,
+  tpRotAdd = 0.8,
+  tpRotMul1 = 0.2,
+  tpRotMul2 = 0.5,
 
-local maxPredict = 0.3
-local packetTimeout = 0.30
+  maxPredict = 0.3,
+  packetTimeout = 0.30,
 
-local remoteVelSmoothRate = 2
-local remoteAccSmoothRate = 1
-local errSmoothRate = 50
+  remoteVelSmoothRate = 2,
+  remoteAccSmoothRate = 1,
+  errSmoothRate = 50,
 
--- ── 逐节点施力 ──
-local maxBeamLengthRatio = 2   -- 梁被拉长超过原长这个倍数就当成断了（BeamMP velocityVE）
-local PER_NODE_LIMIT = 900     -- 可连接节点数超过它就退回单次 cluster 调用（保帧率）
-local NODE_REFRESH_INTERVAL = 5
+  -- 逐节点施力
+  maxBeamLengthRatio = 2,        -- 梁被拉长超过原长这个倍数就当成断了（BeamMP velocityVE）
+  PER_NODE_LIMIT = 900,          -- 可连接节点数超过它就退回单次 cluster 调用（保帧率）
+  NODE_REFRESH_INTERVAL = 5,
+  minTpGap = 0.25,
+}
+
+-- ── 逐节点施力状态 ──
 local connectedBeams = {}
 local isConnectedNode = {}
 local nodes = {}
@@ -84,7 +100,6 @@ local nodesBuilt = false
 local nodeSetFallbacks = 0
 local lastNodeRefresh = -100
 local beamBrokeWrapped = false
-
 -- ── 运行时状态 ──
 local timer = 0
 local lastDT = 0
@@ -93,7 +108,7 @@ local tpTimer = 0
 local active = false
 local pendingSnap = false
 local lastTpAt = -100
-local minTpGap = 0.25
+
 local tpCount = 0
 local skipByCollision = 0
 local nanDropCount = 0
@@ -225,12 +240,12 @@ local function ensureInit()
   remoteData.rot = quat(0, 0, 0, 1)
   remoteData.rvel = vec3(0, 0, 0)
   remoteData.racc = vec3(0, 0, 0)
-  sm.remoteVel = newSmoother(remoteVelSmoothRate)
-  sm.remoteRvel = newSmoother(remoteVelSmoothRate)
-  sm.remoteAcc = newSmoother(remoteAccSmoothRate)
-  sm.remoteRacc = newSmoother(remoteAccSmoothRate)
-  sm.accError = newSmoother(errSmoothRate)
-  sm.raccError = newSmoother(errSmoothRate)
+  sm.remoteVel = newSmoother(TUNE.remoteVelSmoothRate)
+  sm.remoteRvel = newSmoother(TUNE.remoteVelSmoothRate)
+  sm.remoteAcc = newSmoother(TUNE.remoteAccSmoothRate)
+  sm.remoteRacc = newSmoother(TUNE.remoteAccSmoothRate)
+  sm.accError = newSmoother(TUNE.errSmoothRate)
+  sm.raccError = newSmoother(TUNE.errSmoothRate)
 end
 
 local function getRefNode()
@@ -318,7 +333,7 @@ local function findConnectedNodesRecursive(parentID, depth)
     local broken, ratio = false, 0
     pcall(function() broken = obj:beamIsBroken(bid) end)
     pcall(function() ratio = obj:getBeamCurLengthRefRatio(bid) or 0 end)
-    if not broken and ratio < maxBeamLengthRatio then
+    if not broken and ratio < TUNE.maxBeamLengthRatio then
       local b = v.data.beams[bid]
       if b then
         if parentID == b.id1 then
@@ -378,7 +393,7 @@ local function buildNodeSet()
   findConnectedNodes()
 
   -- 梁断了要重建节点集合。能挂上 beamBroke 就挂（BeamMP 的做法）；
-  -- 挂不上也不致命：onReset + 每 NODE_REFRESH_INTERVAL 秒兜底刷新。
+  -- 挂不上也不致命：onReset + 每 TUNE.NODE_REFRESH_INTERVAL 秒兜底刷新。
   if not beamBrokeWrapped then
     pcall(function()
       local orig = powertrain.beamBroke
@@ -419,7 +434,7 @@ end
 -- 加一个速度增量 Δv(m/s)
 local function addVelocity(x, y, z)
   if beamsChanged or not nodesBuilt then findConnectedNodes() end
-  if #nodes > PER_NODE_LIMIT then
+  if #nodes > TUNE.PER_NODE_LIMIT then
     clusterAccel(x, y, z, 0, 0, 0)
     return
   end
@@ -434,7 +449,7 @@ end
 local function addAngularVelocity(x, y, z, pitchAV, rollAV, yawAV)
   if beamsChanged or not nodesBuilt then findConnectedNodes() end
   pitchAV, rollAV, yawAV = pitchAV or 0, rollAV or 0, yawAV or 0
-  if #nodes > PER_NODE_LIMIT then
+  if #nodes > TUNE.PER_NODE_LIMIT then
     clusterAccel(x, y, z, pitchAV, rollAV, yawAV)
     return
   end
@@ -553,12 +568,12 @@ local function setTargetPos(jsonStr)
 
   remoteData.acc:set(vx - remoteData.vel.x, vy - remoteData.vel.y, vz - remoteData.vel.z)
   remoteData.acc:setScaled(1 / dt)
-  local ax, ay, az = clamp3(remoteData.acc.x, remoteData.acc.y, remoteData.acc.z, maxAcc)
+  local ax, ay, az = clamp3(remoteData.acc.x, remoteData.acc.y, remoteData.acc.z, TUNE.maxAcc)
   remoteData.acc:set(ax, ay, az)
 
   remoteData.racc:set(rx - remoteData.rvel.x, ry - remoteData.rvel.y, rz - remoteData.rvel.z)
   remoteData.racc:setScaled(1 / dt)
-  local qx, qy, qz = clamp3(remoteData.racc.x, remoteData.racc.y, remoteData.racc.z, maxRacc)
+  local qx, qy, qz = clamp3(remoteData.racc.x, remoteData.racc.y, remoteData.racc.z, TUNE.maxRacc)
   remoteData.racc:set(qx, qy, qz)
 
   remoteData.pos:set(p[1], p[2], p[3])
@@ -654,14 +669,14 @@ local function updateGFX(dt)
     if not nodesBuilt and framesSinceReset == 30 then
       logI('拿不到节点集合，退回 cluster 级施力（碰撞可能异常）')
     end
-  elseif beamsChanged or (timer - lastNodeRefresh) > NODE_REFRESH_INTERVAL then
+  elseif beamsChanged or (timer - lastNodeRefresh) > TUNE.NODE_REFRESH_INTERVAL then
     lastNodeRefresh = timer
     pcall(findConnectedNodes)
   end
 
   if not active then return end
 
-  if (timer - remoteData.recvAt) > packetTimeout then
+  if (timer - remoteData.recvAt) > TUNE.packetTimeout then
     active = false
     if not staleWarned then
       staleWarned = true
@@ -695,7 +710,7 @@ local function updateGFX(dt)
   vehRacc:setSub(vehRvel, lastVehRvel)
   lastVehRvel:set(vehRvel)
 
-  local predictTime = min(max(timer - remoteData.recvAt, 0), maxPredict)
+  local predictTime = min(max(timer - remoteData.recvAt, 0), TUNE.maxPredict)
   local smootherDT = dt / max(abs(predictTime), 0.001)
   local rvx, rvy, rvz = smGet(sm.remoteVel, remoteData.vel.x, remoteData.vel.y, remoteData.vel.z, smootherDT)
   local rrx, rry, rrz = smGet(sm.remoteRvel, remoteData.rvel.x, remoteData.rvel.y, remoteData.rvel.z, smootherDT)
@@ -727,11 +742,11 @@ local function updateGFX(dt)
   if not finite3(rx, ry, rz) then rx, ry, rz = 0, 0, 0; rotErrLenSq = 0 end
 
   local maxVel = max(len3(tvx, tvy, tvz), len3(vehVel.x, vehVel.y, vehVel.z))
-  local tpDist1 = tpDistAdd + maxVel * tpDistMul1
-  local tpDist2 = tpDistAdd + maxVel * tpDistMul2
+  local tpDist1 = TUNE.tpDistAdd + maxVel * TUNE.tpDistMul1
+  local tpDist2 = TUNE.tpDistAdd + maxVel * TUNE.tpDistMul2
   local maxRvel = max(len3(rrx, rry, rrz), len3(vehRvel.x, vehRvel.y, vehRvel.z))
-  local tpRot1 = tpRotAdd + maxRvel * tpRotMul1
-  local tpRot2 = tpRotAdd + maxRvel * tpRotMul2
+  local tpRot1 = TUNE.tpRotAdd + maxRvel * TUNE.tpRotMul1
+  local tpRot2 = TUNE.tpRotAdd + maxRvel * TUNE.tpRotMul2
 
   if posErrLenSq > tpDist1 * tpDist1 or rotErrLenSq > tpRot1 * tpRot1 then
     tpTimer = tpTimer + dt
@@ -744,11 +759,11 @@ local function updateGFX(dt)
   if framesSinceReset > 5 then
     local forceSnap = pendingSnap and framesSinceReset >= 6
     local wantTp = forceSnap
-      or tpTimer > (tpDelayAdd + abs(predictTime))
+      or tpTimer > (TUNE.tpDelayAdd + abs(predictTime))
       or posErrLenSq > tpDist2 * tpDist2
       or rotErrLenSq > tpRot2 * tpRot2
-    -- 强制那一次不看间隔限制（否则 firstTp 会被 minTpGap 挡掉）
-    if wantTp and not forceSnap and (timer - lastTpAt) < minTpGap then wantTp = false end
+    -- 强制那一次不看间隔限制（否则 firstTp 会被 TUNE.minTpGap 挡掉）
+    if wantTp and not forceSnap and (timer - lastTpAt) < TUNE.minTpGap then wantTp = false end
 
     if wantTp then
       local sent = requestTeleport(tpx, tpy, tpz,
@@ -789,27 +804,27 @@ local function updateGFX(dt)
     (hasLastAcc and lastRaccV.y or vehRacc.y) - vehRacc.y,
     (hasLastAcc and lastRaccV.z or vehRacc.z) - vehRacc.z, dt)
 
-  local f = min(posForceMul * dt, 1)
-  local fr = min(rotForceMul * dt, 1)
+  local f = min(TUNE.posForceMul * dt, 1)
+  local fr = min(TUNE.rotForceMul * dt, 1)
 
-  local tAccX, tAccY, tAccZ = (velErrX + ex * posCorrectMul) * f,
-                              (velErrY + ey * posCorrectMul) * f,
-                              (velErrZ + ez * posCorrectMul) * f
-  tAccX, tAccY, tAccZ = clamp3(tAccX, tAccY, tAccZ, maxPosForce * dt)
+  local tAccX, tAccY, tAccZ = (velErrX + ex * TUNE.posCorrectMul) * f,
+                              (velErrY + ey * TUNE.posCorrectMul) * f,
+                              (velErrZ + ez * TUNE.posCorrectMul) * f
+  tAccX, tAccY, tAccZ = clamp3(tAccX, tAccY, tAccZ, TUNE.maxPosForce * dt)
 
-  local tRaccX, tRaccY, tRaccZ = (rrx - vehRvel.x + rx * rotCorrectMul) * fr,
-                                 (rry - vehRvel.y + ry * rotCorrectMul) * fr,
-                                 (rrz - vehRvel.z + rz * rotCorrectMul) * fr
-  tRaccX, tRaccY, tRaccZ = clamp3(tRaccX, tRaccY, tRaccZ, maxRotForce * dt)
+  local tRaccX, tRaccY, tRaccZ = (rrx - vehRvel.x + rx * TUNE.rotCorrectMul) * fr,
+                                 (rry - vehRvel.y + ry * TUNE.rotCorrectMul) * fr,
+                                 (rrz - vehRvel.z + rz * TUNE.rotCorrectMul) * fr
+  tRaccX, tRaccY, tRaccZ = clamp3(tRaccX, tRaccY, tRaccZ, TUNE.maxRotForce * dt)
 
   local accLenSq = tAccX * tAccX + tAccY * tAccY + tAccZ * tAccZ
   local dot = tAccX * aex + tAccY * aey + tAccZ * aez
-  local mul = 1 - min(max(dot / (accLenSq + maxAccError * maxAccError * dt), 0), 1)
+  local mul = 1 - min(max(dot / (accLenSq + TUNE.maxAccError * TUNE.maxAccError * dt), 0), 1)
   tAccX, tAccY, tAccZ = tAccX * mul, tAccY * mul, tAccZ * mul
 
   local raccLenSq = tRaccX * tRaccX + tRaccY * tRaccY + tRaccZ * tRaccZ
   local rdot = tRaccX * rex + tRaccY * rey + tRaccZ * rez
-  local rmul = 1 - min(max(rdot / (raccLenSq + maxRaccError * maxRaccError * dt), 0), 1)
+  local rmul = 1 - min(max(rdot / (raccLenSq + TUNE.maxRaccError * TUNE.maxRaccError * dt), 0), 1)
   tRaccX, tRaccY, tRaccZ = tRaccX * rmul, tRaccY * rmul, tRaccZ * rmul
 
   if framesSinceReset <= 5 then
@@ -829,9 +844,9 @@ local function updateGFX(dt)
   local accLenSq2 = tAccX * tAccX + tAccY * tAccY + tAccZ * tAccZ
 
   -- 逐节点施力：力小到可忽略时就干脆不给，让轮胎/碰撞自己说话
-  if rotLenSq > minRotForce * minRotForce or len3(vehVel.x, vehVel.y, vehVel.z) > 1 then
+  if rotLenSq > TUNE.minRotForce * TUNE.minRotForce or len3(vehVel.x, vehVel.y, vehVel.z) > 1 then
     addAngularVelocity(tAccX, tAccY, tAccZ, tRaccX, tRaccY, tRaccZ)
-  elseif accLenSq2 > minPosForce * minPosForce then
+  elseif accLenSq2 > TUNE.minPosForce * TUNE.minPosForce then
     addVelocity(tAccX, tAccY, tAccZ)
   end
 
@@ -905,9 +920,9 @@ local function onInit()
   end)
   if not readyLogged then
     readyLogged = true
-    logI('v2.10.2 已加载, physicsFPS=' .. tostring(physicsFPS),
+    logI('v2.12.0 已加载, physicsFPS=' .. tostring(physicsFPS),
       'refNode=' .. tostring(getRefNode()), 'type=' .. tostring(v.mpVehicleType),
-      '施力=' .. (#nodes > PER_NODE_LIMIT and 'cluster' or '逐节点'))
+      '施力=' .. (#nodes > TUNE.PER_NODE_LIMIT and 'cluster' or '逐节点'))
   end
 end
 
@@ -927,7 +942,7 @@ local function debugState()
     nanDrops = nanDropCount,
     nodes = #nodes,
     parentNode = parentNode,
-    perNode = (#nodes > 0 and #nodes <= PER_NODE_LIMIT),
+    perNode = (#nodes > 0 and #nodes <= TUNE.PER_NODE_LIMIT),
   }
 end
 

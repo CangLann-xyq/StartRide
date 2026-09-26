@@ -55,6 +55,17 @@ public sealed class StartRideLaunchService : ILaunchService
 		progress?.Report(new LauncherProgress(
 			LaunchProgressStages.CheckingInstance, "正在准备 BeamNG.drive…", 5));
 
+		// 高光配置推给游戏内模组。放在这里是因为模组只在**开会话时**读一次 config.json，
+		// 而"开会话"就发生在这次启动之后 —— 这样用户改完设置不用重启启动器也能生效。
+		try
+		{
+			HighlightStore.PushModConfig(appSettings);
+		}
+		catch
+		{
+			// 目录不可写等情况不该阻断启动，模组用内置默认值也能跑
+		}
+
 		// 必需配置文件先查一遍：丢了/坏了游戏会起不来，这一步能直接补回来
 		if (appSettings.AutoRepairGameConfig)
 		{

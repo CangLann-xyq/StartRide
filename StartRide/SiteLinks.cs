@@ -55,107 +55,13 @@ namespace StartRide.Core
         /// <summary>新建"Bug 反馈"（同上，依赖 .github/ISSUE_TEMPLATE/bug_report.md）。</summary>
         public static string GitHubNewBugReport => GitHubNewIssue + "?template=bug_report.md";
 
-        /// <summary>仓库里的许可证文件。</summary>
-        public static string LicenseUrl => GitHubRepo + "/blob/" + GitHubBranch + "/LICENSE";
 
-        /// <summary>仓库里的用户协议（腾讯文档不可用时的兜底地址）。</summary>
-        public static string UserAgreementFallbackUrl =>
-            GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/01-user-agreement.md";
-
-        /// <summary>
-        /// 用户协议入口。
-        ///
-        /// ⚠️ 2026-09-26 起，**用户可见的法律文件正文统一托管在腾讯文档**（国内直连可开）。
-        /// 原先进程里指向 GitHub blob，但 GitHub 在国内直连打不开——首次运行的「同意条款」
-        /// 弹窗里那个链接点下去是白屏，等于用户看不到自己要同意什么，这是个真问题。
-        /// 腾讯文档地址为空时自动退回 GitHub（开发期/未回填时不会出现死链）。
-        /// </summary>
-        public static string UserAgreementUrl =>
-            FirstNonEmpty(Legal.UserAgreementDoc, UserAgreementFallbackUrl);
-
-        /// <summary>
-        /// 法律文件正文的托管地址（**腾讯文档**）与 GitHub 兜底地址。
-        ///
-        /// ⚠️ 六个 <c>*Doc</c> 常量由 <c>tools/_sr_tencent_legal.py</c> 自动回填，
-        /// 请不要手改它们的格式；留空即表示"该文件尚未上云"，运行时会退回 GitHub。
-        ///
-        /// 为什么正文放腾讯文档而不是自建页面：
-        ///   1. 腾讯文档国内直连可用，写一次即可在 Windows 客户端、手机、网页上看到同一份；
-        ///   2. 法律文件需要能**独立于软件版本**更新（条款变更要能立刻生效），
-        ///      放在软件包里等于每次改一个错别字都要发版；
-        ///   3. 版本历史可追溯，便于举证"用户在何时同意的是哪一版"。
-        /// </summary>
-        public static class Legal
-        {
-            /// <summary>《StartRide 用户服务协议》</summary>
-            public const string UserAgreementDoc = "https://docs.qq.com/doc/DUWJLR0tXVHdhZEVZ";
-
-            /// <summary>《StartRide 隐私政策》</summary>
-            public const string PrivacyPolicyDoc = "https://docs.qq.com/doc/DUWpBeHJza29DWGNi";
-
-            /// <summary>《StartRide 未成年人个人信息保护规则》</summary>
-            public const string MinorProtectionDoc = "https://docs.qq.com/doc/DUXVndXJ2cXFIam9P";
-
-            /// <summary>《StartRide 免责声明与风险提示》</summary>
-            public const string DisclaimerDoc = "https://docs.qq.com/doc/DUVBwQ3NWeGxxSkhM";
-
-            /// <summary>《StartRide 联机服务使用规范》</summary>
-            public const string MultiplayerConductDoc = "https://docs.qq.com/doc/DUUhXTUxnZnBIREVa";
-
-            /// <summary>《StartRide 第三方组件与开源许可声明》</summary>
-            public const string ThirdPartyNoticesDoc = "https://docs.qq.com/doc/DUWxMcmNodW1NVHZu";
-
-            /// <summary>
-            /// 《StartRide 开源许可与版权声明》（本项目自身的 GPL-3.0 全文 + 版权署名）。
-            ///
-            /// ⚠️ 「版权声明」「开源协议」这两行以前指向 GitHub 的仓库页和 LICENSE 文件，
-            /// 而 GitHub 在国内直连打不开 —— 用户点下去是白屏，等于"看不到自己被告知的许可"。
-            /// 现在统一指向腾讯文档上这份（正文由 <c>tools/_sr_gen_license_doc.py</c> 从根目录
-            /// LICENSE 生成，不会与仓库脱节）。
-            /// </summary>
-            public const string OpenSourceLicenseDoc = "https://docs.qq.com/doc/DUWdiSFd2RFV5YU5O";
-
-            /// <summary>法律文件总目录（首次运行弹窗与设置页都可以作为"看全部"的入口）。</summary>
-            public const string IndexDoc = "https://docs.qq.com/doc/DUVVMRG1oRkVFbWJy";
-
-            /// <summary>仓库里的隐私政策（兜底）。</summary>
-            public static string PrivacyPolicyFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/02-privacy-policy.md";
-
-            /// <summary>仓库里的未成年人保护规则（兜底）。</summary>
-            public static string MinorProtectionFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/03-minor-protection.md";
-
-            /// <summary>仓库里的免责声明（兜底）。</summary>
-            public static string DisclaimerFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/04-disclaimer.md";
-
-            /// <summary>仓库里的联机规范（兜底）。</summary>
-            public static string MultiplayerConductFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/05-multiplayer-conduct.md";
-
-            /// <summary>仓库里的第三方许可声明（兜底）。</summary>
-            public static string ThirdPartyNoticesFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/06-third-party-notices.md";
-
-            /// <summary>仓库里的开源许可与版权声明（兜底）。</summary>
-            public static string OpenSourceLicenseFallbackUrl =>
-                GitHubRepo + "/blob/" + GitHubBranch + "/docs/legal/07-open-source-license.md";
-        }
-
-        /// <summary>返回第一个非空白字符串（用于"线上地址优先、仓库兜底"这种链式取值）。</summary>
-        internal static string FirstNonEmpty(params string[] candidates)
-        {
-            foreach (string candidate in candidates)
-            {
-                if (!string.IsNullOrWhiteSpace(candidate))
-                {
-                    return candidate.Trim();
-                }
-            }
-
-            return string.Empty;
-        }
+        // ── 法律文件正文（2.11.0 起）─────────────────────────────────────
+        // 不再有"线上托管地址"这一层：七份 md 由 StartRide.csproj 直接内嵌，
+        // 由 StartRide/LegalDocuments.cs 出清单、StartRide/LegalDocumentContent.cs 取正文，
+        // 界面上由内置阅读器（LegalReaderViewModel）渲染。
+        // 因此这里原先的 Legal 嵌套类（腾讯文档地址）与 FirstNonEmpty 链式取值全部删除，
+        // 免得留着一段"正文托管在腾讯文档"的注释与实际行为相反。
 
         /// <summary>仓库里的更新清单目录（raw 直链，不用走跳转页）。</summary>
         public static string GitHubRawBase =>

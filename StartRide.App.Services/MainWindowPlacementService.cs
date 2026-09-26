@@ -22,6 +22,34 @@ public sealed class MainWindowPlacementService(ISettingsService settingsService)
 		window.Width = NormalizeRestoredDimension(settings.MainWindowWidth, window.Width, window.MinWidth, workArea.Width);
 		window.Height = NormalizeRestoredDimension(settings.MainWindowHeight, window.Height, window.MinHeight, workArea.Height);
 		window.WindowState = (settings.MainWindowWasMaximized ? WindowState.Maximized : WindowState.Normal);
+		PlaceWithin(window, workArea);
+	}
+
+	/// <summary>
+	/// 把窗口摆进工作区（放不下时贴左上，尺寸那边已经夹过了）。
+	/// </summary>
+	/// <remarks>
+	/// 位置以前完全没管：MainWindow 的 WindowStartupLocation 是 Manual，又从来不写
+	/// Left/Top，于是交给系统按"层叠"规则摆 —— 每启动一次就往右下挪 26px（实测连开三次
+	/// 是 104,104 → 130,130 → 156,156）。而窗口默认高 900、工作区只有 1032，挪两轮底边
+	/// 就钻进任务栏底下了：底部整条状态看不到，也拖不出来。所以启动时必须显式摆一次：
+	/// 没摆过（NaN）就居中，摆过但探出工作区就夹回来。
+	/// </remarks>
+	private static void PlaceWithin(Window window, Rect workArea)
+	{
+		double width = (IsValidDimension(window.Width) ? window.Width : 0.0);
+		double height = (IsValidDimension(window.Height) ? window.Height : 0.0);
+		double left = window.Left;
+		double top = window.Top;
+		if (!double.IsFinite(left) || !double.IsFinite(top))
+		{
+			left = workArea.Left + (workArea.Width - width) / 2.0;
+			top = workArea.Top + (workArea.Height - height) / 2.0;
+		}
+		double maxLeft = Math.Max(workArea.Left, workArea.Right - width);
+		double maxTop = Math.Max(workArea.Top, workArea.Bottom - height);
+		window.Left = Math.Clamp(left, workArea.Left, maxLeft);
+		window.Top = Math.Clamp(top, workArea.Top, maxTop);
 	}
 
 	internal MainWindowPlacementSnapshot Capture(Window window)

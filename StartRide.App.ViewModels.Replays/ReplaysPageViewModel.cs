@@ -71,7 +71,7 @@ public sealed class ReplayItem : ObservableObject
 /// 回放管理页：扫描本机 BeamNG 用户数据目录的 replays/*.rpl。
 /// 识别不到回放目录/文件时，显示"启动游戏打开回放"引导（BeamNG 官方回放功能）。
 /// </summary>
-public sealed class ReplaysPageViewModel : ObservableObject
+public sealed partial class ReplaysPageViewModel : ObservableObject
 {
 	private string statusMessage = "";
 	private bool hasReplays;
@@ -86,6 +86,9 @@ public sealed class ReplaysPageViewModel : ObservableObject
 	private ReplayItem? selectedReplay;
 	private int sortMode;
 	private FileSetSummary summary = new();
+
+	/// <summary>排序后的完整回放列表。Replays 是它按搜索词筛过的视图。</summary>
+	private readonly List<ReplayItem> allReplays = new();
 
 	/// <summary>当前选中的回放，右侧详情面板绑它。</summary>
 	public ReplayItem? SelectedReplay
@@ -157,8 +160,8 @@ public sealed class ReplaysPageViewModel : ObservableObject
 
 	public string ReplaysDirectory { get; }
 
-	/// <summary>是否未检测到任何回放（用于显示引导卡片）。</summary>
-	public bool NeedsGuide => !HasReplays;
+	/// <summary>是否未检测到任何回放（用于显示引导卡片）。高光模式下不显示，否则会盖住高光列表。</summary>
+	public bool NeedsGuide => IsReplaysMode && !HasReplays;
 
 	public bool CanLaunchGame
 	{
@@ -173,6 +176,7 @@ public sealed class ReplaysPageViewModel : ObservableObject
 		var launcher = new GameLauncher(settings);
 		CanLaunchGame = launcher.IsInstalled;
 		LoadReplays();
+		RefreshHighlights();
 	}
 
 	public IRelayCommand OpenGameForReplayCommand =>
@@ -297,6 +301,8 @@ public sealed class ReplaysPageViewModel : ObservableObject
 		{
 			StatusMessage = "尚未生成回放。启动 BeamNG.drive 进入任意地图，按 Esc → Replay 即可录制回放。";
 			HasReplays = false;
+			allReplays.Clear();
+			OnPropertyChanged(nameof(NeedsGuide));
 			RefreshStats(new List<ReplayItem>());
 			return;
 		}
@@ -336,17 +342,14 @@ public sealed class ReplaysPageViewModel : ObservableObject
 			_ => entries.OrderByDescending(r => r.RecordedAtText, StringComparer.Ordinal).ToList(),
 		};
 
-		foreach (ReplayItem r in entries)
-		{
-			Replays.Add(r);
-		}
-
 		StatusMessage = entries.Count == 0
 			? "尚未生成回放。启动 BeamNG.drive 进入任意地图，按 Esc → Replay 即可录制回放。"
 			: "";
 		HasReplays = entries.Count > 0;
 		OnPropertyChanged(nameof(NeedsGuide));
-		RefreshStats(entries);
+		allReplays.Clear();
+		allReplays.AddRange(entries);
+		ApplyReplayFilter();
 
 		if (!string.IsNullOrEmpty(previous))
 		{
@@ -366,6 +369,26 @@ public sealed class ReplaysPageViewModel : ObservableObject
 		{
 			// 云同步失败不影响本地列表
 		}
+	}
+
+	/// <summary>
+	/// 把搜索词套到回放列表上（同时匹配文件名与地图名）。
+	/// 搜索框是回放/高光两个模式共用的，所以两边各有一个 Apply*Filter。
+	/// </summary>
+	private void ApplyReplayFilter()
+	{
+		string q = SearchQuery.Trim();
+		Replays.Clear();
+		foreach (ReplayItem r in allReplays)
+		{
+			if (q.Length == 0
+				|| (r.Name?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0
+				|| (r.MapName?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0)
+			{
+				Replays.Add(r);
+			}
+		}
+		RefreshStats(allReplays);
 	}
 
 	private void RefreshStats(List<ReplayItem> items)

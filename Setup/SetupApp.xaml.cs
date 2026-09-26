@@ -65,6 +65,9 @@ public partial class SetupApp : Application
                 DesktopShortcut = !cl.NoDesktopShortcut,
                 StartMenuShortcut = !cl.NoStartMenuShortcut,
                 LaunchAfterwards = false,
+                // 静默安装没人能点确认框，所以默认按"覆盖"处理（清掉旧版本残留的程序文件）；
+                // 需要保留现场时传 --keep-old。
+                ClearBeforeInstall = !cl.KeepOldFiles,
             };
 
             log?.Invoke($"开始静默安装 版本={ProductInfo.Version} 目录={options.TargetDir}");

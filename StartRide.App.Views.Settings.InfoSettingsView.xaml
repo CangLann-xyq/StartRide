@@ -54,7 +54,7 @@
                未成年人保护规则 / 免责声明 / 联机规范 / 第三方许可声明 / 版权声明 / 开源协议）。
                以前这里是一行行硬编码的 Grid，加一份文件要同时改 XAML、VM、四套 resx 和 SiteLinks，
                漏一处界面上就少一项；现在只改清单一处。
-               ⚠️ 正文托管在腾讯文档（国内直连可开），某项尚未上云时会自动退回仓库里的 Markdown。 -->
+               ⚠️ 2.11.0 起正文随包内嵌，点「查看」在软件内置的阅读器里直接读（不跳浏览器）。 -->
           <ItemsControl ItemsSource="{Binding LegalDocuments}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>

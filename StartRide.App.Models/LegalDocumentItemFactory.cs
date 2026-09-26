@@ -28,8 +28,7 @@ public static class LegalDocumentItemFactory
             items.Add(new LegalDocumentItem(
                 document.Id,
                 ResolveText(document.TitleKey),
-                ResolveText(document.DescriptionKey),
-                document.Url));
+                ResolveText(document.DescriptionKey)));
         }
 
         return items;

@@ -7,15 +7,20 @@ using System.Text;
 namespace StartRide.Core
 {
     /// <summary>
-    /// 把 Mods/ 下的两个 Lua 文件打包成 startride.zip 并装进游戏 mods 目录。
+    /// 把 Mods/ 下的三个 Lua 文件打包成 startride.zip 并装进游戏 mods 目录。
     ///
     /// 打包结构（顺序与路径都不能改）：
     ///   info.json
     ///   lua/ge/extensions/startride.lua                        &lt;- startride_mod.lua（GE 侧）
     ///   lua/vehicle/extensions/auto/startrideVE.lua            &lt;- startrideVE.lua（VE 侧，自动加载）
     ///   lua/vehicle/extensions/startride/startrideVE.lua       &lt;- 同一份，供 spawnRemote 显式加载
+    ///   lua/vehicle/extensions/auto/startrideHL.lua            &lt;- startrideHL.lua（高光检测，只对玩家车生效）
     ///   mod_info/startride/info.json
     ///   scripts/startride/modScript.lua
+    ///
+    /// 为什么高光检测只放 auto/ 一份：它只对"玩家乘坐的车"生效（模块内部按
+    /// playerInfo.anyPlayerSeated + 非远程车两道守卫过滤），而玩家车由游戏正常生成，
+    /// 必然走 auto/ 自动加载这条路；远程车那份挂上也是空转，不需要显式再塞一份。
     ///
     /// 为什么必须写两份 VE：BeamNG 只在 postspawn 自动加载 lua/vehicle/extensions/auto/，
     /// 放到 extensions/ 根目录永远不会被加载；而 GE 侧生成远程车时又会显式
@@ -25,7 +30,7 @@ namespace StartRide.Core
     public sealed class ModInstaller
     {
         public const string ModPackageName = "startride.zip";
-        private const string ModVersion = "2.10.2";
+        private const string ModVersion = "2.12.0";
 
         private readonly AppSettings _settings;
 
@@ -56,9 +61,11 @@ namespace StartRide.Core
             {
                 string ge = Path.Combine(SourceDirectory, "startride_mod.lua");
                 string ve = Path.Combine(SourceDirectory, "startrideVE.lua");
+                string hl = Path.Combine(SourceDirectory, "startrideHL.lua");
 
                 if (!File.Exists(ge)) return $"找不到模组源文件：{ge}";
                 if (!File.Exists(ve)) return $"找不到模组源文件：{ve}";
+                if (!File.Exists(hl)) return $"找不到模组源文件：{hl}";
 
                 Directory.CreateDirectory(ModsDirectory);
 
@@ -88,6 +95,7 @@ namespace StartRide.Core
                     AddFile(zip, "lua/ge/extensions/startride.lua", ge);
                     AddFile(zip, "lua/vehicle/extensions/auto/startrideVE.lua", ve);
                     AddFile(zip, "lua/vehicle/extensions/startride/startrideVE.lua", ve);
+                    AddFile(zip, "lua/vehicle/extensions/auto/startrideHL.lua", hl);
                     AddText(zip, "mod_info/startride/info.json", infoJson);
                     AddText(zip, "scripts/startride/modScript.lua",
                             "setExtensionUnloadMode(\"startride\", \"manual\")");

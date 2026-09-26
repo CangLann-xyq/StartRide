@@ -20,7 +20,7 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 {
 	private readonly ISettingsService settingsService;
 
-	private readonly IExternalLinkService externalLinkService;
+	private readonly LegalReaderViewModel legalReader;
 
 	private readonly IApplicationExitService applicationExitService;
 
@@ -82,7 +82,7 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 	///
 	/// 以前这里只有一个「用户协议」超链接，而且指向 GitHub —— 国内直连打不开，
 	/// 用户点下去是白屏，等于"同意了一份自己看不到的文件"。现在六份一起列出来，
-	/// 地址统一走腾讯文档（见 <see cref="StartRide.Core.LegalDocuments"/>）。
+	/// 点任意一条都会在软件内置的阅读器里打开（见 <see cref="LegalReaderViewModel"/>）。
 	/// </summary>
 	public IReadOnlyList<LegalDocumentItem> Documents { get; }
 
@@ -90,21 +90,15 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand<LegalDocumentItem?> OpenLegalDocumentCommand => openLegalDocumentCommand ?? (openLegalDocumentCommand = new RelayCommand<LegalDocumentItem?>(OpenLegalDocument));
 
-	/// <summary>
-	/// 「查看全部条款与说明」——打开腾讯文档上的总目录页。
-	///
-	/// 弹窗里只列了需要用户明确同意的六份；版权声明与开源协议不在同意之列，
-	/// 但也得让用户够得着，否则那两份等于没有入口。
-	/// 总目录地址留空时（开发期/未回填）退化成仓库里的 md，不会出现点了没反应的死链。
-	/// </summary>
+	/// <summary>「查看全部条款与说明」——直接把内置阅读器打开（目录里八份齐全）。</summary>
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand OpenAllDocumentsCommand => openAllDocumentsCommand ?? (openAllDocumentsCommand = new RelayCommand(OpenAllDocuments));
 
-	public UserAgreementDialogViewModel(ISettingsService settingsService, IExternalLinkService externalLinkService, IApplicationExitService applicationExitService, IStatusService statusService, IFloatingMessageService floatingMessageService, ILogger<UserAgreementDialogViewModel>? logger = null)
+	public UserAgreementDialogViewModel(ISettingsService settingsService, LegalReaderViewModel legalReader, IApplicationExitService applicationExitService, IStatusService statusService, IFloatingMessageService floatingMessageService, ILogger<UserAgreementDialogViewModel>? logger = null)
 	{
 		this.settingsService = settingsService;
-		this.externalLinkService = externalLinkService;
+		this.legalReader = legalReader;
 		this.applicationExitService = applicationExitService;
 		this.statusService = statusService;
 		this.floatingMessageService = floatingMessageService;
@@ -165,64 +159,30 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 	[RelayCommand]
 	private void OpenLegalDocument(LegalDocumentItem? document)
 	{
-		if (document is null || string.IsNullOrWhiteSpace(document.Url))
+		if (document is null)
 		{
-			logger.LogWarning("User agreement dialog: legal document link is empty. Id={Id}",
-				document?.Id ?? "<null>");
+			logger.LogWarning("User agreement dialog: legal document entry is missing.");
 			ReportFailure(Strings.Status_OpenUserAgreementFailed);
 			return;
 		}
 
-		try
-		{
-			// 记一行日志：腾讯文档地址变更/回填出错时，"点了没反应"这类反馈
-			// 有这行就能立刻分辨是地址问题还是浏览器问题。
-			logger.LogInformation("User agreement dialog external link. Id={Id} Url={Url}", document.Id, document.Url);
-			if (externalLinkService.TryOpen(document.Url))
-			{
-				return;
-			}
-		}
-		catch (Exception exception)
-		{
-			logger.LogWarning(exception, "Failed to open a legal document link from the user agreement dialog.");
-			ReportFailure(Strings.Status_OpenUserAgreementFailed);
-			return;
-		}
-		logger.LogWarning("Failed to open a legal document link from the user agreement dialog. Id={Id}", document.Id);
-		ReportFailure(Strings.Status_OpenUserAgreementFailed);
+		// 正文随包内嵌，这里只是把阅读器打开并定位到这一份：不跳浏览器，
+		// 离线可读，国内也一定打得开。「点了没反应」这类反馈看这行日志即可。
+		logger.LogInformation("User agreement dialog: opening built-in legal reader. Id={Id}", document.Id);
+		legalReader.Open(document);
 	}
 
 	/// <summary>
-	/// 「查看全部条款与说明」——打开腾讯文档上的总目录页。
+	/// 「查看全部条款与说明」——直接把内置阅读器打开。
 	///
 	/// 弹窗里只列了需要用户明确同意的六份；版权声明与开源协议不在同意之列，
-	/// 但也得让用户够得着，否则那两份等于没有入口。
-	/// 总目录地址留空时（开发期/未回填）退化成仓库里的 md，不会出现点了没反应的死链。
+	/// 但阅读器左侧的目录把八份全列了出来，所以点这一下就够得着。
 	/// </summary>
 	[RelayCommand]
 	private void OpenAllDocuments()
 	{
-		string url = StartRide.Core.SiteLinks.FirstNonEmpty(
-			StartRide.Core.SiteLinks.Legal.IndexDoc,
-			StartRide.Core.SiteLinks.UserAgreementFallbackUrl);
-
-		try
-		{
-			logger.LogInformation("User agreement dialog external link. Id=index Url={Url}", url);
-			if (externalLinkService.TryOpen(url))
-			{
-				return;
-			}
-		}
-		catch (Exception exception)
-		{
-			logger.LogWarning(exception, "Failed to open the legal document index from the user agreement dialog.");
-			ReportFailure(Strings.Status_OpenUserAgreementFailed);
-			return;
-		}
-		logger.LogWarning("Failed to open the legal document index from the user agreement dialog.");
-		ReportFailure(Strings.Status_OpenUserAgreementFailed);
+		logger.LogInformation("User agreement dialog: opening built-in legal reader index.");
+		legalReader.Open(null);
 	}
 
 	private void ReportFailure(string message)

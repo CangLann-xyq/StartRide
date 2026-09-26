@@ -17,6 +17,7 @@
       <converters:IconSourceImageConverter x:Key="IconSourceImageConverter" />
       <converters:StringInitialConverter x:Key="StringInitialConverter" />
       <converters:StringBlankToCollapsedConverter x:Key="BlankToCollapsedConverter" />
+      <converters:SubtractConverter x:Key="SubtractConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

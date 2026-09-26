@@ -206,6 +206,10 @@
     <Resource Include="assets\icons\account_page\third_party_login.svg" />
     <Resource Include="assets\icons\block\diamond_block.png" />
     <EmbeddedResource Include="StartRide.App.Resources.ReferenceProjects.json" LogicalName="StartRide.App.Resources.ReferenceProjects.json" />
+    <!-- 法律文书正文：随包内嵌，软件内的阅读器直接读，不再跳浏览器 / 第三方文档站。
+         LogicalName 必须与 StartRide/LegalDocuments.cs 里拼出来的资源名逐字一致。
+         README.md 是仓库里给维护者看的说明，不进包。 -->
+    <EmbeddedResource Include="docs\legal\*.md" Exclude="docs\legal\README.md" LogicalName="StartRide.App.Resources.Legal.%(Filename)%(Extension)" />
     <!-- StartRide：BeamNG 语境图标 -->
     <Resource Include="assets\icons\beamng\car.svg" />
     <Resource Include="assets\icons\beamng\map.svg" />

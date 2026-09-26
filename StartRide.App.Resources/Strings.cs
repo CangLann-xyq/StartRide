@@ -3032,6 +3032,13 @@ public static class Strings
 
 	public static string Settings_StartupAutoCheckVehicleModsLabel => Get("Settings_StartupAutoCheckVehicleModsLabel");
 
+	public static string Settings_HighlightSection => Get("Settings_HighlightSection");
+	public static string Settings_HighlightDescription => Get("Settings_HighlightDescription");
+	public static string Settings_HighlightCaptureLabel => Get("Settings_HighlightCaptureLabel");
+	public static string Settings_HighlightAutoRecordLabel => Get("Settings_HighlightAutoRecordLabel");
+	public static string Settings_HighlightSinglePlayerLabel => Get("Settings_HighlightSinglePlayerLabel");
+
+	public static string Settings_HighlightOpenFolderButton => Get("Settings_HighlightOpenFolderButton");
 	public static string Settings_GameLogSection => Get("Settings_GameLogSection");
 
 	public static string Settings_GameLogDescription => Get("Settings_GameLogDescription");
@@ -3161,4 +3168,9 @@ public static class Strings
 	public static string Dialog_UpdateResultFailureFormat => Get("Dialog_UpdateResultFailureFormat");
 	public static string Dialog_UpdateResultRetry => Get("Dialog_UpdateResultRetry");
 	public static string Dialog_UpdateResultClose => Get("Dialog_UpdateResultClose");
+
+	public static string Legal_Reader_IndexTitle => Get("Legal_Reader_IndexTitle");
+	public static string Legal_Reader_CloseButton => Get("Legal_Reader_CloseButton");
+	public static string Legal_Reader_FooterHint => Get("Legal_Reader_FooterHint");
+	public static string Legal_Reader_MissingContent => Get("Legal_Reader_MissingContent");
 }

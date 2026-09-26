@@ -282,6 +282,9 @@ public partial class App : System.Windows.Application
 			services.AddSingleton<LauncherShutdownService>();
 			services.AddSingleton<MainWindowPlacementService>();
 			services.AddSingleton<LaunchStatusDialogViewModel>();
+			// 条款阅读器：首次运行弹窗与设置页的「查看」都从容器里取同一个实例，
+			// 这样两边打开的是同一份状态，关掉也能同步。
+			services.AddSingleton<LegalReaderViewModel>();
 			services.AddSingleton<UserAgreementDialogViewModel>();
 			services.AddSingleton<GameDirectoryStartupRecoveryDialogViewModel>();
 			services.AddSingleton<TerracottaAgreementDialogViewModel>();

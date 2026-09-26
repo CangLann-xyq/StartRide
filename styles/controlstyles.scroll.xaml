@@ -1,15 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:converters="clr-namespace:StartRide.App.Converters" xmlns:res="clr-namespace:StartRide.App.Resources">
   <converters:MinimumScrollThumbViewportConverter x:Key="MinimumScrollThumbViewportConverter" />
-  <Style x:Key="SecondaryMenuPanelShadowStyle" TargetType="{x:Type Border}">
-    <Setter Property="Width" Value="224" />
-    <Setter Property="Margin" Value="24,24,0,24" />
+  <!-- 侧栏外框：贴边竖栏（2026-09-26 改）。
+       ⚠️ 用户看到的那几个页面左栏"悬浮"，根因就在这一个样式里 ——
+       原来是 224 宽的**悬浮卡片**：四边 24px 外边距 + 34px 投影（内层再叠 18px 圆角），
+       所以设置 / 联机 / 账户 / 全局设置 / 下载 / 游戏设置 这六个页面的左栏都是"浮"的。
+       现在四边内缩、圆角、投影全部去掉：从页面顶部一直铺到底、贴住左边缘，
+       只剩内层 BackdropBlurBorder 右侧那条 1px 分隔线。
+
+       宽度取 272 而不是 224：那六个页面的内容区都是 Margin="272,36,24,8"，
+       外框右缘正好落在内容起始处，栏目与内容严丝合缝，也就**不用去动那六个页面**。
+       投影一并去掉 —— 贴边的竖栏三边齐平，投影只会在窗口左缘外侧被裁掉，白留一层离屏渲染。
+
+       同日稍后再补：竖栏**右侧两个角**留 18px 圆角（落在 `SecondaryMenuSidebarBackdropStyle`），
+       顶到底的竖栏不再是两个死直角；左边两角必须保持 0（贴窗口左缘，圆了会露底色）。 -->
+  <Style x:Key="SecondaryMenuPanelSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Width" Value="272" />
+    <Setter Property="Margin" Value="0" />
     <Setter Property="HorizontalAlignment" Value="Left" />
-    <Setter Property="UIElement.Effect">
-      <Setter.Value>
-        <DropShadowEffect BlurRadius="34" Color="{DynamicResource Color.SecondaryMenu.Shadow}" Opacity="0.1" ShadowDepth="0" />
-      </Setter.Value>
-    </Setter>
+    <Setter Property="SnapsToDevicePixels" Value="True" />
   </Style>
   <Style x:Key="SecondaryMenuPanelStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="{DynamicResource Brush.SecondaryMenu.Panel}" />
@@ -31,6 +40,9 @@
     <Setter Property="VerticalAlignment" Value="Top" />
     <Setter Property="Panel.ZIndex" Value="2" />
     <Setter Property="UIElement.IsHitTestVisible" Value="False" />
+    <!-- 保持原样：本样式同时给主页的 `HomeLaunchHeaderOverlay` 用（那张卡片是 18 圆角），
+         而且 Background 是全透明（#00FFFFFF），圆角值本来就看不见 —— 别为了"跟着侧栏改"
+         把它归零，那样只会让以后给这层加底色时踩坑。 -->
     <Setter Property="Border.CornerRadius" Value="18,18,0,0" />
     <Setter Property="Background" Value="#00FFFFFF" />
   </Style>

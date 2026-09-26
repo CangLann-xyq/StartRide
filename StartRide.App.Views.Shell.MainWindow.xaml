@@ -741,7 +741,7 @@
             <TextBlock Text="{x:Static res:Strings.Dialog_UserAgreementMessage}" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" />
             <!-- 逐条列出需要同意的文件（用户协议 / 隐私政策 / 未成年人保护规则 / 免责声明 /
                  联机规范 / 第三方许可声明）。清单来自 StartRide.Core.LegalDocuments，
-                 地址走腾讯文档（国内直连可开）；原先是单个指向 GitHub 的链接，国内点开是白屏。 -->
+                 点任意一条都会在下面的内置阅读器里打开（2.11.0 起不再跳腾讯文档/浏览器）。 -->
             <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Documents}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -754,7 +754,7 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             <!-- 弹窗只列「需要明确同意」的六份；版权声明与开源协议不在同意之列，
-                 但同样要看得到，所以再给一个总目录入口（腾讯文档上的汇总页）。 -->
+                 但阅读器左侧的目录把八份全列了出来，点这一下就够得着。 -->
             <TextBlock Margin="0,6,0,0" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap">
               <Hyperlink Foreground="{DynamicResource LauncherAccentBrush}" Command="{Binding OpenAllDocumentsCommand}">
                 <Run Text="{x:Static res:Strings.Dialog_UserAgreementIndexLink}" />
@@ -767,6 +767,16 @@
             <Button Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Margin="{StaticResource DialogTrailingButtonMargin}" Content="{x:Static res:Strings.Dialog_UserAgreementAgreeButton}" Command="{Binding AgreeCommand}" />
           </StackPanel>
         </Grid>
+      </controls:DialogHost>
+
+      <!-- 内置条款阅读器（2.11.0）。首次运行弹窗与设置页的「查看」都往同一个
+           LegalReader 实例里塞条目，所以两个入口共用这一个浮层。
+           ⚠️ DataContext 与 IsOpen 都绑在同一个元素上：IsOpen 用的是
+           LegalReader 自己的属性（与上面 UserAgreementDialog 同一写法），
+           别改成 {Binding LegalReader.IsOpen} —— 那样会先取到 LegalReader 的 DataContext 再找
+           LegalReader，解析成 null。 -->
+      <controls:DialogHost Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource SubtractConverter}, ConverterParameter=120|720|1080}" UseIntegratedOverlay="True" IsOpen="{Binding IsOpen}" DataContext="{Binding LegalReader}">
+        <shellViews:LegalReaderPanel />
       </controls:DialogHost>
       <controls:FloatingMessage Panel.ZIndex="9999" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,76,0,0" Message="{Binding FloatingMessage}" IsOpen="{Binding IsFloatingMessageOpen}" />
     </Grid>

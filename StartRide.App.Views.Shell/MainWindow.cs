@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shell;
@@ -73,6 +75,11 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private WindowStyle preFullscreenWindowStyle = WindowStyle.SingleBorderWindow;
 
+	/// <summary>最大化尺寸的钳制钩子。见 <see cref="ClampMaximizedSize"/>。</summary>
+	private const int WmGetMinMaxInfo = 0x0024;
+
+	private const uint MonitorDefaultToNearest = 2u;
+
 	public FrameworkElement LauncherPreblurredBackdropSourceElement => AmbientBackdropRoot;
 
 	public bool IsMenuExpanded
@@ -107,6 +114,7 @@ public partial class MainWindow : Window, IComponentConnector
 		viewModel.PropertyChanged += ViewModel_PropertyChanged;
 		LauncherWindowBackdrop.Attach(this, themeService);
 		NativeCaptionButtons.Hide(this);
+		base.SourceInitialized += MainWindow_OnSourceInitialized;
 		base.Loaded += MainWindow_Loaded;
 		// StartRide：托盘图标 + 启动自检（见 MainWindow.StartRide.Tray.cs）
 		base.Loaded += StartRideStartup_OnLoaded;
@@ -116,6 +124,126 @@ public partial class MainWindow : Window, IComponentConnector
 			stateSyncService.Stop();
 		};
 	}
+
+	/// <summary>
+	/// 窗口句柄一建好就挂消息钩子。
+	///
+	/// ⚠️ 为什么必须钩 WM_GETMINMAXINFO：本窗口是 WindowStyle=None + WindowChrome，
+	/// 最大化时系统按「显示器 + 8px 边框」给尺寸，实测 1920x1080 上窗口变成
+	/// 1936x1096、原点 (-8,-8) —— 界面比屏幕高 16px，顶部切 8px、
+	/// 底部状态条被推到任务栏底下压住（用户报的"全屏的时候有错位"）。
+	/// 全屏（F11，WindowStyle=None + NoResize）不受这个 bug 影响，保持钳到显示器。
+	/// </summary>
+	private void MainWindow_OnSourceInitialized(object? sender, EventArgs e)
+	{
+		try
+		{
+			IntPtr handle = new WindowInteropHelper(this).Handle;
+			HwndSource? source = handle == IntPtr.Zero ? null : HwndSource.FromHwnd(handle);
+			source?.AddHook(WindowMessageHook);
+		}
+		catch (Exception exception)
+		{
+			// 钩不上只是错位，不该让窗口起不来。
+			logger.LogWarning(exception, "Failed to hook the window message loop.");
+		}
+	}
+
+	private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+	{
+		if (message == WmGetMinMaxInfo)
+		{
+			// ⚠️ 全屏（F11）也走 WindowState.Maximized，但它要盖住任务栏 ——
+			// 所以全屏钳「显示器」，普通最大化钳「工作区」，两者不能混。
+			ClampMaximizedSize(hwnd, lParam, isFullscreen);
+		}
+		// 不设 handled：这只是"改个数字"，系统的既有处理继续走。
+		return IntPtr.Zero;
+	}
+
+	private static void ClampMaximizedSize(IntPtr hwnd, IntPtr lParam, bool useWholeMonitor)
+	{
+		try
+		{
+			IntPtr monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
+			if (monitor == IntPtr.Zero)
+			{
+				return;
+			}
+			MonitorInformation info = default(MonitorInformation);
+			info.size = Marshal.SizeOf<MonitorInformation>();
+			if (!GetMonitorInfo(monitor, ref info))
+			{
+				return;
+			}
+			NativeRectangle target = useWholeMonitor ? info.monitor : info.work;
+			MinMaxInformation value = Marshal.PtrToStructure<MinMaxInformation>(lParam);
+			// ptMaxPosition / ptMaxSize 都是相对「显示器原点」的坐标：
+			// 任务栏在下面时工作区高度少 48px，最大化就该只占这 1032。
+			value.maxPosition.x = target.left - info.monitor.left;
+			value.maxPosition.y = target.top - info.monitor.top;
+			value.maxSize.x = target.right - target.left;
+			value.maxSize.y = target.bottom - target.top;
+			Marshal.StructureToPtr(value, lParam, false);
+		}
+		catch (Exception)
+		{
+			// 钳不住就退回系统默认：宁可错位一点，也不能在这里抛异常。
+		}
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct NativePoint
+	{
+		public int x;
+
+		public int y;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct NativeRectangle
+	{
+		public int left;
+
+		public int top;
+
+		public int right;
+
+		public int bottom;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct MinMaxInformation
+	{
+		public NativePoint reserved;
+
+		public NativePoint maxSize;
+
+		public NativePoint maxPosition;
+
+		public NativePoint minTrackSize;
+
+		public NativePoint maxTrackSize;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	private struct MonitorInformation
+	{
+		public int size;
+
+		public NativeRectangle monitor;
+
+		public NativeRectangle work;
+
+		public uint flags;
+	}
+
+	[DllImport("user32.dll")]
+	private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+	[DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", CharSet = CharSet.Unicode)]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInformation info);
 
 	private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
@@ -175,16 +303,25 @@ public partial class MainWindow : Window, IComponentConnector
 			base.WindowState = WindowState.Normal;
 			base.WindowStyle = WindowStyle.None;
 			base.ResizeMode = ResizeMode.NoResize;
-			base.WindowState = WindowState.Maximized;
+			// ⚠️ isFullscreen 必须在改 WindowState 之前置位：最大化会触发
+			// WM_GETMINMAXINFO，钩子要靠这个字段决定钳「显示器」还是「工作区」。
 			isFullscreen = true;
+			base.WindowState = WindowState.Maximized;
 		}
 		else
 		{
+			isFullscreen = false;
 			base.WindowState = WindowState.Normal;
 			base.WindowStyle = preFullscreenWindowStyle;
 			base.ResizeMode = preFullscreenResizeMode;
+			// ⚠️ 必须在这里、在恢复 WindowState 之前重剥一次原生标题栏样式位。
+			// WindowStyle 从 None 改回 SingleBorderWindow 时，WPF 会把整套原生样式写回去，
+			// 把 NativeCaptionButtons 在 SourceInitialized 时剥掉的边框又装回来；装回来之后
+			// 这次最大化就会按「工作区 + 每边 8px 边框」算尺寸 —— 实测 Esc 退出全屏后窗口
+			// 变成 (-8,-8)-(1928,1040)，四边都探出屏幕，底部还被任务栏压住。
+			// 放在 WindowState 之前是因为这条路径上"恢复最大化"本身就要重算一次尺寸。
+			NativeCaptionButtons.Reapply(this);
 			base.WindowState = preFullscreenState;
-			isFullscreen = false;
 		}
 		ApplyFullscreenChrome();
 		// WindowStyle 变化会让 WindowChrome 的圆角/边框失效，DWM 属性也可能被重置，重新下发一次。
@@ -194,15 +331,18 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private void ApplyFullscreenChrome()
 	{
+		// 最大化时也算"贴满屏幕"：窗口矩形被钳到工作区之后，四角再留 12px 圆角
+		// 就会直接透出后面的桌面（以前是靠系统多给 8px 把圆角推到屏幕外盖住的）。
+		bool square = isFullscreen || base.WindowState == WindowState.Maximized;
 		WindowChrome windowChrome = WindowChrome.GetWindowChrome(this);
 		if (windowChrome != null)
 		{
-			windowChrome.CornerRadius = (isFullscreen ? new CornerRadius(0.0) : new CornerRadius(12.0));
+			windowChrome.CornerRadius = (square ? new CornerRadius(0.0) : new CornerRadius(12.0));
 			windowChrome.ResizeBorderThickness = (isFullscreen ? new Thickness(0.0) : new Thickness(8.0));
 		}
 		if (WindowRootBorder != null)
 		{
-			WindowRootBorder.CornerRadius = (isFullscreen ? new CornerRadius(0.0) : new CornerRadius(12.0));
+			WindowRootBorder.CornerRadius = (square ? new CornerRadius(0.0) : new CornerRadius(12.0));
 		}
 		if (TitleBarRow != null)
 		{
@@ -234,6 +374,8 @@ public partial class MainWindow : Window, IComponentConnector
 	// XAML 里挂的 StateChanged：最大化状态一变就换图标。
 	private void Window_OnStateChanged(object? sender, EventArgs e)
 	{
+		// 最大化/还原会改变"要不要圆角"，得跟着重算一次。
+		ApplyFullscreenChrome();
 		UpdateCaptionButtons();
 	}
 

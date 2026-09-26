@@ -321,6 +321,40 @@
       </Border>
     </GroupBox>
 
+    <!-- 精彩瞬间：联机跑一局自动留下可回看的高光记录（截图 + 时间码 + 录像） -->
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_HighlightSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <TextBlock Text="{x:Static res:Strings.Settings_HighlightDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_HighlightCaptureLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding HighlightCaptureEnabled, Mode=TwoWay}" />
+          </Grid>
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_HighlightAutoRecordLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding HighlightAutoRecord, Mode=TwoWay}" />
+          </Grid>
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_HighlightSinglePlayerLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding HighlightInSinglePlayer, Mode=TwoWay}" />
+          </Grid>
+          <Button Margin="0,16,0,0" HorizontalAlignment="Left" MinWidth="150" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Settings_HighlightOpenFolderButton}" Command="{Binding OpenHighlightsFolderCommand}" />
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
     <!-- 游戏日志：按 D/I/W/E 精确分级，不用自己翻目录 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameLogSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">

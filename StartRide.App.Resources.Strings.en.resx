@@ -3181,5 +3181,15 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Legal_Doc_Copyright_Description" xml:space="preserve"><value>Copyright © 2026 肖又祺 · StartRide</value></data>
   <data name="Legal_Doc_License_Title" xml:space="preserve"><value>Open Source License</value></data>
   <data name="Legal_Doc_License_Description" xml:space="preserve"><value>Released under the GNU General Public License v3.0 (GPL-3.0)</value></data>
-  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>View all terms and notices ↓</value></data>
+  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>View all terms and notices</value></data>
+  <data name="Legal_Reader_IndexTitle" xml:space="preserve"><value>Documents</value></data>
+  <data name="Legal_Reader_CloseButton" xml:space="preserve"><value>Close</value></data>
+  <data name="Legal_Reader_FooterHint" xml:space="preserve"><value>The text ships with the launcher and can be read offline, without opening a browser.</value></data>
+  <data name="Legal_Reader_MissingContent" xml:space="preserve"><value>This document's text was not installed with the package. Reinstalling the launcher will restore it.</value></data>
+  <data name="Settings_HighlightSection" xml:space="preserve"><value>Highlights</value></data>
+  <data name="Settings_HighlightDescription" xml:space="preserve"><value>While you play online, replays are recorded automatically. Big jumps, hard impacts, rollovers, burnouts and new top speeds each get a screenshot and a time code, and the whole session is summarised into one highlight file under replays/startride in your replay folder. Everything stays on your machine.</value></data>
+  <data name="Settings_HighlightCaptureLabel" xml:space="preserve"><value>Capture highlights automatically</value></data>
+  <data name="Settings_HighlightAutoRecordLabel" xml:space="preserve"><value>Auto-record replays when online</value></data>
+  <data name="Settings_HighlightSinglePlayerLabel" xml:space="preserve"><value>Also record in single player</value></data>
+  <data name="Settings_HighlightOpenFolderButton" xml:space="preserve"><value>Open highlights folder</value></data>
 </root>

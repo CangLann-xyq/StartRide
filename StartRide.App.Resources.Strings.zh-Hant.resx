@@ -1635,5 +1635,15 @@
   <data name="Legal_Doc_Copyright_Description" xml:space="preserve"><value>Copyright © 2026 肖又祺 · StartRide</value></data>
   <data name="Legal_Doc_License_Title" xml:space="preserve"><value>開源授權</value></data>
   <data name="Legal_Doc_License_Description" xml:space="preserve"><value>本軟體依 GNU 通用公共授權條款第 3 版（GPL-3.0）發布</value></data>
-  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>檢視全部條款與說明 ↓</value></data>
+  <data name="Dialog_UserAgreementIndexLink" xml:space="preserve"><value>檢視全部條款與說明</value></data>
+  <data name="Legal_Reader_IndexTitle" xml:space="preserve"><value>條款目錄</value></data>
+  <data name="Legal_Reader_CloseButton" xml:space="preserve"><value>關閉</value></data>
+  <data name="Legal_Reader_FooterHint" xml:space="preserve"><value>正文隨啟動器一併提供，離線也能查看，不會跳轉瀏覽器。</value></data>
+  <data name="Legal_Reader_MissingContent" xml:space="preserve"><value>這一份的正文沒有隨包一併安裝。重新安裝啟動器即可恢復。</value></data>
+  <data name="Settings_HighlightSection" xml:space="preserve"><value>精彩瞬間</value></data>
+  <data name="Settings_HighlightDescription" xml:space="preserve"><value>連線跑一局時會自動開始錄製重播；大跳躍、重擊、翻車、燒胎、破紀錄的極速都會自動抓一張截圖並記下時間碼，整局結束後彙整成一份高光紀錄（寫在遊戲重播目錄下的 replays/startride）。紀錄只留在本機，不會上傳。</value></data>
+  <data name="Settings_HighlightCaptureLabel" xml:space="preserve"><value>精彩瞬間自動捕捉</value></data>
+  <data name="Settings_HighlightAutoRecordLabel" xml:space="preserve"><value>連線時自動錄製重播</value></data>
+  <data name="Settings_HighlightSinglePlayerLabel" xml:space="preserve"><value>單人開車也記錄</value></data>
+  <data name="Settings_HighlightOpenFolderButton" xml:space="preserve"><value>開啟高光目錄</value></data>
 </root>

@@ -37,6 +37,22 @@ namespace StartRide.Core
         /// </summary>
         public bool AutoRepairGameConfig { get; set; } = true;
 
+        // ---- 精彩瞬间自动捕捉（写到 <回放目录>/startride/config.json，游戏内模组读它）----
+
+        /// <summary>总开关。关掉后模组仍会检测（HUD 上看得到）但不落盘。</summary>
+        public bool HighlightCaptureEnabled { get; set; } = true;
+
+        /// <summary>联机时自动开始录制回放（分段保存，见 HighlightSegmentMinutes）。</summary>
+        public bool HighlightAutoRecord { get; set; } = true;
+
+        /// <summary>
+        /// 单人开车也记录。默认关 —— 单人随便跑一圈也生成一份记录，会白白占磁盘。
+        /// </summary>
+        public bool HighlightInSinglePlayer { get; set; }
+
+        /// <summary>单段录制的分钟数。模组接受 2~120，超出会被夹回范围。</summary>
+        public int HighlightSegmentMinutes { get; set; } = 5;
+
         // ---- 启动行为（这些以前只存在 LauncherSettings 里、没有任何代码读，等于摆设；
         //      现在统一落到 StartRide 自己的配置，并且在 GameLauncher / 启动服务里真的执行）----
 
