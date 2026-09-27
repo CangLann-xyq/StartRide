@@ -123,6 +123,34 @@ StartRide 的界面层基于一个开源 Minecraft 启动器（GPL-3.0）的既�
 
 ---
 
+## 维护者
+
+StartRide 是**个人独立开发并维护**的开源项目，全部代码提交与版本发布均由维护者本人完成。
+
+- 维护者：[CangLann-xyq](https://github.com/CangLann-xyq)（本仓库所有者）
+- 项目主页：[startride.top](https://startride.top)
+- 联系邮箱：cloudfur2026@qq.com
+
+---
+
+## 代码签名政策
+
+本项目**尚未购买商业代码签名证书**，因此 Windows 首次运行会提示「未知发布者」或
+「Windows 已保护你的电脑」。这是所有未签名程序的统一待遇，不代表程序有问题 ——
+点击提示里的「更多信息」→「仍要运行」即可继续。
+
+每个发行包都由维护者本人从本仓库源码构建，发布在
+[Releases](https://github.com/CangLann-xyq/StartRide/releases) 与官网 [startride.top](https://startride.top)，
+两处的 SHA-256 一一对应，可用于校验文件完整性：
+
+```powershell
+Get-FileHash .\StartRide-Setup-<版本>-win-x64.exe -Algorithm SHA256
+```
+
+从任何第三方站点获取安装包时，请先核对 SHA-256 再运行。
+
+---
+
 ## 相关链接
 
 - 项目主页：[startride.top](https://startride.top)
