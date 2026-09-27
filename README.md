@@ -131,6 +131,11 @@ StartRide 是**个人独立开发并维护**的开源项目，全部代码提交
 - 项目主页：[startride.top](https://startride.top)
 - 联系邮箱：cloudfur2026@qq.com
 
+GitHub 账号 [CangLann-xyq](https://github.com/CangLann-xyq) 与项目站点
+[startride.top](https://startride.top) 均由维护者本人运营；本仓库的全部源码与
+[Releases](https://github.com/CangLann-xyq/StartRide/releases) 中的发行版出自同一人，
+可用上列邮箱联系。版权归属与项目-作者关系声明见根目录 [NOTICE](NOTICE)。
+
 ---
 
 ## 代码签名政策
