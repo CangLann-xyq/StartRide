@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "displayVersion": "0.1.0",
+  "versionCode": 100,
+  "releasePageUrl": "https://startride.top/update/",
+  "downloadUrl": "https://startride.top/downloads/StartRide-0.1.0-win-x64.zip",
+  "downloadUrls": [
+    {
+      "name": "官方源（startride.top）",
+      "url": "https://startride.top/downloads/StartRide-0.1.0-win-x64.zip",
+      "priority": 0
+    }
+  ],
+  "downloadFileName": "StartRide-0.1.0-win-x64.zip",
+  "assetKind": "zip",
+  "sizeBytes": 5436762,
+  "sha256": "a00f86e8a432e97a9b26b289bdf4146a3d9cb0b535e8ceb31b221111fb70db3a",
+  "changelog": "0.1.0 —— StartRide 首个公开发布版本。\n欢迎使用 StartRide。这是第一个正式版本，主要包含：\n· 联机：自建中继服务，房主开房拿到房间码，其他人输码即进，不需要在路由器上开端口。\n· 车辆物理在房主电脑上计算，中继只做转发，因此联机手感取决于房主机器。\n· 启动与实例：自动探测 BeamNG.drive 安装位置；启动前自动安装联机模组、退出后回收；\n  游戏内存上限调节、配置文件完整性检查与一键修复。\n· 资源管理：车辆、模组、回放三个管理器，列表 + 详情面板，可直接定位文件、复制路径。\n· 账户：读取你电脑上已登录的 Steam 账号（不需要输入 Steam 密码），显示头像、联机 ID 与昵称。\n· 云端同步：账户顺序、启动参数、设置项随账号漫游；游玩时长统计。\n· 磨砂玻璃窗口背景；界面支持简体中文 / 繁体中文 / English / 日本語。\n· 已内置《用户服务协议》《隐私政策》全文，可在「关于」里随时查看。\n· 诊断包导出：一键打包日志与配置，便于反馈问题（不含任何账号凭据）。",
+  "isMandatory": false,
+  "minSupportedVersionCode": 0,
+  "publishedAt": "2026-09-27T00:00:00Z"
+}

@@ -1,0 +1,64 @@
+<Window x:Class="StartRide.Setup.UninstallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="卸载 StartRide"
+        Width="560" Height="420"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="False"
+        Background="{StaticResource Brush.Window}"
+        FontFamily="Microsoft YaHei UI"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="Grayscale">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="40" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="78" />
+    </Grid.RowDefinitions>
+
+    <Border Grid.Row="0" Background="{StaticResource Brush.Window}" MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
+      <Grid>
+        <TextBlock Text="StartRide 卸载程序" Margin="18,0,0,0" VerticalAlignment="Center"
+                   Style="{StaticResource DimText}" />
+        <Button Style="{StaticResource CaptionCloseButton}" HorizontalAlignment="Right"
+                VerticalAlignment="Center" Margin="0,0,8,0" Click="Close_OnClick" />
+      </Grid>
+    </Border>
+
+    <StackPanel Grid.Row="1" Margin="30,10,30,0">
+      <Image x:Name="BrandLogo" Width="170" HorizontalAlignment="Left" Stretch="Uniform" />
+      <TextBlock x:Name="Headline" Text="卸载 StartRide" FontSize="22" Margin="0,18,0,0"
+                 Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+      <TextBlock x:Name="Lead" Margin="0,12,0,0" TextWrapping="Wrap" Style="{StaticResource DimText}" />
+
+      <Border Margin="0,16,0,0" CornerRadius="10" Background="{StaticResource Brush.Card}"
+              BorderBrush="{StaticResource Brush.Line}" BorderThickness="1" Padding="16,13">
+        <StackPanel>
+          <TextBlock Text="将删除" Style="{StaticResource BodyText}" FontWeight="SemiBold" FontSize="12" />
+          <TextBlock x:Name="WillDelete" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource DimText}" />
+        </StackPanel>
+      </Border>
+
+      <CheckBox x:Name="PurgeDataCheck" Margin="0,16,0,0" Style="{StaticResource CheckBoxStyle}"
+                Content="同时删除配置与账户数据（%APPDATA%\StartRide）" />
+      <TextBlock Margin="25,6,0,0" TextWrapping="Wrap" Style="{StaticResource DimText}"
+                 Text="不勾选则保留设置、账户与模组缓存，下次安装可以直接接着用。" />
+    </StackPanel>
+
+    <Border Grid.Row="2" Background="{StaticResource Brush.Footer}"
+            BorderBrush="{StaticResource Brush.Line}" BorderThickness="0,1,0,0">
+      <Grid Margin="28,0">
+        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource DimText}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button x:Name="CancelButton" Content="取消" Style="{StaticResource GhostButton}"
+                  Margin="0,0,12,0" Click="Close_OnClick" />
+          <Button x:Name="UninstallButton" Content="卸载" Style="{StaticResource PrimaryButton}"
+                  Click="Uninstall_OnClick" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

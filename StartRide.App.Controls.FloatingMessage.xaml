@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Controls.FloatingMessage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Name="Host" Focusable="False" IsHitTestVisible="False" Opacity="0" Visibility="Collapsed" xmlns:controls="clr-namespace:StartRide.App.Controls;assembly=StartRide">
+  <UIElement.RenderTransform>
+    <TranslateTransform x:Name="MessageOffset" Y="-10" />
+  </UIElement.RenderTransform>
+  <Border Style="{StaticResource FloatingMessageSurfaceStyle}">
+    <TextBlock Style="{StaticResource FloatingMessageTextStyle}" Text="{Binding Message, ElementName=Host}" />
+  </Border>
+</UserControl>

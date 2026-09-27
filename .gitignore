@@ -1,0 +1,65 @@
+# ============================================================================
+# StartRide 启动器 .gitignore
+# ============================================================================
+
+# ---- 构建产物 ----
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+*.binlog
+
+# ---- 本地部署 / 调试脚本（内含服务器地址与口令，绝不入库）----
+_sr_*.py
+_sr_*.json
+_sr_*.txt
+*_report.md
+*_report.json
+_patch_*.py
+ssh_*.py
+restart_*.py
+deploy_*.py
+
+# 例外：tools/ 下的是**仓库维护脚本**（法律文书同步、由 LICENSE 生成文书等），
+# 不含任何凭据，而且 README 与 docs/legal/ 里直接引用了它们 —— 不入库就成了死引用。
+!tools/_sr_*.py
+
+# ---- 凭据与密钥 ----
+.env
+.env.*
+!/.env.example
+*.jks
+*.keystore
+*.pem
+*.pfx
+*.p12
+cloud-auth.json
+account-state.json
+
+# ---- 本地工具与临时产物 ----
+_sr_tools/
+*.bak
+*.orig
+*.tmp
+*.log
+build_log.txt
+
+# ---- Python 字节码缓存（曾误入仓库：__pycache__/_sr_install.*.pyc）----
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- 安装包工程的构建输入 ----
+# Setup/Payload/ 里放的是**已发布的整包 zip 与卸载器 zip**（约 5.6 MB），
+# 它们是 _sr_make_installer.py 构建时从 _sr_pkg 拷进来的中间产物，
+# 每次发版都会变 —— 入库只会让仓库无谓地长大，且两份副本容易不一致。
+Setup/Payload/
+
+# ---- 编辑器 ----
+.idea/
+.vscode/
+*.swp

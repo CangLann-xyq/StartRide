@@ -1,0 +1,284 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.Shell.LegalReaderPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:res="clr-namespace:StartRide.App.Resources" x:Name="Root" Focusable="False">
+  <UserControl.Resources>
+
+    <!-- ══ 正文条目的容器样式 ══════════════════════════════════════════
+         正文用 ListBox 承载只是为了拿到虚拟化（GPL-3.0 全文有上千个块，
+         一次性全部实例化会明显卡一下），所以这里把选中/悬停的视觉全部去掉。 -->
+    <Style x:Key="LegalReaderBlockItemStyle" TargetType="{x:Type ListBoxItem}">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type ListBoxItem}">
+            <ContentPresenter />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 左侧目录项：一个很轻的圆角高亮，不做卡片 -->
+    <Style x:Key="LegalReaderNavItemStyle" TargetType="{x:Type ListBoxItem}">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <!-- 名字交给无障碍层：不设的话 ListBoxItem 的 Name 会退化成数据对象的 ToString()，
+           读屏软件（以及任何基于 UIA 的自动化）看到的是一串 "LegalDocumentItem { Id = ... }"。 -->
+      <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type ListBoxItem}">
+            <Border x:Name="ItemSurface" Margin="0,1" Background="Transparent" CornerRadius="9" Padding="11,0" SnapsToDevicePixels="True">
+              <ContentPresenter VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource Brush.12FFFFFF}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource Brush.Control.SurfaceAlt}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- ══ 正文块模板 ══════════════════════════════════════════════════
+         块级结构由 MarkdownParser 切好，行内记号（加粗/斜体/行内代码）
+         交给 controls:MarkdownText 这个附加属性在赋值时展开成 Inlines。 -->
+    <DataTemplate x:Key="MdBlockH2">
+      <Grid Margin="0,24,0,10">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Width="3" Height="14" CornerRadius="2" VerticalAlignment="Center" Background="{DynamicResource Brush.Accent.Primary}" />
+        <TextBlock Grid.Column="1" Margin="9,0,0,0" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Strong}" controls:MarkdownText.Text="{Binding Text}" />
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockH3">
+      <TextBlock Margin="0,18,0,8" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Strong}" controls:MarkdownText.Text="{Binding Text}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockH4">
+      <TextBlock Margin="0,14,0,6" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Strong}" controls:MarkdownText.Text="{Binding Text}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockParagraph">
+      <TextBlock Margin="0,0,0,12" FontSize="13" LineHeight="24" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Primary}" controls:MarkdownText.Text="{Binding Text}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockBullet">
+      <Grid Margin="{Binding IndentMargin}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="16" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock FontSize="13" LineHeight="24" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding Marker}" />
+        <TextBlock Grid.Column="1" FontSize="13" LineHeight="24" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Primary}" controls:MarkdownText.Text="{Binding Text}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockNumbered">
+      <Grid Margin="{Binding IndentMargin}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="26" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock FontSize="13" LineHeight="24" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding Marker}" />
+        <TextBlock Grid.Column="1" FontSize="13" LineHeight="24" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Primary}" controls:MarkdownText.Text="{Binding Text}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockQuote">
+      <Border Margin="0,2,0,14" Background="{DynamicResource Brush.Control.SurfaceAlt}" BorderBrush="{DynamicResource Brush.Accent.Primary}" BorderThickness="3,0,0,0" CornerRadius="0,10,10,0" Padding="14,12">
+        <TextBlock FontSize="12.5" LineHeight="23" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}" controls:MarkdownText.Text="{Binding Text}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockCode">
+      <Border Margin="0,2,0,16" Background="{DynamicResource Brush.Field.ReadOnly.Surface}" BorderBrush="{DynamicResource Brush.16FFFFFF}" BorderThickness="1" CornerRadius="10" Padding="14,12">
+        <TextBlock FontFamily="Cascadia Mono,Consolas,Courier New" FontSize="11.5" LineHeight="19" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}" Text="{Binding CodeText}" />
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockDivider">
+      <Border Margin="0,20,0,16" Height="1" Background="{DynamicResource Brush.16FFFFFF}" />
+    </DataTemplate>
+
+    <!-- 表格：两列（项目 / 内容）与三列各一套。列宽用固定比例而不是自适应，
+         这样同一张表里每行的列边界严格对齐（WPF 的 ItemsControl 做不到跨行共享列宽）。 -->
+    <DataTemplate x:Key="MdTableRow2">
+      <Border BorderBrush="{DynamicResource Brush.12FFFFFF}" BorderThickness="0,0,0,1">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="128" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="Left" Grid.Column="0" Margin="14,10,10,10" FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Strong}" controls:MarkdownText.Text="{Binding Cell0}" />
+          <TextBlock x:Name="Right" Grid.Column="1" Margin="0,10,14,10" FontSize="12.5" LineHeight="21" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Primary}" controls:MarkdownText.Text="{Binding Cell1}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsHeader}" Value="True">
+          <Setter TargetName="Left" Property="FontWeight" Value="SemiBold" />
+          <Setter TargetName="Right" Property="FontWeight" Value="SemiBold" />
+          <Setter TargetName="Right" Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdTableRow3">
+      <Border BorderBrush="{DynamicResource Brush.12FFFFFF}" BorderThickness="0,0,0,1">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.9*" />
+            <ColumnDefinition Width="1.1*" />
+            <ColumnDefinition Width="1.9*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="C0" Grid.Column="0" Margin="14,10,10,10" FontSize="12.5" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" controls:MarkdownText.Text="{Binding Cell0}" />
+          <TextBlock x:Name="C1" Grid.Column="1" Margin="0,10,10,10" FontSize="12.5" LineHeight="21" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Primary}" controls:MarkdownText.Text="{Binding Cell1}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+          <TextBlock x:Name="C2" Grid.Column="2" Margin="0,10,14,10" FontSize="12.5" LineHeight="21" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}" controls:MarkdownText.Text="{Binding Cell2}" controls:MarkdownText.CodeForeground="{DynamicResource Brush.Accent.Primary}" controls:MarkdownText.CodeBackground="{DynamicResource Brush.Field.ReadOnly.Surface}" />
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsHeader}" Value="True">
+          <Setter TargetName="C0" Property="FontWeight" Value="SemiBold" />
+          <Setter TargetName="C0" Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+          <Setter TargetName="C1" Property="FontWeight" Value="SemiBold" />
+          <Setter TargetName="C1" Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+          <Setter TargetName="C2" Property="FontWeight" Value="SemiBold" />
+          <Setter TargetName="C2" Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockTable">
+      <Border Margin="0,2,0,18" Background="{DynamicResource Brush.Card.Surface}" BorderBrush="{DynamicResource Brush.16FFFFFF}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource MdTableRow2}" />
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MdBlockTable3">
+      <Border Margin="0,2,0,18" Background="{DynamicResource Brush.Card.Surface}" BorderBrush="{DynamicResource Brush.16FFFFFF}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource MdTableRow3}" />
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <!-- 尺寸：DialogHost 的 Surface 上下各有 24px 外边距、左右是固定的 DialogWidth，
+       Surface 自身没有内边距（见 styles/controlstyles.dialogs.xaml），所以这里
+         · 外层留 22px 内边距（否则正文顶到对话框边、滚动条压在字上）；
+         · 高度写成**确定值**而不是上限 —— 写 MaxHeight 时高度会退化成"正文自然高度"
+           （虚拟化列表只按已实例化的条目报期望高度），在大窗口里看着就是个很小的框；
+         · 减去 96 = 外边距 48 + 上下内边距 44 + 边框与余量 4；下限 420 保证小窗口也能读。 -->
+  <Grid Margin="22" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType={x:Type controls:DialogHost}}, Converter={StaticResource SubtractConverter}, ConverterParameter=96|420}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- ① 头部：当前文件标题 + 一句话说明 -->
+    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+      <TextBlock Style="{StaticResource DialogTitleTextStyle}" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding Description}" />
+    </StackPanel>
+
+    <!-- ② 目录（贴边）+ 正文 -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="188" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Padding="0,0,14,0" BorderBrush="{DynamicResource Brush.16FFFFFF}" BorderThickness="0,0,1,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Margin="11,2,0,10" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Legal_Reader_IndexTitle}" />
+          <ListBox Background="{x:Null}" BorderThickness="0" Padding="0,0,14,0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding Documents}" SelectedItem="{Binding SelectedDocument}" ItemContainerStyle="{StaticResource LegalReaderNavItemStyle}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Margin="0,9,0,9" FontSize="12.5" TextWrapping="Wrap" Text="{Binding Title}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <Grid Grid.Column="1" Margin="24,0,0,0">
+        <ListBox Background="{x:Null}" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource LegalReaderBlockItemStyle}" ItemsSource="{Binding Blocks}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <!-- 右侧留 14px：滚动条默认是 Overlay（浮在内容上），不留白就会压在字上 -->
+              <VirtualizingStackPanel Margin="0,0,14,10" IsVirtualizing="True" VirtualizationMode="Recycling" ScrollUnit="Pixel" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <ContentControl Content="{Binding}">
+                <ContentControl.Style>
+                  <Style TargetType="{x:Type ContentControl}">
+                    <Setter Property="ContentTemplate" Value="{StaticResource MdBlockParagraph}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h1">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH2}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h2">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH2}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h3">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH3}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h4">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH4}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h5">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH4}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="h6">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockH4}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="bullet">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockBullet}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="number">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockNumbered}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="quote">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockQuote}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="code">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockCode}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="divider">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockDivider}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="table">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockTable}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TemplateKey}" Value="table3">
+                        <Setter Property="ContentTemplate" Value="{StaticResource MdBlockTable3}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </ContentControl.Style>
+              </ContentControl>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ListBox>
+
+        <!-- 正文读不到时的说明（正常情况下整块隐藏） -->
+        <TextBlock Margin="2,8,0,0" VerticalAlignment="Top" FontSize="12.5" LineHeight="22" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding MissingContentHint}" Visibility="{Binding MissingContentHint, Converter={StaticResource BlankToCollapsedConverter}}" />
+      </Grid>
+    </Grid>
+
+    <!-- ③ 底部 -->
+    <Grid Grid.Row="2" Margin="0,16,0,0">
+      <TextBlock VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Legal_Reader_FooterHint}" />
+      <Button HorizontalAlignment="Right" MinWidth="96" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Legal_Reader_CloseButton}" Command="{Binding CloseCommand}" />
+    </Grid>
+  </Grid>
+</UserControl>

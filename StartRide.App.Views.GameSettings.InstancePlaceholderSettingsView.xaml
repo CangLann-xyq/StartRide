@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.GameSettings.InstancePlaceholderSettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Focusable="False" xmlns:gamesettings="clr-namespace:StartRide.App.Views.GameSettings;assembly=StartRide" DataContext="{Binding Parent}">
+  <GroupBox Margin="0" Style="{StaticResource RideSectionStyle}" Header="{Binding SectionTitle}">
+    <Border Style="{StaticResource RideSectionBodyStyle}">
+      <TextBlock Foreground="{DynamicResource Brush.CFFFFFFF}" FontSize="13" TextWrapping="Wrap" Text="{Binding SectionPlaceholderBody}" />
+    </Border>
+  </GroupBox>
+</UserControl>

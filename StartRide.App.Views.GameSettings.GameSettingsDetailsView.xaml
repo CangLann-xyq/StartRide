@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.GameSettings.GameSettingsDetailsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:views="clr-namespace:StartRide.App.Views.GameSettings" xmlns:gameSettings="clr-namespace:StartRide.App.ViewModels.GameSettings" Focusable="False">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstanceGeneralSettingsViewModel}}" DataType="{x:Type gameSettings:InstanceGeneralSettingsViewModel}">
+        <views:InstanceGeneralSettingsView />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstanceLaunchSettingsViewModel}}" DataType="{x:Type gameSettings:InstanceLaunchSettingsViewModel}">
+        <views:InstanceLaunchSettingsView />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstanceJavaSettingsViewModel}}" DataType="{x:Type gameSettings:InstanceJavaSettingsViewModel}">
+        <views:InstanceJavaSettingsView />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstanceBackupSettingsViewModel}}" DataType="{x:Type gameSettings:InstanceBackupSettingsViewModel}">
+        <views:InstanceBackupSettingsView />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstanceExportSettingsViewModel}}" DataType="{x:Type gameSettings:InstanceExportSettingsViewModel}">
+        <views:InstanceExportSettingsView />
+      </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type gameSettings:InstancePlaceholderSettingsViewModel}}" DataType="{x:Type gameSettings:InstancePlaceholderSettingsViewModel}">
+        <views:InstancePlaceholderSettingsView />
+      </DataTemplate>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Grid>
+    <ScrollViewer Name="DetailsScrollViewer">
+      <FrameworkElement.Style>
+        <Style BasedOn="{StaticResource ListPageScrollViewerStyle}" TargetType="{x:Type ScrollViewer}">
+          <Setter Property="Visibility" Value="Visible" />
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding CurrentSectionViewModel.UsesFullViewportLayout}">
+              <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+      <StackPanel Name="SectionContentRoot" Margin="12,132,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
+        <UIElement.RenderTransform>
+          <TranslateTransform />
+        </UIElement.RenderTransform>
+        <ContentControl behaviors:SelfBringIntoViewSuppression.IsEnabled="True" Content="{Binding ScrollSectionViewModel}" />
+      </StackPanel>
+    </ScrollViewer>
+    <Grid Name="FullViewportSectionContentRoot">
+      <UIElement.RenderTransform>
+        <TranslateTransform />
+      </UIElement.RenderTransform>
+      <FrameworkElement.Style>
+        <Style TargetType="{x:Type Grid}">
+          <Setter Property="Visibility" Value="Collapsed" />
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding CurrentSectionViewModel.UsesFullViewportLayout}">
+              <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+      <ContentControl Content="{Binding NonRetainedFullViewportSectionViewModel}" />
+      <views:InstanceModManagementSettingsView DataContext="{Binding ModManagement}" Visibility="{Binding DataContext.IsModManagementSection, Converter={StaticResource BooleanToMenuTextVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type views:GameSettingsDetailsView}}}" />
+      <views:InstanceSaveManagementSettingsView DataContext="{Binding SaveManagement}" Visibility="{Binding DataContext.IsSaveManagementSection, Converter={StaticResource BooleanToMenuTextVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type views:GameSettingsDetailsView}}}" />
+      <views:InstanceResourcePackManagementSettingsView DataContext="{Binding ResourcePackManagement}" Visibility="{Binding DataContext.IsResourcePackManagementSection, Converter={StaticResource BooleanToMenuTextVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type views:GameSettingsDetailsView}}}" />
+      <views:InstanceShaderPackManagementSettingsView DataContext="{Binding ShaderPackManagement}" Visibility="{Binding DataContext.IsShaderPackManagementSection, Converter={StaticResource BooleanToMenuTextVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type views:GameSettingsDetailsView}}}" />
+    </Grid>
+  </Grid>
+</UserControl>

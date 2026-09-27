@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style x:Key="LauncherToolTipStyle" TargetType="{x:Type ToolTip}">
+    <Setter Property="FrameworkElement.OverridesDefaultStyle" Value="True" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Flyout}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontFamily" Value="{StaticResource LauncherFontFamily}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="MaxWidth" Value="420" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FrameworkElement.UseLayoutRounding" Value="True" />
+    <Setter Property="UIElement.SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type ToolTip}">
+          <Grid Margin="10">
+            <Border Background="{TemplateBinding Control.Background}" Effect="{DynamicResource Effect.ToolTip.Surface}" IsHitTestVisible="False" CornerRadius="{StaticResource LauncherToolTipCornerRadius}" />
+            <Border Background="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" Padding="{TemplateBinding Control.Padding}" CornerRadius="{StaticResource LauncherToolTipCornerRadius}">
+              <ContentPresenter ContentSource="Content" HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}" SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}">
+                <FrameworkElement.Resources>
+                  <ResourceDictionary>
+                    <Style x:Key="{x:Type TextBlock}" TargetType="{x:Type TextBlock}">
+                      <Setter Property="TextWrapping" Value="Wrap" />
+                    </Style>
+                  </ResourceDictionary>
+                </FrameworkElement.Resources>
+              </ContentPresenter>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="{x:Type ToolTip}" TargetType="{x:Type ToolTip}" BasedOn="{StaticResource LauncherToolTipStyle}" />
+  <Style x:Key="FloatingMessageSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="MinWidth" Value="96" />
+    <Setter Property="MaxWidth" Value="560" />
+    <Setter Property="Border.Padding" Value="18,10" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource Brush.EA252A30}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.22FFFFFF}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="19" />
+    <Setter Property="UIElement.Effect">
+      <Setter.Value>
+        <DropShadowEffect BlurRadius="24" Color="{DynamicResource Color.000000}" Opacity="0.36" ShadowDepth="8" Direction="270" />
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="FloatingMessageTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F4FFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+</ResourceDictionary>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <SolidColorBrush x:Key="Brush.Home.Name.Foreground" Color="{DynamicResource Color.FFFFFF}" />
+  <SolidColorBrush x:Key="Brush.Home.GameSettings.Foreground" Color="{DynamicResource Color.FFFFFF}" />
+  <SolidColorBrush x:Key="Brush.Home.GameSettings.ForegroundHover" Color="{DynamicResource Color.FFFFFF}" />
+  <SolidColorBrush x:Key="Brush.Home.GameSettings.ForegroundPressed" Color="{DynamicResource Color.FFFFFF}" />
+  <DropShadowEffect x:Key="Effect.Home.ForegroundTextShadow" BlurRadius="12" Color="{DynamicResource Color.000000}" Direction="270" Opacity="0.92" ShadowDepth="3" />
+  <SolidColorBrush x:Key="Brush.Surface.WindowBorder" Color="Transparent" />
+  <SolidColorBrush x:Key="Brush.Button.Secondary.Background" Color="Transparent" />
+  <Thickness x:Key="Thickness.Surface.WindowBorder">0</Thickness>
+  <system:Double x:Key="Opacity.LauncherBackground.Image.NonHomeDim" xmlns:system="clr-namespace:System;assembly=System.Private.CoreLib">0.40</system:Double>
+  <system:Boolean x:Key="Is.ImageBackground.ControlTint.Enabled" xmlns:system="clr-namespace:System;assembly=System.Private.CoreLib">True</system:Boolean>
+</ResourceDictionary>

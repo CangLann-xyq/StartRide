@@ -1,0 +1,465 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:converters="clr-namespace:StartRide.App.Converters" xmlns:res="clr-namespace:StartRide.App.Resources">
+  <Style x:Key="PageTitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F4F4F4}" />
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style x:Key="PageStatusTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="0,12,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.B8FFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style x:Key="PageEmptyStateTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.B8FFFFFF}" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="DownloadOverlayEmptyStateTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource PageEmptyStateTextStyle}">
+    <Setter Property="Margin" Value="0,122,0,0" />
+    <Setter Property="Visibility" Value="Collapsed" />
+  </Style>
+  <Style x:Key="DownloadInstanceOptionLabelTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.AFFFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style x:Key="DownloadInstanceOptionWarningTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="0,8,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FFFFC56D}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Visibility" Value="Collapsed" />
+    <Style.Triggers>
+      <DataTrigger Value="True" Binding="{Binding HasInstanceNameDuplicateMessage}">
+        <Setter Property="Visibility" Value="Visible" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="DownloadLoaderOptionTitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F4F4F4}" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style x:Key="DownloadLoaderOptionSubtitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="0,5,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.AFFFFFFF}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style x:Key="HomeAvatarContainerStyle" TargetType="{x:Type Border}">
+    <Setter Property="Width" Value="86" />
+    <Setter Property="Height" Value="86" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="UIElement.IsHitTestVisible" Value="False" />
+    <Style.Triggers>
+      <DataTrigger Value="True" Binding="{Binding HasSelectedAccount}">
+        <Setter Property="UIElement.IsHitTestVisible" Value="True" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="HomeDefaultAvatarGlyphStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="UIElement.Effect">
+      <Setter.Value>
+        <DropShadowEffect BlurRadius="20" Color="{DynamicResource Color.000000}" Direction="270" Opacity="0.62" ShadowDepth="8" />
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="HomeAccountHintTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="HomeForegroundNameShadowStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="UIElement.Effect" Value="{DynamicResource Effect.Home.ForegroundTextShadow}" />
+  </Style>
+  <Style x:Key="HomeAccountNameTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource HomeForegroundNameShadowStyle}">
+    <Setter Property="Margin" Value="0,14,0,0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Home.Name.Foreground}" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="MaxWidth" Value="260" />
+  </Style>
+  <Style x:Key="HomeVersionNameTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource HomeForegroundNameShadowStyle}">
+    <Setter Property="Margin" Value="0,12,0,0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Home.Name.Foreground}" />
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="HomeLaunchInstanceNameTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F4FFFFFF}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextBlock.LineHeight" Value="18" />
+  </Style>
+  <Style x:Key="HomeLaunchInstanceSubtitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="0,2,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.9FFFFFFF}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="TextBlock.LineHeight" Value="14" />
+  </Style>
+  <Style x:Key="HomeLaunchInstanceEmptyTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Margin" Value="24,0,24,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="TextBlock.TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="RenderTransform">
+      <Setter.Value>
+        <TranslateTransform Y="-18" />
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="HomeChangeVersionButtonStyle" TargetType="{x:Type Button}">
+    <Setter Property="Margin" Value="0,2,0,0" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Home.GameSettings.Foreground}" />
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Background="#00FFFFFF">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="UIElement.IsMouseOver" Value="True">
+              <Setter Value="{DynamicResource Brush.Home.GameSettings.ForegroundHover}" Property="Foreground" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter Value="{DynamicResource Brush.Home.GameSettings.ForegroundPressed}" Property="Foreground" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="HomeLaunchButtonStyle" TargetType="{x:Type Button}">
+    <Setter Property="Width" Value="200" />
+    <Setter Property="Height" Value="52" />
+    <Setter Property="Margin" Value="0,22,0,0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FFFFFF}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.0891FE}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+    <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+          <Border Name="Root" CornerRadius="26">
+            <UIElement.Effect>
+              <DropShadowEffect x:Name="RootGlow" BlurRadius="22" Color="{DynamicResource Color.0891FE}" Opacity="0.34" ShadowDepth="2" />
+            </UIElement.Effect>
+            <Grid>
+              <Grid RenderTransformOrigin="0.5,0.5">
+                <UIElement.RenderTransform>
+                  <ScaleTransform x:Name="BackgroundScale" ScaleX="1" ScaleY="1" />
+                </UIElement.RenderTransform>
+                <Border Name="BaseBackground" Background="{TemplateBinding Control.Background}" CornerRadius="26" />
+                <Border Name="HoverBackground" Background="{DynamicResource Brush.047EDC}" CornerRadius="26" Opacity="0" />
+                <Border Name="PressedBackground" Background="{DynamicResource Brush.036FC2}" CornerRadius="26" Opacity="0" />
+              </Grid>
+              <ContentPresenter Name="ButtonContentPresenter" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Auto">
+                <FrameworkElement.LayoutTransform>
+                  <ScaleTransform x:Name="ContentScale" ScaleX="1" ScaleY="1" />
+                </FrameworkElement.LayoutTransform>
+              </ContentPresenter>
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="Mouse.MouseEnter">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="BlurRadius" To="38" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="Opacity" To="0.62" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1.03" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1.03" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleX" To="1.03" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleY" To="1.03" Duration="0:0:0.18">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="Mouse.MouseLeave">
+              <BeginStoryboard>
+                <Storyboard>
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="BlurRadius" To="18" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="Opacity" To="0.28" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BackgroundScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="ContentScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.24">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                </Storyboard>
+              </BeginStoryboard>
+            </EventTrigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="PressedBackground" Property="UIElement.Opacity" Value="1" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Value="{DynamicResource Brush.BFFFFFFF}" Property="Foreground" />
+              <Setter Property="FrameworkElement.Cursor" Value="Arrow" />
+              <Setter TargetName="Root" Property="UIElement.Effect" Value="{x:Null}" />
+              <Setter TargetName="BaseBackground" Value="{DynamicResource Brush.5A5A5A}" Property="Border.Background" />
+              <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="PressedBackground" Property="UIElement.Opacity" Value="0" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SectionFieldSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Border.Padding" Value="14,10" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Card.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Card.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="14" />
+    <Setter Property="behaviors:BackdropBlurHost.LightweightShadowEffect" Value="{DynamicResource Effect.Card.Surface}" />
+    <Setter Property="behaviors:BackdropBlurHost.IsApplied" Value="True" />
+    <Setter Property="behaviors:BackdropBlurHost.IsBlurEnabled" Value="{DynamicResource Is.Surface.BackdropBlur.Enabled}" />
+    <Setter Property="behaviors:BackdropBlurHost.FallbackBrush" Value="{DynamicResource Brush.Card.Surface}" />
+    <Setter Property="behaviors:SurfaceShadow.SuppressChildShadows" Value="True" />
+    <Style.Triggers>
+      <DataTrigger Value="True" Binding="{Binding Path=(behaviors:SurfaceShadow.SuppressChildShadows), RelativeSource={RelativeSource AncestorType={x:Type Border}}}">
+        <Setter Property="behaviors:BackdropBlurHost.LightweightShadowEffect" Value="{x:Null}" />
+      </DataTrigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="ReadOnlyFieldSurfaceStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource SectionFieldSurfaceStyle}">
+    <Setter Property="Border.CornerRadius" Value="12" />
+    <Setter Property="MinHeight" Value="{StaticResource LauncherCompactControlHeight}" />
+    <Setter Property="Border.Padding" Value="14,4" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Card.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Input.TextBox.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style x:Key="ReadOnlyFieldTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.CFFFFFFF}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- ==================================================================
+       StartRide 自有详情页版式（车辆管理 / 模组仓库 / 回放 共用）
+       原版这三个页面是"一条窄列表 + 右侧一大片空白"，一眼就能看出是套模板。
+       这里换成：标题行 → 统计胶囊条 → 左列表 + 右详情面板。
+       ================================================================== -->
+
+  <!-- 页面大标题（前面配一枚品牌小图标） -->
+  <Style x:Key="RidePageTitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- 标题右侧的次要说明（数量 / 目录 …） -->
+  <Style x:Key="RidePageSubtitleTextStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="14,0,0,0" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+
+  <!-- 统计条外框：把若干胶囊横向排开，右侧留出总计 -->
+  <Style x:Key="RideStatStripStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#0DFFFFFF" />
+    <Setter Property="BorderBrush" Value="#17FFFFFF" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <Style x:Key="RideStatChipStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#12FFFFFF" />
+    <Setter Property="BorderBrush" Value="#1CFFFFFF" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="11" />
+    <Setter Property="Padding" Value="13,6" />
+    <Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <Style x:Key="RideStatChipValueStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.F2F2F2}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style x:Key="RideStatChipLabelStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="7,0,0,0" />
+  </Style>
+
+  <!-- 列表容器：一层很淡的卡片面，让列表"有边界"，不再浮在空白里 -->
+  <Style x:Key="RideListSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="#15FFFFFF" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="6,6,6,6" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <!-- 列表侧栏：主从布局里"贴边铺满"的那半边。
+
+       与上面 RideListSurfaceStyle 的区别就是用户提的那一点：四边内缩 + 大圆角的
+       "悬浮卡片"改成传统侧栏 —— 左/上/下都贴到窗口边，只有右侧一条 1px 竖线
+       当作与详情区的分隔。卡片感来自内缩与圆角，"浮"的观感就没有了。
+
+       2026-09-26 再调：用户要"侧边栏的角圆润一些" —— 右侧两个角给 18px 圆角
+       （与 `SecondaryMenuSidebarBackdropStyle` 同一口径），左边两角保持 0（贴窗口左缘）。
+       列表条目自带 8px 横向 / 12px 纵向内边距（ItemsPanel 的 Margin），不会画进圆角区。 -->
+  <Style x:Key="RideSidebarSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#08FFFFFF" />
+    <Setter Property="BorderBrush" Value="#15FFFFFF" />
+    <Setter Property="BorderThickness" Value="0,1,1,0" />
+    <Setter Property="Border.CornerRadius" Value="0,18,18,0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <!-- 右详情面板 -->
+  <Style x:Key="RideDetailSurfaceStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource SectionFieldSurfaceStyle}">
+    <Setter Property="Border.CornerRadius" Value="16" />
+    <Setter Property="Border.Padding" Value="20,18" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+
+  <Style x:Key="RideDetailTitleStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxHeight" Value="52" />
+  </Style>
+
+  <Style x:Key="RideDetailMetaLabelStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Subtle}" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Width" Value="58" />
+  </Style>
+
+  <Style x:Key="RideDetailMetaValueStyle" TargetType="{x:Type TextBlock}">
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.DFFFFFFF}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+
+  <!-- 章节正文：外层 RideSectionStyle 卡片已经提供了边框，正文不再叠一层卡片。
+       原版是「裸标题 + 内嵌一张带描边的卡片」，一层套一层，正是模板感的来源。 -->
+  <Style x:Key="RideSectionBodyStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#00FFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Border.Padding" Value="0" />
+  </Style>
+
+  <!-- 只读字段（路径 / UUID / 命令行…）：区块里的一条淡色内嵌条，
+       不描边、不投影，读起来是「一条数据」而不是「又一个盒子」 -->
+  <Style x:Key="RideFieldSurfaceStyle" TargetType="{x:Type Border}">
+    <Setter Property="Background" Value="#0AFFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Border.CornerRadius" Value="10" />
+    <Setter Property="Border.Padding" Value="12,7" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <!-- 面板里的一像素分隔线，比整块变色更克制 -->
+  <Style x:Key="RideHairlineStyle" TargetType="{x:Type Border}">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="#16FFFFFF" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Margin" Value="0,14,0,14" />
+  </Style>
+
+  <!-- 注意：原本这里放过 RideWideListBoxStyle（BasedOn ListPageVirtualizedListBoxStyle）。
+       它属于「跨文件前向 StaticResource 引用」——本文件先于 ControlStyles.Lists.xaml 合并，
+       BasedOn 在合并期解析 → 找不到 → MainWindow 加载即抛 XamlParseException，启动器 rc=-1。
+       已挪到 ControlStyles.Lists.xaml 末尾。新增跨文件 BasedOn 前先跑 `tools/check-style-refs.py`。 -->
+</ResourceDictionary>

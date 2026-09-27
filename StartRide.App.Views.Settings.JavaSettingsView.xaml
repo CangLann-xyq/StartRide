@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="StartRide.App.Views.Settings.JavaSettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:res="clr-namespace:StartRide.App.Resources" Focusable="False" xmlns:settings="clr-namespace:StartRide.App.Views.Settings" DataContext="{Binding Editor}">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/StartRide;component/Views/Settings/SettingsSectionResources.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
+    <GroupBox Header="{x:Static res:Strings.Settings_JavaSection}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="180" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Static res:Strings.Settings_JavaSelectionLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+            <controls:AnimatedComboBox Grid.Column="1" ItemTemplate="{StaticResource JavaSelectionOptionTemplate}" SelectionItemTemplate="{StaticResource JavaSelectionOptionTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding JavaSelectionOptions}" SelectedItem="{Binding SelectedJavaSelectionOption, Mode=TwoWay}" />
+          </Grid>
+          <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_JavaListLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="10,0,0,0" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding JavaRuntimeListMessage}" Visibility="{Binding HasJavaRuntimeListMessage, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+            </StackPanel>
+            <Button Grid.Column="1" Margin="0,0,10,0" Content="{x:Static res:Strings.Refresh_Button}" Style="{StaticResource LauncherDialogButtonStyle}" Command="{Binding RefreshJavaRuntimesCommand}" />
+            <Button Grid.Column="2" Content="{x:Static res:Strings.ManualImport_Button}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding ImportJavaRuntimeCommand}" />
+          </Grid>
+          <Grid>
+            <ListBox ItemTemplate="{StaticResource JavaRuntimeItemTemplate}" ItemContainerStyle="{StaticResource JavaRuntimeListBoxItemStyle}" Style="{StaticResource JavaRuntimeListBoxStyle}" ItemsSource="{Binding JavaRuntimes}" SelectedItem="{Binding SelectedJavaRuntime, Mode=TwoWay}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+  </StackPanel>
+</UserControl>

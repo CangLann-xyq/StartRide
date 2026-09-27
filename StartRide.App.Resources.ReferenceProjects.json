@@ -1,0 +1,104 @@
+[
+  {
+    "name": "CommunityToolkit.Mvvm",
+    "copyrightNotice": "Copyright (c) .NET Foundation and Contributors. All rights reserved.",
+    "projectUrl": "https://github.com/CommunityToolkit/dotnet",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.DependencyInjection",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.Logging",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.Logging.Abstractions",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.Options",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Microsoft.Extensions.Primitives",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "Serilog",
+    "copyrightNotice": "Copyright (c) Serilog Contributors",
+    "projectUrl": "https://github.com/serilog/serilog",
+    "licenseText": "Apache-2.0 License"
+  },
+  {
+    "name": "Serilog.Extensions.Logging",
+    "copyrightNotice": "Copyright (c) Microsoft, Serilog Contributors",
+    "projectUrl": "https://github.com/serilog/serilog-extensions-logging",
+    "licenseText": "Apache-2.0 License"
+  },
+  {
+    "name": "Serilog.Sinks.File",
+    "copyrightNotice": "Copyright (c) Serilog Contributors",
+    "projectUrl": "https://github.com/serilog/serilog-sinks-file",
+    "licenseText": "Apache-2.0 License"
+  },
+  {
+    "name": "System.Management",
+    "copyrightNotice": "Copyright (c) .NET Foundation and Contributors. All rights reserved.",
+    "projectUrl": "https://github.com/dotnet/runtime",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "SharpCompress",
+    "copyrightNotice": "Copyright (c) Adam Hathcock",
+    "projectUrl": "https://github.com/adamhathcock/sharpcompress",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "ICSharpCode.SharpZipLib",
+    "copyrightNotice": "Copyright (c) 2000-2018 SharpZipLib Contributors",
+    "projectUrl": "https://github.com/icsharpcode/SharpZipLib",
+    "licenseText": "MIT License"
+  },
+  {
+    "name": "SevenZip",
+    "copyrightNotice": "Copyright (c) Igor Pavlov（7-Zip SDK），.NET 封装由 chrishaly 维护",
+    "projectUrl": "https://github.com/chrishaly/SevenZip",
+    "licenseText": "LGPL-2.1-or-later License"
+  },
+  {
+    "name": "Microsoft.Web.WebView2.Core",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://developer.microsoft.com/microsoft-edge/webview2/",
+    "licenseText": "Microsoft 软件许可条款"
+  },
+  {
+    "name": "Microsoft.Web.WebView2.WinForms",
+    "copyrightNotice": "Copyright (c) Microsoft Corporation. All rights reserved.",
+    "projectUrl": "https://developer.microsoft.com/microsoft-edge/webview2/",
+    "licenseText": "Microsoft 软件许可条款"
+  },
+  {
+    "name": "IconPark",
+    "copyrightNotice": "Copyright 2019-present Bytedance Inc.",
+    "projectUrl": "https://github.com/bytedance/IconPark",
+    "licenseText": "Apache-2.0 License"
+  }
+]
