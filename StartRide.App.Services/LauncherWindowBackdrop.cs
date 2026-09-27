@@ -49,7 +49,10 @@ public static class LauncherWindowBackdrop
 		window.SourceInitialized += delegate
 		{
 			Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
-			ScheduleSettlePasses(window, themeService);
+			// ⚠️ 这里**不**再启动收尾期：SourceInitialized 只代表句柄建好了，窗口还没上屏。
+			// 实测启动全程 6.3 秒，而收尾期只有 1.2 秒 —— 放在这里等于全部打在上屏之前，
+			// 用户看到的仍是"一块死板的纯色，拖一下才变玻璃"。收尾期改到 ContentRendered
+			// （真正画出第一帧）和 IsVisibleChanged 上去起算。
 		};
 		Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
 		EventHandler<EffectiveThemeChangedEventArgs> themeChangedHandler = delegate
@@ -65,22 +68,24 @@ public static class LauncherWindowBackdrop
 		window.ContentRendered += delegate
 		{
 			Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
+			// 第一帧真的画出来了，从这一刻起 DWM 才认这套外观 —— 收尾期的起点在这里
+			ScheduleSettlePasses(window, themeService);
 		};
 		window.IsVisibleChanged += delegate
 		{
 			if (window.IsVisible)
 			{
 				Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
+				// 窗口从隐藏变可见（从托盘恢复、启动收尾等）同样要重新起一段收尾期
+				ScheduleSettlePasses(window, themeService);
 			}
 		};
 		window.Activated += delegate
 		{
-			// 启动器被别的窗口挡着起来时，「显示」和「拿到前台」不是同一时刻，
-			// 激活事件可能落在迟到下发之后 —— 只要还在收尾期内就再补一次。
-			if (SettlingWindows.ContainsKey(window))
-			{
-				Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
-			}
+			// 启动器被别的窗口挡着起来时，「显示」和「拿到前台」不是同一时刻 ——
+			// 拿到前台本身就会让 DWM 重新合成一次，这里无条件补一次下发。
+			// （以前只在收尾期内才补，而收尾期常常在上屏前就用完了，等于没补。）
+			Apply(window, themeService, NativeBackdrop.DwmSystemBackdropType.TransientWindow);
 		};
 		window.SizeChanged += delegate
 		{

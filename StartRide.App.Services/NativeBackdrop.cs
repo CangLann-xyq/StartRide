@@ -115,6 +115,16 @@ internal static class NativeBackdrop
 			DwmSetWindowAttribute(handle, DwmWindowAttribute.WindowCornerPreference, ref attributeValue2, 4);
 			int attributeValue3 = -2;
 			DwmSetWindowAttribute(handle, DwmWindowAttribute.BorderColor, ref attributeValue3, 4);
+			// ⚠️⚠️ 先设 None、再设目标值 —— 这是「启动后必须手动拖一下窗口尺寸，亚克力才出现」
+			// 的根因所在（2026-09-27 定位）：
+			//   DWM 对「值没变」的 DwmSetWindowAttribute 直接返回成功但不做任何事，
+			//   而 LauncherWindowBackdrop 那 6 次「迟到下发」设的都是同一个值 ——
+			//   等于全是空转。真正让材质冒出来的是用户拖窗口那一下：尺寸变化强制 DWM
+			//   重新合成，它这才去读 SystemBackdropType。
+			//   这里先归零再设回，让每一次下发都真的触发一次重新合成；
+			//   两次调用在同一个消息循环里完成，中间态来不及显示，肉眼不可见。
+			int noneValue = (int)DwmSystemBackdropType.None;
+			DwmSetWindowAttribute(handle, DwmWindowAttribute.SystemBackdropType, ref noneValue, 4);
 			int attributeValue4 = (int)backdropType;
 			return DwmSetWindowAttribute(handle, DwmWindowAttribute.SystemBackdropType, ref attributeValue4, 4) == 0;
 		}
