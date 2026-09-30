@@ -64,7 +64,7 @@ public partial class InstallerWindow : Window
         return image;
     }
 
-    /// <summary>按钮一律写"安装"；装过旧版本时只把标题与说明改成"升级"的说法。</summary>
+    /// <summary>标题、说明、按钮**一律用「安装」的说法**，整个向导不出现「升级」字样。</summary>
     private void ResolveMode()
     {
         string? installedVersion = ProductInfo.InstalledVersion();
@@ -78,14 +78,14 @@ public partial class InstallerWindow : Window
 
         if (!string.IsNullOrEmpty(installedVersion) && installedVersion != ProductInfo.Version)
         {
-            WelcomeTitle.Text = "升级 StartRide";
-            WelcomeLead.Text = $"检测到已安装 {installedVersion}，本次将升级到 {ProductInfo.Version}。" +
-                               "安装位置与快捷方式沿用现有设置，你的账户、设置与存档不会被改动。";
-            UpgradeHint.Text = $"将从 {installedVersion} 升级到 {ProductInfo.Version}";
+            // ⚠️⚠️ 整个向导**不出现「升级」字样**（2026-09-30 用户明确要求）。
+            //    标题固定写「安装 StartRide」，是升级这件事只由下面这行说明来交代。
+            //    用户双击这个包时心里预期的那件事就是「安装」；满屏「升级」反而让人
+            //    怀疑"我是不是点错东西了"。
+            WelcomeLead.Text = $"检测到已安装 {installedVersion}，本次将安装 {ProductInfo.Version}，" +
+                               "替换现有版本。安装位置与快捷方式沿用现有设置，你的账户、设置与存档不会被改动。";
+            UpgradeHint.Text = $"将安装 {ProductInfo.Version}（当前 {installedVersion}）";
             UpgradeHint.Visibility = Visibility.Visible;
-            // ⚠️ 按钮一律用「安装」，**不写「升级」**（2026-09-27 用户要求）。
-            //    「安装」是用户双击这个包时心里预期的那件事；换成「升级」反而让人
-            //    怀疑"我是不是点错东西了"。是升级这件事改由标题与下面那行提示来说。
         }
         else if (!string.IsNullOrEmpty(installedVersion))
         {

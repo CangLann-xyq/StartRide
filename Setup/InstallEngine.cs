@@ -258,7 +258,7 @@ internal static class InstallEngine
                 if (!p.HasExited)
                 {
                     throw new InvalidOperationException(
-                        ProductInfo.ProductName + " 正在运行。请先关闭它再安装（升级时旧文件被占用会写不进去）。");
+                        ProductInfo.ProductName + " 正在运行。请先关闭它再安装（已有版本的程序文件被占用会写不进去）。");
                 }
             }
             catch (InvalidOperationException)
