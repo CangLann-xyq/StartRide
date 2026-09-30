@@ -144,14 +144,22 @@ namespace StartRide.Core
 
                         lock (_recvBuf)
                         {
-                            _recvBuf.Position = 0;
-                            var data = _recvBuf.ToArray();
-                            if (!TryParseFrame(data, out fin, out opcode, out payload, out int consumed))
+                            // ⚠️ 这里**不能**用 ToArray()：它每帧把整个接收缓冲复制一份，
+                            //    而一次 ReadAsync 常带回几十帧 → O(帧数 × 缓冲) 的分配。
+                            //    中继默认就走 WS 这条路（PreferWebSocket），8 人房里这就是
+                            //    每秒几 MB 的无谓复制 + GC 压力 —— TCP 那条路早已修过同样的病
+                            //    （见 RelayClient.TcpReceiveLoopAsync 的注释），这里漏修了。
+                            //    GetBuffer() 取内部数组（不复制），解析后就地搬移剩余字节，
+                            //    每帧只搬一次、而且通常剩余为 0。语义与原来完全等价。
+                            int avail = (int)_recvBuf.Length;
+                            var data = _recvBuf.GetBuffer();
+                            if (!TryParseFrame(data, avail, out fin, out opcode, out payload, out int consumed))
                                 break;
-                            var rest = new byte[data.Length - consumed];
-                            Array.Copy(data, consumed, rest, 0, rest.Length);
-                            _recvBuf.SetLength(0);
-                            _recvBuf.Write(rest, 0, rest.Length);
+                            int restLen = avail - consumed;
+                            if (restLen > 0) Buffer.BlockCopy(data, consumed, data, 0, restLen);
+                            // SetLength 会把 Position 一并收到 len（MSDN：位置大于新长度时后移），
+                            // 所以下一次 _recvBuf.Write 正好接在有效数据末尾。
+                            _recvBuf.SetLength(restLen);
                         }
 
                         switch (opcode)
@@ -192,11 +200,16 @@ namespace StartRide.Core
         }
 
         /// <summary>从缓冲区里尝试解析一帧；数据不足时返回 false。</summary>
-        private static bool TryParseFrame(byte[] d, out bool fin, out byte opcode,
+        /// <summary>
+        /// 从缓冲区里尝试解析一帧；数据不足时返回 false。
+        /// <paramref name="dataLen"/> 是**有效字节数**，不是数组长度 ——
+        /// MemoryStream.GetBuffer() 返回的内部数组可能比已有数据长。
+        /// </summary>
+        private static bool TryParseFrame(byte[] d, int dataLen, out bool fin, out byte opcode,
                                           out byte[]? payload, out int consumed)
         {
             fin = false; opcode = 0; payload = null; consumed = 0;
-            if (d.Length < 2) return false;
+            if (dataLen < 2) return false;
 
             fin = (d[0] & 0x80) != 0;
             opcode = (byte)(d[0] & 0x0F);
@@ -206,13 +219,13 @@ namespace StartRide.Core
 
             if (len == 126)
             {
-                if (d.Length < 4) return false;
+                if (dataLen < 4) return false;
                 len = (d[2] << 8) | d[3];
                 offset = 4;
             }
             else if (len == 127)
             {
-                if (d.Length < 10) return false;
+                if (dataLen < 10) return false;
                 len = 0;
                 for (int i = 0; i < 8; i++) len = (len << 8) | d[2 + i];
                 offset = 10;
@@ -221,13 +234,13 @@ namespace StartRide.Core
             byte[]? mask = null;
             if (masked)
             {
-                if (d.Length < offset + 4) return false;
+                if (dataLen < offset + 4) return false;
                 mask = new byte[4];
                 Array.Copy(d, offset, mask, 0, 4);
                 offset += 4;
             }
 
-            if (len > int.MaxValue || d.Length < offset + len) return false;
+            if (len > int.MaxValue || dataLen < offset + len) return false;
 
             var body = new byte[len];
             Array.Copy(d, offset, body, 0, (int)len);
