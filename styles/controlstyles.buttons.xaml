@@ -153,23 +153,84 @@
     <Setter Property="VerticalAlignment" Value="Bottom" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.FFFFFF}" />
     <Setter Property="Background" Value="{DynamicResource Brush.0891FE}" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontSize" Value="15" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FrameworkElement.Cursor" Value="Hand" />
     <Setter Property="Panel.ZIndex" Value="4" />
     <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+    <Setter Property="behaviors:GlassHighlightBehavior.IsEnabled" Value="True" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type Button}">
-          <Border Name="Root" CornerRadius="21">
+          <!-- 液态玻璃浮动主按钮（下载页 / 游戏设置页）。画法与首页大按钮同源，
+               尺寸收小到 116x42（子样式还会再压到 100x36），光点也相应收窄。 -->
+          <Border Name="Root" CornerRadius="21" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
+            <Border.BorderBrush>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#8AFFFFFF" Offset="0" />
+                <GradientStop Color="#1FFFFFFF" Offset="0.3" />
+                <GradientStop Color="#1CFFFFFF" Offset="0.64" />
+                <GradientStop Color="#52FFFFFF" Offset="1" />
+              </LinearGradientBrush>
+            </Border.BorderBrush>
+            <Border.RenderTransform>
+              <ScaleTransform x:Name="GlassScale" ScaleX="1" ScaleY="1" />
+            </Border.RenderTransform>
             <UIElement.Effect>
-              <DropShadowEffect BlurRadius="22" Color="{DynamicResource Color.0891FE}" Opacity="0.38" ShadowDepth="2" />
+              <DropShadowEffect x:Name="RootGlow" BlurRadius="22" Color="{DynamicResource Color.0891FE}" Opacity="0.38" ShadowDepth="2" />
             </UIElement.Effect>
             <Grid>
-              <Border Name="BaseBackground" Background="{TemplateBinding Control.Background}" CornerRadius="21" />
-              <Border Name="HoverBackground" Background="{DynamicResource Brush.047EDC}" CornerRadius="21" Opacity="0" />
-              <Border Name="PressedBackground" Background="{DynamicResource Brush.036FC2}" CornerRadius="21" Opacity="0" />
+              <Border Name="BaseBackground" Background="{TemplateBinding Control.Background}" CornerRadius="20" />
+              <Border Name="HoverBackground" Background="{DynamicResource Brush.047EDC}" CornerRadius="20" Opacity="0" />
+              <Border Name="PressedBackground" Background="{DynamicResource Brush.036FC2}" CornerRadius="20" Opacity="0" />
+              <Border Name="LensDomeMark" IsHitTestVisible="False" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}">
+                <Border.Background>
+                  <RadialGradientBrush Center="0.5,0.46" GradientOrigin="0.5,0.44" RadiusX="0.98" RadiusY="0.98">
+                    <GradientStop Color="#00FFFFFF" Offset="0" />
+                    <GradientStop Color="#05FFFFFF" Offset="0.52" />
+                    <GradientStop Color="#24FFFFFF" Offset="0.82" />
+                    <GradientStop Color="#6FFFFFFF" Offset="1" />
+                  </RadialGradientBrush>
+                </Border.Background>
+              </Border>
+              <Border Name="TopSheen" IsHitTestVisible="False" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}">
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0,0" EndPoint="0.12,1">
+                    <GradientStop Color="#62FFFFFF" Offset="0" />
+                    <GradientStop Color="#1EFFFFFF" Offset="0.42" />
+                    <GradientStop Color="#00FFFFFF" Offset="0.72" />
+                  </LinearGradientBrush>
+                </Border.Background>
+              </Border>
+              <Border Name="BottomBounce" IsHitTestVisible="False" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}">
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0,1" EndPoint="0,0.42">
+                    <GradientStop Color="#30FFFFFF" Offset="0" />
+                    <GradientStop Color="#00FFFFFF" Offset="1" />
+                  </LinearGradientBrush>
+                </Border.Background>
+              </Border>
+              <Canvas IsHitTestVisible="False" behaviors:RoundedClip.Radius="21">
+                <Ellipse Name="PART_GlassDomeSpot" Width="98" Height="52" Canvas.Left="9" Canvas.Top="-5" Opacity="0">
+                  <Ellipse.Fill>
+                    <RadialGradientBrush>
+                      <GradientStop Color="#3CFFFFFF" Offset="0" />
+                      <GradientStop Color="#0EFFFFFF" Offset="0.55" />
+                      <GradientStop Color="#00FFFFFF" Offset="1" />
+                    </RadialGradientBrush>
+                  </Ellipse.Fill>
+                </Ellipse>
+                <Ellipse Name="PART_GlassGlossSpot" Width="78" Height="58" Canvas.Left="19" Canvas.Top="-8" Opacity="0">
+                  <Ellipse.Fill>
+                    <RadialGradientBrush>
+                      <GradientStop Color="#84FFFFFF" Offset="0" />
+                      <GradientStop Color="#30FFFFFF" Offset="0.45" />
+                      <GradientStop Color="#00FFFFFF" Offset="1" />
+                    </RadialGradientBrush>
+                  </Ellipse.Fill>
+                </Ellipse>
+              </Canvas>
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
           </Border>
@@ -177,9 +238,54 @@
             <EventTrigger RoutedEvent="Mouse.MouseEnter">
               <BeginStoryboard>
                 <Storyboard>
-                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16">
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.18">
                     <DoubleAnimation.EasingFunction>
                       <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="LensDomeMark" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="TopSheen" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.26">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BottomBounce" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.26">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="PART_GlassGlossSpot" Storyboard.TargetProperty="Opacity" To="0.95" Duration="0:0:0.22">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="PART_GlassDomeSpot" Storyboard.TargetProperty="Opacity" To="0.8" Duration="0:0:0.28">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="BlurRadius" To="34" Duration="0:0:0.28">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="Opacity" To="0.6" Duration="0:0:0.28">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleX" To="1.03" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <BackEase EasingMode="EaseOut" Amplitude="0.45" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleY" To="1.03" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <BackEase EasingMode="EaseOut" Amplitude="0.45" />
                     </DoubleAnimation.EasingFunction>
                   </DoubleAnimation>
                 </Storyboard>
@@ -188,24 +294,109 @@
             <EventTrigger RoutedEvent="Mouse.MouseLeave">
               <BeginStoryboard>
                 <Storyboard>
-                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22">
+                  <DoubleAnimation Storyboard.TargetName="HoverBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.24">
                     <DoubleAnimation.EasingFunction>
                       <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="LensDomeMark" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="TopSheen" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="BottomBounce" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="PART_GlassGlossSpot" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.34">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="PART_GlassDomeSpot" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.34">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="BlurRadius" To="18" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="RootGlow" Storyboard.TargetProperty="Opacity" To="0.3" Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                      <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.36">
+                    <DoubleAnimation.EasingFunction>
+                      <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                    </DoubleAnimation.EasingFunction>
+                  </DoubleAnimation>
+                  <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.36">
+                    <DoubleAnimation.EasingFunction>
+                      <BackEase EasingMode="EaseOut" Amplitude="0.6" />
                     </DoubleAnimation.EasingFunction>
                   </DoubleAnimation>
                 </Storyboard>
               </BeginStoryboard>
             </EventTrigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="PressedBackground" Property="UIElement.Opacity" Value="1" />
+              <Trigger.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="PressedBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.08" />
+                    <DoubleAnimation Storyboard.TargetName="PART_GlassGlossSpot" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.08" />
+                    <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleX" To="0.972" Duration="0:0:0.09">
+                      <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleY" To="0.94" Duration="0:0:0.09">
+                      <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.EnterActions>
+              <Trigger.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="PressedBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                    <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.58">
+                      <DoubleAnimation.EasingFunction>
+                        <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="4.5" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="GlassScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.58">
+                      <DoubleAnimation.EasingFunction>
+                        <ElasticEase EasingMode="EaseOut" Oscillations="1" Springiness="4.5" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </Trigger.ExitActions>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Value="{DynamicResource Brush.BFFFFFFF}" Property="Foreground" />
               <Setter Property="FrameworkElement.Cursor" Value="Arrow" />
+              <Setter TargetName="Root" Property="Border.BorderBrush" Value="{x:Null}" />
               <Setter TargetName="Root" Property="UIElement.Effect" Value="{x:Null}" />
               <Setter TargetName="BaseBackground" Value="{DynamicResource Brush.5A5A5A}" Property="Border.Background" />
               <Setter TargetName="HoverBackground" Property="UIElement.Opacity" Value="0" />
               <Setter TargetName="PressedBackground" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="LensDomeMark" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="TopSheen" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="BottomBounce" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="PART_GlassGlossSpot" Property="UIElement.Opacity" Value="0" />
+              <Setter TargetName="PART_GlassDomeSpot" Property="UIElement.Opacity" Value="0" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
