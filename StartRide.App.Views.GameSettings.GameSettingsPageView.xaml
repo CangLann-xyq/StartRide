@@ -47,7 +47,7 @@
         </Grid>
       </controls:SecondaryMenuFrame.FooterContent>
     </controls:SecondaryMenuFrame>
-    <controls:ListPageFrame x:Name="GameSettingsListFrame" Margin="272,36,24,8" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="False" Title="{Binding PageTitle}" TitleIconSource="{Binding PageTitleIconSource}" IsHeaderBackButtonVisible="{Binding IsDetailsStep}" HeaderBackCommand="{Binding BackToInstanceListCommand}" SearchText="{Binding TopSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSearchVisible="{Binding IsTopSearchVisible}" IsSearchToolbarVisible="{Binding IsTopResourceManagementDetailsStep}" IsListVisible="{Binding IsGameSettingsContentVisible}">
+    <controls:ListPageFrame x:Name="GameSettingsListFrame" Margin="248,36,24,40" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="False" Title="{Binding PageTitle}" TitleIconSource="{Binding PageTitleIconSource}" IsHeaderBackButtonVisible="{Binding IsDetailsStep}" HeaderBackCommand="{Binding BackToInstanceListCommand}" SearchText="{Binding TopSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSearchVisible="{Binding IsTopSearchVisible}" IsSearchToolbarVisible="{Binding IsTopResourceManagementDetailsStep}" IsListVisible="{Binding IsGameSettingsContentVisible}">
       <controls:ListPageFrame.SearchToolbarContentTemplate>
         <DataTemplate>
           <Grid>

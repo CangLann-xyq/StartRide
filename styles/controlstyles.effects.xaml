@@ -113,8 +113,8 @@
     <Setter Property="controls:BackdropBlurBorder.OverlayBrush" Value="#00FFFFFF" />
     <Setter Property="controls:BackdropBlurBorder.IsTintEnabled" Value="{DynamicResource Is.ImageBackground.ControlTint.Enabled}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.SecondaryMenu.Border}" />
-    <Setter Property="BorderThickness" Value="0,1,1,0" />
-    <Setter Property="controls:BackdropBlurBorder.CornerRadius" Value="0,18,18,0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="controls:BackdropBlurBorder.CornerRadius" Value="18" />
     <Setter Property="ClipToBounds" Value="True" />
     <Style.Triggers>
       <Trigger Property="controls:BackdropBlurBorder.IsTintEnabled" Value="True">

@@ -12,7 +12,7 @@
         </ItemsControl>
       </controls:SecondaryMenuFrame.MenuContent>
     </controls:SecondaryMenuFrame>
-    <controls:ListPageFrame x:Name="DownloadVersionListFrame" Margin="272,36,24,8" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="False" Title="{Binding PageTitle}" TitleIconSource="{Binding PageTitleIconSource}" IsHeaderBackButtonVisible="{Binding IsInstanceOptionsStep}" HeaderBackCommand="{Binding BackToVersionListCommand}" SearchText="{Binding VersionList.VersionSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSearchVisible="{Binding IsVersionListStep}" IsListVisible="{Binding IsDownloadContentVisible}">
+    <controls:ListPageFrame x:Name="DownloadVersionListFrame" Margin="248,36,24,40" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="False" Title="{Binding PageTitle}" TitleIconSource="{Binding PageTitleIconSource}" IsHeaderBackButtonVisible="{Binding IsInstanceOptionsStep}" HeaderBackCommand="{Binding BackToVersionListCommand}" SearchText="{Binding VersionList.VersionSearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSearchVisible="{Binding IsVersionListStep}" IsListVisible="{Binding IsDownloadContentVisible}">
       <controls:ListPageFrame.OverlayContent>
         <Grid>
           <FrameworkElement.Style>

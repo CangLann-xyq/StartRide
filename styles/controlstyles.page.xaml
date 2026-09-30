@@ -394,10 +394,17 @@
   <Style x:Key="RideSidebarSurfaceStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#08FFFFFF" />
     <Setter Property="BorderBrush" Value="#15FFFFFF" />
-    <Setter Property="BorderThickness" Value="0,1,1,0" />
-    <Setter Property="Border.CornerRadius" Value="0,18,18,0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Border.CornerRadius" Value="18" />
     <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="24,24,0,24" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Border.Effect">
+      <Setter.Value>
+        <DropShadowEffect BlurRadius="34" Direction="270" ShadowDepth="16"
+                          Opacity="0.34" Color="#000000" RenderingBias="Quality" />
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- 右详情面板 -->

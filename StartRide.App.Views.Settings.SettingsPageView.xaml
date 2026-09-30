@@ -37,7 +37,7 @@
         <ItemsControl ItemTemplate="{StaticResource SettingsMenuItemTemplate}" ItemsSource="{Binding Sections}" />
       </controls:SecondaryMenuFrame.MenuContent>
     </controls:SecondaryMenuFrame>
-    <controls:ListPageFrame x:Name="SettingsListFrame" Margin="272,36,24,8" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="{Binding SectionTitle}">
+    <controls:ListPageFrame x:Name="SettingsListFrame" Margin="248,36,24,40" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="{Binding SectionTitle}">
       <controls:ListPageFrame.ListContent>
         <Grid Margin="12,0,0,0" Loaded="SectionContentRoot_OnLoaded" Unloaded="SectionContentRoot_OnUnloaded">
           <UIElement.RenderTransform>

@@ -15,10 +15,18 @@
        同日稍后再补：竖栏**右侧两个角**留 18px 圆角（落在 `SecondaryMenuSidebarBackdropStyle`），
        顶到底的竖栏不再是两个死直角；左边两角必须保持 0（贴窗口左缘，圆了会露底色）。 -->
   <Style x:Key="SecondaryMenuPanelSurfaceStyle" TargetType="{x:Type Border}">
-    <Setter Property="Width" Value="272" />
-    <Setter Property="Margin" Value="0" />
+    <Setter Property="Width" Value="224" />
+    <Setter Property="Margin" Value="24" />
     <Setter Property="HorizontalAlignment" Value="Left" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
+    <!-- 投影 = 悬浮感的主要来源。Direction/Depth 给出向下偏的柔影，Opacity 压在 0.34
+         （再重会在浅色主题下发脏）。Radius 34 是 2026-09-26 之前一直用的值。 -->
+    <Setter Property="Border.Effect">
+      <Setter.Value>
+        <DropShadowEffect BlurRadius="34" Direction="270" ShadowDepth="16"
+                          Opacity="0.34" Color="#000000" RenderingBias="Quality" />
+      </Setter.Value>
+    </Setter>
   </Style>
   <Style x:Key="SecondaryMenuPanelStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="{DynamicResource Brush.SecondaryMenu.Panel}" />

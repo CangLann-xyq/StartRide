@@ -6,7 +6,7 @@
         <views:AccountMenuView />
       </controls:SecondaryMenuFrame.MenuContent>
     </controls:SecondaryMenuFrame>
-    <Grid Name="AccountContentHost" Margin="272,36,24,8" ClipToBounds="True">
+    <Grid Name="AccountContentHost" Margin="248,36,24,40" ClipToBounds="True">
       <TextBlock Name="AccountEmptyStateView" Margin="12,0,0,0" Text="{x:Static res:Strings.Account_EmptySelection}" Style="{StaticResource PageEmptyStateTextStyle}" />
       <views:AccountDetailsView x:Name="AccountDetailsView" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" Opacity="0" Visibility="Collapsed" DataContext="{Binding Details}">
         <UIElement.RenderTransform>

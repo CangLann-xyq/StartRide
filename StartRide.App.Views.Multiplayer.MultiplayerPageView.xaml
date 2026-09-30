@@ -21,7 +21,7 @@
         <ItemsControl ItemTemplate="{StaticResource MultiplayerMenuItemTemplate}" ItemsSource="{Binding Sections}" />
       </controls:SecondaryMenuFrame.MenuContent>
     </controls:SecondaryMenuFrame>
-    <controls:ListPageFrame x:Name="MultiplayerListFrame" Margin="272,36,24,8" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="{Binding SectionTitle}" IsHeaderBackButtonVisible="{Binding IsLobbyStep}" HeaderBackCommand="{Binding RequestLeaveLobbyCommand}">
+    <controls:ListPageFrame x:Name="MultiplayerListFrame" Margin="248,36,24,40" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="{Binding SectionTitle}" IsHeaderBackButtonVisible="{Binding IsLobbyStep}" HeaderBackCommand="{Binding RequestLeaveLobbyCommand}">
       <controls:ListPageFrame.ListContent>
         <Grid Tag="MultiplayerSectionHost" ClipToBounds="True">
           <Grid Loaded="SectionContentRoot_OnLoaded" Unloaded="SectionContentRoot_OnUnloaded">
@@ -63,7 +63,7 @@
         </Grid>
       </controls:ListPageFrame.ListContent>
     </controls:ListPageFrame>
-    <TextBlock Name="MultiplayerFooterHint" Panel.ZIndex="1" Margin="284,0,24,50" HorizontalAlignment="Center" VerticalAlignment="Bottom" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap">
+    <TextBlock Name="MultiplayerFooterHint" Panel.ZIndex="1" Margin="260,0,24,50" HorizontalAlignment="Center" VerticalAlignment="Bottom" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap">
       <FrameworkElement.Style>
         <Style TargetType="{x:Type TextBlock}">
           <Setter Property="Visibility" Value="Collapsed" />
