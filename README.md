@@ -54,7 +54,7 @@ is localised in Simplified Chinese, Traditional Chinese, English and Japanese.
 | **高光时刻** | **全局设置** |
 | ![高光时刻](docs/screenshots/06-highlights.jpg) | ![全局设置](docs/screenshots/07-settings.jpg) |
 
-> 截图取自 v0.1.8，未做后期处理。
+> 截图取自 v0.1.8 的界面；该界面与当前正式版 v1.0.0 一致，未做后期处理。
 
 ---
 
