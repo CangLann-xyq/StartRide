@@ -127,6 +127,18 @@ public partial class InstallerWindow : Window
         else Close();
     }
 
+    private void Agreement_OnClick(object sender, RoutedEventArgs e)
+        => ShowLegal("用户协议", EmbeddedLegal.UserAgreement);
+
+    private void Privacy_OnClick(object sender, RoutedEventArgs e)
+        => ShowLegal("隐私政策", EmbeddedLegal.PrivacyPolicy);
+
+    private void ShowLegal(string title, string resourceName)
+    {
+        var window = new LegalDocumentWindow(title, resourceName) { Owner = this };
+        window.ShowDialog();
+    }
+
     private void CancelInstall()
     {
         try { _cts?.Cancel(); } catch { }

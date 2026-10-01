@@ -23,7 +23,7 @@ local MAX_REMOTE = 16
 local CHAT_KEEP = 80
 local CHAT_COOLDOWN = 0.3
 
-local MOD_VERSION = '0.1.8'
+local MOD_VERSION = '0.1.9'
 
 
 

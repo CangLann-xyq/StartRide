@@ -36,6 +36,13 @@
     <Resource Include="..\assets\branding\startride_icon_128.png" Link="Assets\startride_icon_128.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\docs\legal\01-user-agreement.md" Link="Legal\01-user-agreement.md"
+                      LogicalName="StartRide.Setup.Resources.Legal.01-user-agreement.md" />
+    <EmbeddedResource Include="..\docs\legal\02-privacy-policy.md" Link="Legal\02-privacy-policy.md"
+                      LogicalName="StartRide.Setup.Resources.Legal.02-privacy-policy.md" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(UninstallerOnly)' != 'true'">
     <EmbeddedResource Include="Payload\StartRide-app.zip" LogicalName="StartRide.Setup.Payload.app.zip" />
     <EmbeddedResource Include="Payload\StartRide-Uninstall.zip" LogicalName="StartRide.Setup.Payload.uninstall.zip" />

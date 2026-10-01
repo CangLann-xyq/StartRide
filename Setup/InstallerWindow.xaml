@@ -149,6 +149,17 @@
                     Style="{StaticResource CheckBoxStyle}" IsChecked="True" />
           <CheckBox x:Name="LaunchCheck" Content="安装完成后启动 StartRide" Margin="0,0,0,12"
                     Style="{StaticResource CheckBoxStyle}" IsChecked="True" />
+
+          <TextBlock Margin="0,2,0,0" TextWrapping="Wrap" Style="{StaticResource DimText}">
+            <Run Text="安装即表示你已阅读并同意" />
+            <Hyperlink Click="Agreement_OnClick"
+                       Foreground="{StaticResource Brush.Accent}"
+                       TextDecorations="Underline">《用户协议》</Hyperlink>
+            <Run Text="与" />
+            <Hyperlink Click="Privacy_OnClick"
+                       Foreground="{StaticResource Brush.Accent}"
+                       TextDecorations="Underline">《隐私政策》</Hyperlink>
+          </TextBlock>
         </StackPanel>
 
         <StackPanel x:Name="PanelProgress" Visibility="Collapsed">

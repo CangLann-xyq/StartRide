@@ -70,6 +70,11 @@ is described in the project's privacy policy:
 - [Privacy policy](legal/02-privacy-policy.md)
 - [Third-party components and open-source notices](legal/06-third-party-notices.md)
 
+The installer itself displays these documents: the welcome page carries the
+line "By installing you confirm that you have read and agree to the User
+Agreement and the Privacy Policy", and both documents open in full from that
+page. Their text ships inside the installer, so it can be read offline.
+
 The program does not transfer anything to networked systems other than those
 described in that policy.
 
@@ -140,6 +145,9 @@ StartRide 提供可选的联网功能（联机房间、Steam 游戏持有校验�
 
 - [隐私政策](legal/02-privacy-policy.md)
 - [第三方组件与开源许可声明](legal/06-third-party-notices.md)
+
+安装程序本身也会展示这两份文档：欢迎页写明「安装即表示你已阅读并同意《用户协议》与
+《隐私政策》」，两个标题都可以直接点开读全文。文本随安装包内嵌发布，不联网也能查看。
 
 除该政策所述内容外，本程序不向其他联网系统传输任何信息。
 
