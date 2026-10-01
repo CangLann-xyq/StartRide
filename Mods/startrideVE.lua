@@ -1,37 +1,8 @@
 
 if v.srVEModule then return v.srVEModule end
 
--- ═══════════════════════════════════════════════════════════════════════════
--- StartRide 远程车辆物理接管（车辆层 VE）
---
--- 只做一件事：把对方发来的位置/速度**用物理力**把本机这辆车拽过去，
--- 同时保留碰撞。不能直接 setPos，那样远程车就变成幽灵（穿模、撞不到、不参与解算）。
---
--- 参考实现：BeamMP 的 positionVE.lua + velocityVE.lua（本地副本 D:\code\all\BeamMP-ref\）。
---   * 位置修正/预测/误差/传送阈值 —— 逐条对齐 positionVE.updateGFX
---   * 施力 —— 对齐 velocityVE.addForce / addAngularForce（逐节点 applyForceVector）
---   * 角速度只补角速度、不动线速度 —— 对齐 positionGE 里传的 onlyAngularVelocity=1
---
--- ⚠️ 施力为什么走「逐节点 applyForceVector」而不是 applyClusterLinearAngularAccel：
---   后者在游戏里是 thruster 用的接口（见 lua/vehicle/thrusters.lua 的 applyAccel/
---   applyVelocity 与 update 里的 clusterThrust 段），语义是"给这个 cluster 一个加速度"，
---   由引擎直接在速度空间上叠加；而 applyForceVector 进的是**力累加器**，和接触/碰撞
---   冲量在同一个约束求解器里解 —— 两台车才能互相顶、互相推。
---   BeamMP 的 velocityVE.addForce 就是逐节点施力（它的 cluster 分支只是省开销的
---   "快路径 + 给断开节点反向力"）。这里统一走逐节点，省掉那套 counter-velocity 记账；
---   节点数过多（改装车/超长挂车）时再退回单次 cluster 调用，避免每帧上千次调用。
---
--- ⚠️ Lua 的 `local function` 只在其定义之后可见，前面的函数体里同名引用会解析成
---   **全局变量**（运行期 nil，被 pcall 包住就静默失效）。所以本文件按
---   「工具 → 状态 → 取车体朝向/初始化 → 节点集合 → 施力 → 接收 → 每帧」严格排序，
---   改文件时别打乱。
--- ═══════════════════════════════════════════════════════════════════════════
-
 local M = {}
 
--- 默认按"本车"起步；GE 下发的 setVehicleType('R') 会改成 'R'。
--- ⚠️ 那条命令是在 spawn 之后立刻排队的，那时本模块可能还没加载完 → 会丢。
---    所以 setTargetPos 里还有一层自愈（收到远程数据就强制 'R'，BeamMP 同样做法）。
 v.mpVehicleType = 'L'
 v.srServerID = ''
 
@@ -39,19 +10,7 @@ local abs = math.abs
 local min = math.min
 local max = math.max
 
--- ── 调参常量 ─────────────────────────────────────────────────────────────────
--- ⚠️ 必须收进一张表，**绝不能平铺成一堆 local**：
---    Lua 5.1 每个函数的 upvalue 上限是 60，而 updateGFX 会平铺引用这里全部常量，
---    实测到 70 个 → 超限是**编译期**错误，整个 startrideVE 模块直接 load 失败。
---    后果：GE 下发的 setVehicleType('R') 没人接、逐节点施力与传送全不跑，
---    用户看到的就是"联机时看不见对方的车"，而报错只在 beamng.log 里留一行：
---      error loading module 'lua/vehicle/extensions/auto/startrideVE'
---      startrideVE.lua:807: function at line 638 has more than 60 upvalues
---    改成表之后，每个函数只捕获 1 个 upvalue（表本身），实测 70 → 49。
---    新增常量一律加进这张表，别再写 local。
---    复核手段：node _sr_shots/_sr_upvals.js Mods/startrideVE.lua
 local TUNE = {
-  -- 位置/角度修正（数值与 BeamMP positionVE 完全一致；tpRotAdd 0.5→0.8 是主动放宽）
   posCorrectMul = 5,
   posForceMul = 5,
   minPosForce = 0.04,
@@ -66,8 +25,6 @@ local TUNE = {
   maxRacc = 50,
   maxRaccError = 3,
 
-  -- BeamMP 用 0.5。阈值过小会让高速行驶的远程车频繁被硬传送，
-  -- 每次硬传送都会打断一次物理解算 —— 看起来就是"抖 + 穿模"。这里放宽到 0.8。
   tpDelayAdd = 1,
   tpDistAdd = 1,
   tpDistMul1 = 0.1,
@@ -83,14 +40,12 @@ local TUNE = {
   remoteAccSmoothRate = 1,
   errSmoothRate = 50,
 
-  -- 逐节点施力
-  maxBeamLengthRatio = 2,        -- 梁被拉长超过原长这个倍数就当成断了（BeamMP velocityVE）
-  PER_NODE_LIMIT = 900,          -- 可连接节点数超过它就退回单次 cluster 调用（保帧率）
+  maxBeamLengthRatio = 2,
+  PER_NODE_LIMIT = 900,
   NODE_REFRESH_INTERVAL = 5,
   minTpGap = 0.25,
 }
 
--- ── 逐节点施力状态 ──
 local connectedBeams = {}
 local isConnectedNode = {}
 local nodes = {}
@@ -100,7 +55,6 @@ local nodesBuilt = false
 local nodeSetFallbacks = 0
 local lastNodeRefresh = -100
 local beamBrokeWrapped = false
--- ── 运行时状态 ──
 local timer = 0
 local lastDT = 0
 local framesSinceReset = 0
@@ -134,15 +88,11 @@ local lastAcc = nil
 local lastRacc = nil
 local lastAccV, lastRaccV, hasLastAcc = nil, nil, false
 
--- 这些向量在 ensureInit 里一次性建好，之后全程复用（每帧 vec3() 会产生垃圾）
 local dir, dirUp, rotQ, pos, vel, rvel
 local vehRot, vehPos, vehVel, vehRvel, vehAcc, vehRacc
 local cogTmp, forceVec, zeroVec, tmpVec, cogRel
 local clusterLin, clusterAng
 local sm = {}
-
-
--- ═══════════════ 工具 ═══════════════
 
 local function logI(...)
   local parts = {}
@@ -202,14 +152,10 @@ local function posOk(x, y, z)
   return (x * x + y * y + z * z) < 1e12
 end
 
--- 旋转一个向量（不用 setRotated，避免不同版本 API 差异）
 local function rotatedInto(dst, src, q)
   local r = src:rotated(q)
   dst:set(r.x, r.y, r.z)
 end
-
-
--- ═══════════════ 初始化 / 车体朝向 ═══════════════
 
 local function ensureInit()
   if dir then return end
@@ -281,9 +227,6 @@ local function setServerID(id)
   idRequested = false
 end
 
--- 收到远程数据 = 这辆车绝不可能是"我自己的车"。BeamMP 的 positionVE 也是这么自愈的。
--- 少这一层，一旦 GE 的 setVehicleType('R') 没生效（spawn 竞态），远程车就永远停在
--- 生成点 —— 用户看到的就是"看不见对方的车 + 撞不到"。
 local function ensureRemoteType(sid)
   if v.mpVehicleType ~= 'R' then
     v.mpVehicleType = 'R'
@@ -294,10 +237,6 @@ local function ensureRemoteType(sid)
   end
 end
 
-
--- ═══════════════ 节点集合（velocityVE 移植）═══════════════
-
--- 质心（车身坐标）。逐节点给同样 Δv 时，只有绕质心才不产生额外自旋。
 local function calcCOG()
   local rot = getVehRot()
   local totalMass, cx, cy, cz = 0, 0, 0, 0
@@ -353,7 +292,6 @@ local function findConnectedNodes()
     findConnectedNodesRecursive(parentNode, 0)
   end
   if #nodes == 0 then
-    -- 兜底：与参考节点不连通（断裂/改装）→ 用全部节点，总比一动不动强
     nodeSetFallbacks = nodeSetFallbacks + 1
     for _, n in pairs(v.data.nodes or {}) do
       if n.cid then
@@ -372,7 +310,6 @@ end
 local function buildNodeSet()
   connectedBeams = {}
   for _, b in pairs(v.data.beams or {}) do
-    -- 排除 BEAM_PRESSURED(3) / BEAM_LBEAM(4) / BEAM_SUPPORT(7)
     if b.beamType ~= 3 and b.beamType ~= 4 and b.beamType ~= 7 then
       if connectedBeams[b.id1] == nil then connectedBeams[b.id1] = {} end
       if connectedBeams[b.id2] == nil then connectedBeams[b.id2] = {} end
@@ -392,8 +329,6 @@ local function buildNodeSet()
 
   findConnectedNodes()
 
-  -- 梁断了要重建节点集合。能挂上 beamBroke 就挂（BeamMP 的做法）；
-  -- 挂不上也不致命：onReset + 每 TUNE.NODE_REFRESH_INTERVAL 秒兜底刷新。
   if not beamBrokeWrapped then
     pcall(function()
       local orig = powertrain.beamBroke
@@ -413,16 +348,11 @@ local function buildNodeSet()
     ' 兜底=' .. tostring(nodeSetFallbacks) .. ' physicsFPS=' .. tostring(physicsFPS))
 end
 
-
--- ═══════════════ 施力 ═══════════════
-
 local function applyNodeForce(cid, x, y, z)
   forceVec:set(x, y, z)
   return pcall(function() obj:applyForceVector(cid, forceVec) end)
 end
 
--- 单次 cluster 调用（节点太多时的省开销路径）。
--- 角速度那一路 BeamNG 的符号与 roll/pitch/yaw 相反 → 取负（BeamMP velocityVE 同）。
 local function clusterAccel(x, y, z, pitchAV, rollAV, yawAV)
   local rn = getRefNode()
   if not rn then return false end
@@ -431,7 +361,6 @@ local function clusterAccel(x, y, z, pitchAV, rollAV, yawAV)
   return pcall(function() obj:applyClusterLinearAngularAccel(rn, clusterLin, clusterAng) end)
 end
 
--- 加一个速度增量 Δv(m/s)
 local function addVelocity(x, y, z)
   if beamsChanged or not nodesBuilt then findConnectedNodes() end
   if #nodes > TUNE.PER_NODE_LIMIT then
@@ -444,8 +373,6 @@ local function addVelocity(x, y, z)
   end
 end
 
--- 加角速度增量 Δω(rad/s)，顺序 pitch/roll/yaw。
--- 按"绕质心的切向速度"给每个节点施力 → 纯转动，不会把车撕开（BeamMP addAngularForce 同式）
 local function addAngularVelocity(x, y, z, pitchAV, rollAV, yawAV)
   if beamsChanged or not nodesBuilt then findConnectedNodes() end
   pitchAV, rollAV, yawAV = pitchAV or 0, rollAV or 0, yawAV or 0
@@ -473,9 +400,6 @@ local function addAngularVelocity(x, y, z, pitchAV, rollAV, yawAV)
   end
 end
 
--- 只设置角速度，**不动线速度**：对齐 BeamMP positionGE 传的 onlyAngularVelocity=1。
--- GE 那边已经用 applyClusterVelocityScaleAdd 把线速度设好了，这里再动线速度会两边打架
--- （会变成"每次传送都把刚设好的速度抵消掉"→ 远程车像被粘住）。
 local function setAngularVelocityOnly(pitchAV, rollAV, yawAV)
   ensureInit()
   local rot = getVehRot()
@@ -494,9 +418,6 @@ local function setAngularVelocityOnly(pitchAV, rollAV, yawAV)
   if not finite3(rdx, rdy, rdz) then return end
   addAngularVelocity(0, 0, 0, rdx, rdy, rdz)
 end
-
-
--- ═══════════════ 接收远程数据 ═══════════════
 
 local function applyTargetRot(rt)
   if type(rt) ~= 'table' then return false end
@@ -549,7 +470,7 @@ local function setTargetPos(jsonStr)
     framesSinceReset = 0
     tpTimer = 0
     active = true
-    pendingSnap = true      -- 新数据流（刚进场/重连）→ 第 6 帧强制硬对齐一次
+    pendingSnap = true
     staleWarned = false
     remoteData.recvAt = timer
     return
@@ -586,12 +507,10 @@ local function setTargetPos(jsonStr)
   staleWarned = false
 end
 
--- GE → VE 的高速通道：邮箱（每辆车按自己的 srPos<id> 取件）
 local function pullMailbox()
   local sid = v.srServerID
   if not sid or sid == '' then
-    -- ⚠️ GE 的 setServerID 是在 spawn 后立刻排队的，那时本模块可能还没加载完 → 命令丢失。
-    -- 主动向 GE 要一次（GE 侧 startride.onVEAskID 会按 gameVehicleID 找到记录并重发）。
+
     if not idRequested then
       idRequested = true
       pcall(function()
@@ -609,12 +528,8 @@ local function pullMailbox()
   if ok2 and data then setTargetPos(data) end
 end
 
-
--- ═══════════════ 每帧：算目标 → 施力 ═══════════════
-
 local function onPhysicsStep(dtSim)
   ensureInit()
-  -- 只有远程车才需要维护这两个量（本地车交给游戏自己算）
   if v.mpVehicleType ~= 'R' then return end
   pcall(function()
     local vx, vy, vz = obj:getVelocityXYZ()
@@ -640,7 +555,6 @@ local function requestTeleport(px, py, pz, qx, qy, qz, qw, vx, vy, vz, rvx, rvy,
       rot = { qx, qy, qz, qw },
       vel = { vx, vy, vz },
       rvel = { rvx or 0, rvy or 0, rvz or 0 },
-      -- 给 GE 做"是不是刚发生碰撞"的判断（BeamMP positionGE 的 localVel vs vehVel 比较）
       vehVel = { vehVel.x, vehVel.y, vehVel.z },
       noCounter = noCounter and 1 or 0,
     })
@@ -656,10 +570,6 @@ local function updateGFX(dt)
   lastDT = dt
   framesSinceReset = framesSinceReset + 1
 
-  -- ⚠️ pullMailbox 必须放在 mpVehicleType 判断【之前】：
-  -- GE 的 setVehicleType('R') 是 spawn 后立刻排队的，那时本模块可能还没加载完 → 丢命令。
-  -- 一旦丢了本车就永远是 'L'，下面的物理解算整段不跑 —— 用户看到的就是
-  -- "看不见对方的车"。收到远程包即自愈（BeamMP positionVE 同样做法）。
   pullMailbox()
 
   if v.mpVehicleType ~= 'R' then return end
@@ -730,7 +640,6 @@ local function updateGFX(dt)
   local posErrLenSq = ex * ex + ey * ey + ez * ez
   if posErrLenSq ~= posErrLenSq then return end
 
-  -- rotError = vehRot^-1 * rot，再 (x,y,z) → (y,z,x)（BeamMP positionVE 的轴重排）
   local rx, ry, rz = 0, 0, 0
   local rotErrLenSq = 0
   pcall(function()
@@ -754,15 +663,12 @@ local function updateGFX(dt)
     tpTimer = 0
   end
 
-  -- BeamMP positionVE：等 6 帧再无条件硬对齐一次
-  -- （smoother 需要几帧收敛；第一帧就传会让"高速状态下进场/重生"反复弹跳）
   if framesSinceReset > 5 then
     local forceSnap = pendingSnap and framesSinceReset >= 6
     local wantTp = forceSnap
       or tpTimer > (TUNE.tpDelayAdd + abs(predictTime))
       or posErrLenSq > tpDist2 * tpDist2
       or rotErrLenSq > tpRot2 * tpRot2
-    -- 强制那一次不看间隔限制（否则 firstTp 会被 TUNE.minTpGap 挡掉）
     if wantTp and not forceSnap and (timer - lastTpAt) < TUNE.minTpGap then wantTp = false end
 
     if wantTp then
@@ -786,7 +692,6 @@ local function updateGFX(dt)
         tpTimer = 0
         return
       end
-      -- 发送失败：强制这一次不再重试（避免死循环），普通传送下帧再说
       if forceSnap then pendingSnap = false end
       tpTimer = 0
       return
@@ -843,7 +748,6 @@ local function updateGFX(dt)
   local rotLenSq = tRaccX * tRaccX + tRaccY * tRaccY + tRaccZ * tRaccZ
   local accLenSq2 = tAccX * tAccX + tAccY * tAccY + tAccZ * tAccZ
 
-  -- 逐节点施力：力小到可忽略时就干脆不给，让轮胎/碰撞自己说话
   if rotLenSq > TUNE.minRotForce * TUNE.minRotForce or len3(vehVel.x, vehVel.y, vehVel.z) > 1 then
     addAngularVelocity(tAccX, tAccY, tAccZ, tRaccX, tRaccY, tRaccZ)
   elseif accLenSq2 > TUNE.minPosForce * TUNE.minPosForce then
@@ -957,8 +861,7 @@ M.setServerID = setServerID
 M.setTargetPos = setTargetPos
 M.setVehiclePosRot = setTargetPos
 M.setAngularVelocityOnly = setAngularVelocityOnly
--- 兼容旧调用：GE 以前传的是 setAngularVelocity(0,0,0,p,r,y) —— 线速度那三个参数本来
--- 就是 0，这里直接按"只设角速度"处理（详见 setAngularVelocityOnly 的注释）。
+
 M.setAngularVelocity = function(_, _, _, pitchAV, rollAV, yawAV)
   setAngularVelocityOnly(pitchAV, rollAV, yawAV)
 end

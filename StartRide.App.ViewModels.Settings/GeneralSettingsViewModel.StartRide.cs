@@ -14,11 +14,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Settings;
 
-/// <summary>
-/// 通用设置页里 StartRide 专属的两块内容（partial 扩展，避免动原反编译文件的大段逻辑）：
-///   1. 游戏安装目录 —— 自动识别本机 BeamNG.drive，写进 StartRide 设置，启动按钮立刻生效
-///   2. 必需配置文件 —— 检查缺失/损坏并从云端模板补全
-/// </summary>
 public sealed partial class GeneralSettingsViewModel
 {
 	private string beamNgDirectory = string.Empty;
@@ -47,7 +42,6 @@ public sealed partial class GeneralSettingsViewModel
 
 	private RelayCommand? openGameConfigDirectoryCommand;
 
-	/// <summary>当前生效的 BeamNG.drive 安装目录。</summary>
 	public string BeamNgDirectory
 	{
 		get => beamNgDirectory;
@@ -100,7 +94,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>必需配置文件所在目录（&lt;userpath&gt;/settings）。</summary>
 	public string GameConfigPathText
 	{
 		get => gameConfigPathText;
@@ -140,7 +133,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>启动游戏前自动检查并补全必需配置文件。</summary>
 	public bool AutoRepairGameConfig
 	{
 		get => autoRepairGameConfig;
@@ -156,19 +148,13 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>每个必需文件的检查明细（界面列表）。</summary>
 	public ObservableCollection<GameConfigFileItem> GameConfigFiles { get; } =
 		new ObservableCollection<GameConfigFileItem>();
-
-	// ── 精彩瞬间自动捕捉 ──────────────────────────────────────────────────────
-	// 三个开关都只做两件事：写启动器设置 + **把配置推给游戏内模组**。
-	// 第二件事不能漏 —— 用户在界面上关了，游戏里还在录，是最招骂的那种 bug。
 
 	private bool highlightCaptureEnabled = true;
 	private bool highlightAutoRecord = true;
 	private bool highlightInSinglePlayer;
 
-	/// <summary>总开关。关掉后模组仍检测（HUD 上看得见）但不落盘。</summary>
 	public bool HighlightCaptureEnabled
 	{
 		get => highlightCaptureEnabled;
@@ -185,7 +171,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>联机时自动开始录制回放。</summary>
 	public bool HighlightAutoRecord
 	{
 		get => highlightAutoRecord;
@@ -202,7 +187,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>单人开车也记录（默认关：随便跑一圈也生成记录会白占磁盘）。</summary>
 	public bool HighlightInSinglePlayer
 	{
 		get => highlightInSinglePlayer;
@@ -219,7 +203,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>把高光设置写到 &lt;回放目录&gt;/startride/config.json。失败不抛。</summary>
 	private void PushHighlightConfig()
 	{
 		try
@@ -228,11 +211,9 @@ public sealed partial class GeneralSettingsViewModel
 		}
 		catch
 		{
-			// 目录不可写（游戏装在只读盘等）不该让设置页崩掉，模组也有内置默认值
 		}
 	}
 
-	/// <summary>在资源管理器中打开高光目录（截图 + JSON + 自动录的录像都在这一带）。</summary>
 	public IRelayCommand OpenHighlightsFolderCommand =>
 		openHighlightsFolderCommand ?? (openHighlightsFolderCommand = new RelayCommand(OpenHighlightsFolder));
 
@@ -280,7 +261,6 @@ public sealed partial class GeneralSettingsViewModel
 	public IRelayCommand OpenGameConfigDirectoryCommand =>
 		openGameConfigDirectoryCommand ?? (openGameConfigDirectoryCommand = new RelayCommand(OpenGameConfigDirectory));
 
-	/// <summary>构造后与设置加载时都要刷新，保证界面显示的是当前真实状态。</summary>
 	private void InitializeBeamNgSection()
 	{
 		AutoRepairGameConfig = AppSettings.Current.AutoRepairGameConfig;
@@ -288,7 +268,6 @@ public sealed partial class GeneralSettingsViewModel
 		RefreshGameConfigState();
 	}
 
-	/// <summary>把当前设置里的目录状态刷到界面（不探测磁盘之外的东西）。</summary>
 	public void RefreshBeamNgDirectoryState()
 	{
 		var app = AppSettings.Current;
@@ -299,7 +278,6 @@ public sealed partial class GeneralSettingsViewModel
 			: Strings.Settings_GameInstallMissing;
 	}
 
-	/// <summary>刷新配置文件目录与明细列表。</summary>
 	public void RefreshGameConfigState()
 	{
 		var service = new ConfigRepairService(AppSettings.Current);
@@ -315,7 +293,6 @@ public sealed partial class GeneralSettingsViewModel
 			: Strings.Settings_GameConfigNotCheckedYet;
 	}
 
-	/// <summary>自动识别：多策略探测本机 BeamNG.drive，命中即写入设置并立即可用。</summary>
 	private void AutoDetectBeamNgDirectory()
 	{
 		if (IsBeamNgDirectoryBusy) return;
@@ -344,7 +321,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>手动选择安装目录（必须是含 BeamNG.drive.exe 的那一层）。</summary>
 	private void BrowseBeamNgDirectory()
 	{
 		if (IsBeamNgDirectoryBusy) return;
@@ -356,7 +332,6 @@ public sealed partial class GeneralSettingsViewModel
 			string dir = picked!.Trim().Trim('"').Replace('/', '\\').TrimEnd('\\');
 			if (!AppSettings.IsBeamNgInstall(dir))
 			{
-				// 用户可能选到了 Bin64 之类的子目录，往上找一层再试
 				string? parent = Path.GetDirectoryName(dir);
 				if (parent != null && AppSettings.IsBeamNgInstall(parent))
 				{
@@ -381,10 +356,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>
-	/// 写入 StartRide 设置并保存。因为全应用共用 AppSettings.Current，
-	/// 保存后主页启动按钮、联机一键流程立刻用新目录，无需重启启动器。
-	/// </summary>
 	private void ApplyGameDirectory(string directory)
 	{
 		var app = AppSettings.Current;
@@ -413,7 +384,6 @@ public sealed partial class GeneralSettingsViewModel
 				instanceFolderService.TryOpen(dir);
 				return;
 			}
-			// 目录还不存在（游戏没启动过）→ 打开它的上一级，方便用户自己看
 			string? parent = Path.GetDirectoryName(dir);
 			if (parent != null && Directory.Exists(parent))
 			{
@@ -428,8 +398,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	#region 切换游戏目录对话框（复用现有对话框 UI，数据源换成 BeamNG 安装目录）
-
 	private bool isBeamNgDirectorySwitchMode;
 
 	private static string NormalizeSwitchPath(string? path)
@@ -441,11 +409,6 @@ public sealed partial class GeneralSettingsViewModel
 		return path!.Trim().Trim('"').Replace('/', '\\').TrimEnd('\\');
 	}
 
-	/// <summary>
-	/// 打开"切换游戏目录"对话框前，把列表内容换成 BeamNG 安装目录候选：
-	/// 自动识别出来的所有候选 + 当前设置值（保证当前项一定在列表里）。
-	/// 这样对话框里不会再出现 .minecraft 这种 Minecraft 残留目录。
-	/// </summary>
 	internal void PrepareBeamNgDirectorySwitchDialog()
 	{
 		isBeamNgDirectorySwitchMode = true;
@@ -462,7 +425,6 @@ public sealed partial class GeneralSettingsViewModel
 			}
 		}
 
-		// 当前值即使没被探测到，也要显示出来（用户自己手动选过的目录）
 		if (current.Length > 0 && !candidates.Contains(current, StringComparer.OrdinalIgnoreCase))
 		{
 			candidates.Insert(0, current);
@@ -475,12 +437,10 @@ public sealed partial class GeneralSettingsViewModel
 			string displayName = isCurrent
 				? Strings.Settings_GameInstallItemCurrent
 				: Strings.Settings_GameInstallItemCandidate;
-			// canRemove: 当前使用的目录不允许在列表里删掉
 			MinecraftDirectories.Add(new SettingsGameDirectoryItem(displayName, path, isAvailable: true, canRemove: !isCurrent));
 		}
 	}
 
-	/// <summary>对话框判定"当前目录"用：BeamNG 模式取游戏安装目录，否则维持原有 Minecraft 目录语义。</summary>
 	private string ResolveSwitchDialogCurrentDirectory()
 	{
 		return isBeamNgDirectorySwitchMode
@@ -488,7 +448,6 @@ public sealed partial class GeneralSettingsViewModel
 			: MinecraftDirectory;
 	}
 
-	/// <summary>对话框点"确定"后真正执行切换：BeamNG 模式写游戏安装目录，否则走原有的 Minecraft 目录切换。</summary>
 	private Task<bool> ApplySwitchDialogDirectoryAsync(string directoryPath)
 	{
 		if (!isBeamNgDirectorySwitchMode)
@@ -506,19 +465,11 @@ public sealed partial class GeneralSettingsViewModel
 			statusService.Report(Strings.Settings_GameInstallInvalid);
 			return false;
 		}
-		// 复用同一套写入逻辑：写 AppSettings.Current 并立即持久化，全应用马上生效
 		ApplyGameDirectory(path);
 		statusService.Report(string.Format(Strings.Settings_GameInstallAppliedFormat, path));
 		return true;
 	}
 
-	#endregion
-
-	/// <summary>
-	/// 检查并补全（游戏文件体检）：
-	///   能自动补的 —— 模组目录、联机模组包（重新打包安装）、必需配置文件（云端模板）
-	///   补不了的   —— 游戏本体运行文件，明确标注"需 Steam 校验"，不做假动作
-	/// </summary>
 	private async Task CheckAndRepairGameConfigAsync()
 	{
 		if (IsGameConfigBusy) return;
@@ -571,7 +522,6 @@ public sealed partial class GeneralSettingsViewModel
 	}
 }
 
-/// <summary>配置文件列表项（界面绑定用）。</summary>
 public sealed class GameConfigFileItem
 {
 	public string DisplayName { get; }
@@ -584,7 +534,6 @@ public sealed class GameConfigFileItem
 
 	public bool IsProblem { get; }
 
-	/// <summary>游戏文件体检项（与配置项共用同一套界面模板）。</summary>
 	public GameConfigFileItem(GameFileHealthItem item)
 	{
 		DisplayName = item.DisplayName;

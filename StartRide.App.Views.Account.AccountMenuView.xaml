@@ -6,7 +6,6 @@
         <DataTemplate DataType="{x:Type accountViewModels:AccountItemViewModel}">
           <Grid>
             <controls:SecondaryMenuOptionButton TextMargin="4,0,42,0" Text="{Binding DisplayName}" IsSelected="{Binding IsSelected}" IsExternalMouseOver="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type Grid}}}" Command="{Binding DataContext.AccountList.SelectAccountCommand, RelativeSource={RelativeSource AncestorType={x:Type views:AccountMenuView}}}" CommandParameter="{Binding}">
-              <!-- StartRide：有真实头像（Steam 导入）时显示头像图，否则回退通用人形 SVG -->
               <FrameworkElement.Style>
                 <Style TargetType="{x:Type controls:SecondaryMenuOptionButton}">
                   <Setter Property="IconMode" Value="Svg" />

@@ -24,8 +24,7 @@ public partial class GameSettingsDetailsView : UserControl, IComponentConnector
 
 	public GameSettingsDetailsView()
 	{
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0058: Expected O, but got Unknown
+
 		InitializeComponent();
 		sectionTransitionService = new PageTransitionService(((DispatcherObject)this).Dispatcher, (string _) => GetCurrentTransitionRoot(), GetCurrentSectionId(), SectionOrder);
 		base.Loaded += GameSettingsDetailsView_Loaded;

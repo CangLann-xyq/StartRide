@@ -18,8 +18,7 @@ public partial class CreateLobbyView : UserControl, IComponentConnector
 
 	public CreateLobbyView()
 	{
-		//IL_0050: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005a: Expected O, but got Unknown
+
 		InitializeComponent();
 		stepTransition = new SlidingContentTransitionCoordinator(this, CreateLobbyStepHost, CreateLobbySetupLayer, CreatedLobbyLayer);
 		base.Loaded += CreateLobbyView_Loaded;

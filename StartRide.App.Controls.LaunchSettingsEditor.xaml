@@ -54,8 +54,7 @@
     <GroupBox Header="{x:Static res:Strings.GameSettings_LaunchSettingsSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
-          <!-- 设置方式管的就是这一组启动项，所以并进同一张卡、用细分隔线分行；
-               没有标题的独立小卡片会看起来像多出来的一块 -->
+
           <Border>
             <FrameworkElement.Style>
               <Style BasedOn="{StaticResource RideSectionBodyStyle}" TargetType="{x:Type Border}">
@@ -111,8 +110,7 @@
             <TextBlock Text="{x:Static res:Strings.GameSettings_LaunchFullScreenOption}" Style="{StaticResource SettingsOptionTextStyle}" />
             <CheckBox Grid.Column="1" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchFullScreenEnabled, ElementName=Root, Mode=TwoWay}" IsEnabled="{Binding AreLaunchSettingsOverridesEnabled, ElementName=Root}" />
           </Grid>
-          <!-- 自动加入服务器地址：Minecraft 概念（MC 客户端直接吃 host:port），
-               BeamNG 联机走启动器自己的中继+房间流程，没有对应参数 → 本轮起不再显示。 -->
+
           <Grid Margin="0" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
@@ -184,8 +182,7 @@
             <TextBox Style="{StaticResource AdvancedLaunchEditableTextBoxStyle}" Text="{Binding LaunchPostExitCommand, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding AreLaunchSettingsOverridesEnabled, ElementName=Root}" />
             <TextBox Style="{StaticResource AdvancedLaunchGlobalTextBoxStyle}" />
           </Grid>
-          <!-- 自定义 JVM 参数：BeamNG 是原生引擎，没有 Java 运行时，这项永远是空操作 → 不再显示。
-               BeamNG 的等价物是下面那栏「游戏启动参数」，那栏是真的会拼进命令行的。 -->
+
           <StackPanel Visibility="Collapsed">
             <TextBlock Text="{x:Static res:Strings.GameSettings_CustomJvmArgumentsOption}" Style="{StaticResource SettingsOptionTextStyle}" Margin="0,16,0,8" />
             <Grid>

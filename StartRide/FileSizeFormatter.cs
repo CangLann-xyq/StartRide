@@ -3,7 +3,6 @@ using System.Globalization;
 
 namespace StartRide.Core
 {
-    /// <summary>把字节数说成人话（KB/MB/GB）。项目里没有现成的，放这里给诊断包等界面用。</summary>
     public static class FileSizeFormatter
     {
         public static string Format(long bytes)

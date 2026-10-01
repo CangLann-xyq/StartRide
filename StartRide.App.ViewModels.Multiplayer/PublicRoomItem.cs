@@ -3,7 +3,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Multiplayer;
 
-/// <summary>公开房间列表里的一行：把后端 Room 映射成界面可直接绑定的数据。</summary>
 public sealed record PublicRoomItem(Room Room)
 {
 	public string RoomCode => Room.Id;

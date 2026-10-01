@@ -11,7 +11,6 @@ using System.Windows.Media.Imaging;
 
 namespace StartRide.Core
 {
-    /// <summary>高光会话里的一场房间信息（模组写下来的）。</summary>
     public sealed class HighlightRoom
     {
         [JsonPropertyName("id")] public string? Id { get; set; }
@@ -19,7 +18,6 @@ namespace StartRide.Core
         [JsonPropertyName("players")] public int Players { get; set; }
     }
 
-    /// <summary>这条高光落在哪个录像文件的第几秒到第几秒。</summary>
     public sealed class HighlightReplaySegment
     {
         [JsonPropertyName("file")] public string? File { get; set; }
@@ -27,10 +25,6 @@ namespace StartRide.Core
         [JsonPropertyName("to")] public double To { get; set; }
     }
 
-    /// <summary>
-    /// 一条高光。字段名与 Mods/startride_mod.lua 里 hlSave/onHighlight 写出的 JSON **一一对应**，
-    /// 改一边必须改另一边。
-    /// </summary>
     public sealed class HighlightItem
     {
         [JsonPropertyName("type")] public string Type { get; set; } = "";
@@ -39,14 +33,12 @@ namespace StartRide.Core
         [JsonPropertyName("extra")] public double Extra { get; set; }
         [JsonPropertyName("speed")] public double Speed { get; set; }
 
-        /// <summary>相对本段录像起点的时间码（秒）——"跳到那一刻"就靠它。</summary>
         [JsonPropertyName("offset")] public double Offset { get; set; }
 
         [JsonPropertyName("replay")] public string? Replay { get; set; }
         [JsonPropertyName("at")] public string? At { get; set; }
         [JsonPropertyName("shot")] public string? Shot { get; set; }
 
-        /// <summary>截图所在目录，反序列化后由 Store 补上（JSON 里只存文件名）。</summary>
         [JsonIgnore] public string ShotsDirectory { get; set; } = "";
 
         [JsonIgnore] public string Title => string.IsNullOrWhiteSpace(Label) ? Type : Label;
@@ -60,7 +52,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>给人看的数值。**必须与 startride_mod.lua 的 hlValueText 保持一致**（跨语言没法共享）。</summary>
         [JsonIgnore]
         public string ValueText
         {
@@ -93,7 +84,6 @@ namespace StartRide.Core
             return v.ToString(fmt, CultureInfo.InvariantCulture);
         }
 
-        /// <summary>"1 分 23 秒" 这种时间码。</summary>
         [JsonIgnore]
         public string TimeCodeText
         {
@@ -107,17 +97,12 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>文件名（含扩展名）与"从文件名猜地图"用的原始片段，只读展示用。</summary>
         [JsonIgnore]
         public string ReplayFileName => string.IsNullOrWhiteSpace(Replay) ? "" : Path.GetFileName(Replay!);
 
         private bool shotTried;
         private ImageSource? shotImage;
 
-        /// <summary>
-        /// 截图缩略图。懒加载 + 只解码到 320px 宽：高光截图是全屏 JPEG（1920×1080），
-        /// 一屏几十张全尺寸解码要吃掉几百 MB。
-        /// </summary>
         [JsonIgnore]
         public ImageSource? ShotImage
         {
@@ -135,12 +120,12 @@ namespace StartRide.Core
                     bmp.DecodePixelWidth = 320;
                     bmp.CacheOption = BitmapCacheOption.OnLoad;
                     bmp.EndInit();
-                    bmp.Freeze();          // 冻结后才能安全跨线程复用
+                    bmp.Freeze();
                     shotImage = bmp;
                 }
                 catch
                 {
-                    shotImage = null;      // 图片坏了不能影响整张卡片
+                    shotImage = null;
                 }
                 return shotImage;
             }
@@ -149,7 +134,6 @@ namespace StartRide.Core
         [JsonIgnore] public bool HasShot => ShotImage != null;
     }
 
-    /// <summary>一次联机会话（模组在断开/退出时写一个 session-*.json）。</summary>
     public sealed class HighlightSession
     {
         [JsonPropertyName("version")] public int Version { get; set; }
@@ -176,7 +160,6 @@ namespace StartRide.Core
 
         [JsonIgnore] public string MapText => string.IsNullOrWhiteSpace(Map) ? "未知地图" : Map!;
 
-        /// <summary>会话开始时间。模组写的是 "yyyy-MM-dd HH:mm:ss"（本地时间，无时区）。</summary>
         [JsonIgnore]
         public DateTime? StartedLocal
         {
@@ -215,7 +198,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>"3 个大跳跃 · 1 次重击" —— 卡片副标题用，一眼看出这局有什么。</summary>
         [JsonIgnore]
         public string SummaryText
         {
@@ -230,10 +212,8 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>这一局有没有留下录像文件（没有的话"跳到那一刻"就不可能）。</summary>
         [JsonIgnore] public bool HasReplay => Replays != null && Replays.Any(r => !string.IsNullOrWhiteSpace(r.File));
 
-        /// <summary>会话目录（= 启动器用来定位截图和 JSON 的地方）。</summary>
         [JsonIgnore] public string SessionDirectory => ShotsDirectory;
 
         private static string DescribeAgo(DateTime? at)
@@ -250,15 +230,6 @@ namespace StartRide.Core
         }
     }
 
-    /// <summary>
-    /// 读模组写在 &lt;userpath&gt;/replays/startride/ 下的高光会话。
-    ///
-    /// 目录选在 replays 下面是有意的：启动器已经知道怎么解析回放目录
-    /// （AppSettings.ResolveReplaysDirectory），两边不需要再约定第二套路径规则。
-    ///
-    /// 容错要求很高 —— 这些 JSON 是游戏进程随时可能被强杀时写下的，
-    /// 半截文件/字段缺失/编码异常都必须只是"这条不显示"，不能让回放页整体挂掉。
-    /// </summary>
     public static class HighlightStore
     {
         public const string SubDirectoryName = "startride";
@@ -270,24 +241,18 @@ namespace StartRide.Core
             ReadCommentHandling = JsonCommentHandling.Skip,
         };
 
-        /// <summary>高光目录（&lt;replays&gt;/startride）。可能不存在，调用方判空。</summary>
         public static string ResolveDirectory(string? replaysDirectory)
         {
             if (string.IsNullOrWhiteSpace(replaysDirectory)) return "";
             return Path.Combine(replaysDirectory!, SubDirectoryName);
         }
 
-        /// <summary>目录里有没有配置（用来说明"模组有没有跑过"）。</summary>
         public static string ResolveConfigPath(string? replaysDirectory)
         {
             string dir = ResolveDirectory(replaysDirectory);
             return dir.Length == 0 ? "" : Path.Combine(dir, "config.json");
         }
 
-        /// <summary>
-        /// 扫出全部会话，按开始时间**倒序**（最近的在前）。
-        /// 读不动的文件直接跳过 —— 详见类注释的容错要求。
-        /// </summary>
         public static List<HighlightSession> LoadAll(string? replaysDirectory)
         {
             var list = new List<HighlightSession>();
@@ -316,7 +281,6 @@ namespace StartRide.Core
                 .ToList();
         }
 
-        /// <summary>读单个会话文件。坏文件返回 null。</summary>
         public static HighlightSession? LoadOne(string jsonPath, string sessionDirectory, string replaysDirectory)
         {
             try
@@ -332,7 +296,6 @@ namespace StartRide.Core
                 s.ReplaysDirectory = replaysDirectory ?? "";
                 if (string.IsNullOrWhiteSpace(s.SessionId))
                 {
-                    // 老文件没写 sessionId 就退回文件名，至少让卡片标题不空
                     s.SessionId = Path.GetFileNameWithoutExtension(jsonPath);
                 }
                 foreach (HighlightItem it in s.Items)
@@ -347,7 +310,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>这一局里出现过的类型（给筛选按钮用）。</summary>
         public static List<string> CollectTypes(IEnumerable<HighlightSession> sessions)
         {
             return sessions
@@ -358,11 +320,6 @@ namespace StartRide.Core
                 .ToList();
         }
 
-        /// <summary>
-        /// 把启动器设置推给模组（= WriteModConfig + 从 AppSettings 取值的包装）。
-        /// 两个调用点：启动器拉起游戏之前、以及用户在高光页改开关时。
-        /// 模组每次开会话都会重读 config.json，所以改完不需要重启游戏。
-        /// </summary>
         public static string? PushModConfig(AppSettings? settings)
         {
             if (settings == null) return "没有设置对象";
@@ -373,15 +330,9 @@ namespace StartRide.Core
                 settings.HighlightAutoRecord,
                 minutes * 60,
                 40,
-                // 模组那边叫 onlyInSession，语义与「单人模式也记录」正好相反
                 !settings.HighlightInSinglePlayer);
         }
 
-        /// <summary>
-        /// 把启动器设置写给模组读（&lt;replays&gt;/startride/config.json）。
-        /// 模组每次开会话都会读一遍，所以这里改完不需要重启游戏。
-        /// 返回 null 表示成功，否则是错误说明 —— 写不进去不该让设置页崩掉。
-        /// </summary>
         public static string? WriteModConfig(
             string? replaysDirectory,
             bool enabled,
@@ -408,7 +359,6 @@ namespace StartRide.Core
                 {
                     WriteIndented = true,
                 });
-                // 不带 BOM：BeamNG 的 jsonReadFile 不保证吃 BOM
                 File.WriteAllText(Path.Combine(dir, "config.json"), json, new UTF8Encoding(false));
                 return null;
             }

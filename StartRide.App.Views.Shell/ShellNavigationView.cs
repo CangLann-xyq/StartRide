@@ -25,8 +25,7 @@ public partial class ShellNavigationView : UserControl, IComponentConnector
 
 	public ShellNavigationView()
 	{
-		//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Expected O, but got Unknown
+
 		lastDownloadTaskPulseAt = DateTimeOffset.MinValue;
 		InitializeComponent();
 		base.DataContextChanged += new DependencyPropertyChangedEventHandler(ShellNavigationView_DataContextChanged);

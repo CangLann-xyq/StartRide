@@ -39,9 +39,7 @@ public static class VirtualizedListItemStateBehavior
 
 		public ListBoxState()
 		{
-			//IL_0018: Unknown result type (might be due to invalid IL or missing references)
-			//IL_001d: Unknown result type (might be due to invalid IL or missing references)
-			//IL_002d: Expected O, but got Unknown
+
 			animatedEntranceItems = new HashSet<object>(ReferenceEqualityComparer.Instance);
 			entranceAnimationTimer = new DispatcherTimer((DispatcherPriority)6)
 			{
@@ -333,9 +331,7 @@ public static class VirtualizedListItemStateBehavior
 
 		private bool IsContainerInUsableViewport(ListBoxItem container)
 		{
-			//IL_0053: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0058: Unknown result type (might be due to invalid IL or missing references)
-			//IL_005d: Unknown result type (might be due to invalid IL or missing references)
+
 			if (scrollViewer == null || scrollViewer.ActualHeight <= 0.0 || listBox == null)
 			{
 				return true;
@@ -540,22 +536,7 @@ public static class VirtualizedListItemStateBehavior
 
 	static VirtualizedListItemStateBehavior()
 	{
-		//IL_0039: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0043: Expected O, but got Unknown
-		//IL_003e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0048: Expected O, but got Unknown
-		//IL_0073: Unknown result type (might be due to invalid IL or missing references)
-		//IL_007d: Expected O, but got Unknown
-		//IL_0078: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0082: Expected O, but got Unknown
-		//IL_00ad: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b7: Expected O, but got Unknown
-		//IL_00b2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00bc: Expected O, but got Unknown
-		//IL_00e8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f2: Expected O, but got Unknown
-		//IL_0111: Unknown result type (might be due to invalid IL or missing references)
-		//IL_011b: Expected O, but got Unknown
+
 		EntranceAnimationPassInterval = TimeSpan.FromMilliseconds(45.0);
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(VirtualizedListItemStateBehavior), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 		EntranceAnimationTokenProperty = DependencyProperty.RegisterAttached("EntranceAnimationToken", typeof(int), typeof(VirtualizedListItemStateBehavior), new PropertyMetadata((object)0, new PropertyChangedCallback(OnEntranceAnimationTokenChanged)));

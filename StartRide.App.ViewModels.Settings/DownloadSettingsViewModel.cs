@@ -29,10 +29,6 @@ public sealed class DownloadSettingsViewModel : SettingsSectionViewModelBase
 
 	public int MinimumDownloadConcurrency => 1;
 
-	/// <summary>
-	/// 上限 16。以前是 128，但真正下载的 StartRide.DownloadManager 最多只认 16 个并发，
-	/// 滑到 100 也不会有任何变化 —— 界面范围和引擎能力必须一致，否则又是"调了没反应"。
-	/// </summary>
 	public int MaximumAllowedDownloadConcurrency => 16;
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
@@ -107,8 +103,7 @@ public sealed class DownloadSettingsViewModel : SettingsSectionViewModelBase
 		: base(persistence)
 	{
 		CustomFileDownload = customFileDownload;
-		// StartRide：下载源只有 BeamNG 官方源。BMCLAPI 是 Minecraft 专用镜像，
-		// 对 BeamNG 没有意义，不再出现在选项里。
+
 		DownloadSourceOptions = new ObservableCollection<SettingsDownloadSourceOption>
 		{
 			new SettingsDownloadSourceOption(DownloadSourcePreference.Official, Strings.Settings_DownloadSourceOfficial)
@@ -122,16 +117,12 @@ public sealed class DownloadSettingsViewModel : SettingsSectionViewModelBase
 		{
 			SelectedDownloadSourceOption = DownloadSourceOptions.FirstOrDefault((SettingsDownloadSourceOption option) => option.Preference == settings.DownloadSourcePreference) ?? DownloadSourceOptions[0];
 
-			// 以 StartRide 自己的配置为准：真正下载的是 StartRide.DownloadManager，
-			// 它只读 AppSettings.DownloadThreads / DownloadSpeedLimitKbps。
-			// 两边曾经各存一套、互不相通，所以这里统一到 AppSettings 上。
 			int threads = StartRide.Core.AppSettings.Current.DownloadThreads;
 			MaximumDownloadConcurrency = Math.Clamp(threads, MinimumDownloadConcurrency, MaximumAllowedDownloadConcurrency);
 
 			int kbps = StartRide.Core.AppSettings.Current.DownloadSpeedLimitKbps;
 			DownloadSpeedLimitMbPerSecondText = FormatDownloadSpeedLimit(kbps > 0 ? kbps / 1024 : 0);
 
-			// 顺手把 LauncherSettings 侧也写一致，避免下次从另一个入口读出来还是旧值
 			settings.MaximumDownloadConcurrency = MaximumDownloadConcurrency;
 		});
 	}
@@ -190,7 +181,6 @@ public sealed class DownloadSettingsViewModel : SettingsSectionViewModelBase
 				settings.MaximumDownloadConcurrency = normalized;
 			});
 
-			// 关键：写进真正被下载引擎读取的那份配置，滑杆才真的改变并发行为
 			try
 			{
 				var app = StartRide.Core.AppSettings.Current;
@@ -217,7 +207,6 @@ public sealed class DownloadSettingsViewModel : SettingsSectionViewModelBase
 				settings.DownloadSpeedLimitMbPerSecond = limit;
 			});
 
-			// 下载引擎读的是 Kbps，这里做单位换算后落库
 			try
 			{
 				var app = StartRide.Core.AppSettings.Current;

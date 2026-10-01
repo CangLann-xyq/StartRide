@@ -163,16 +163,7 @@ public static class ProgressBarAnimation
 
 	static ProgressBarAnimation()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_0061: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006b: Expected O, but got Unknown
-		//IL_0097: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a1: Expected O, but got Unknown
-		//IL_00c5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cf: Expected O, but got Unknown
+
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(ProgressBarAnimation), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 		DurationMillisecondsProperty = DependencyProperty.RegisterAttached("DurationMilliseconds", typeof(double), typeof(ProgressBarAnimation), new PropertyMetadata((object)360.0));
 		AnimatedWidthProperty = DependencyProperty.RegisterAttached("AnimatedWidth", typeof(double), typeof(ProgressBarAnimation), new PropertyMetadata((object)0.0));

@@ -9,18 +9,11 @@
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <!-- 左侧品牌标识：StartRide 官方 logo 图标（四角圆角） -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
           <Image Width="26" Height="26" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/startride_icon_64.png" />
           <TextBlock Margin="9,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Strong}" Text="StartRide" />
         </StackPanel>
 
-        <!-- 中部：主导航标签页。
-             ⚠️ 外面这层 Viewbox 是「导航项绝不允许再被静默裁掉」的兜底：
-             StretchDirection=DownOnly → 放得下时缩放比恒为 1，渲染与以前逐像素一致；
-             放不下时才整体等比缩小（例如窗口拖到很窄、或系统缺 Segoe UI Variable Text
-             走了字体回退导致文字变宽），而不会像以前那样把末尾几项裁掉只剩图标。
-             标签本身的宽度预算见 styles/controlstyles.navigation.xaml 的注释。 -->
         <Viewbox Grid.Column="1" x:Name="NavStrip" HorizontalAlignment="Left" VerticalAlignment="Center" Stretch="Uniform" StretchDirection="DownOnly">
           <ItemsControl x:Name="NavItems" ItemsSource="{Binding NavigationItems}">
             <ItemsControl.ItemsPanel>
@@ -41,7 +34,6 @@
           </ItemsControl>
         </Viewbox>
 
-        <!-- 右侧：下载任务入口（纯图标，悬停显示名称） -->
         <Button Grid.Column="2" Style="{StaticResource TopNavigationTabStyle}" DataContext="{Binding DownloadTasksNavigationItem}" Command="{Binding DataContext.NavigateCommand, ElementName=Root}" CommandParameter="{Binding}" ToolTip="{Binding Page, Converter={StaticResource PageTitleConverter}}" Margin="8,0,4,0">
           <Grid Width="20" Height="20">
             <Ellipse Name="DownloadTaskPulseCircle" Width="20" Height="20" Fill="{DynamicResource Brush.66808080}" Opacity="0" CacheMode="BitmapCache" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">

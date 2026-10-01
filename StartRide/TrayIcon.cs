@@ -6,11 +6,7 @@ using System.Windows.Interop;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 托盘图标。设置里一直有「最小化到托盘」这个开关，但整个工程里根本没有托盘实现，
-    /// 所以这个开关以前点了等于没点。这里用 shell32 的 Shell_NotifyIcon 自己实现，
-    /// 不引 WinForms，避免和 WPF 的 Application/MessageBox 命名打架。
-    /// </summary>
+
     public sealed class TrayIcon : IDisposable
     {
         private const int WM_APP = 0x8000;
@@ -78,16 +74,12 @@ namespace StartRide.Core
 
         private ContextMenu? _menu;
 
-        /// <summary>双击 / 菜单「打开主界面」时调用。</summary>
         public Action? OnActivate { get; set; }
 
-        /// <summary>菜单「启动游戏」时调用。</summary>
         public Action? OnLaunchGame { get; set; }
 
-        /// <summary>菜单「打开游戏目录」时调用。</summary>
         public Action? OnOpenGameFolder { get; set; }
 
-        /// <summary>菜单「退出启动器」时调用。</summary>
         public Action? OnExit { get; set; }
 
         public bool IsVisible => _added;
@@ -100,7 +92,6 @@ namespace StartRide.Core
 
         public string Tooltip { get; set; }
 
-        /// <summary>挂到主窗口的消息循环上（窗口句柄必须已经创建）。</summary>
         public bool Install()
         {
             try
@@ -126,7 +117,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>更新提示文字（比如"游戏正在运行"）。</summary>
         public void UpdateTooltip(string tooltip)
         {
             Tooltip = tooltip;
@@ -139,20 +129,16 @@ namespace StartRide.Core
             catch { }
         }
 
-        /// <summary>
-        /// 弹一个托盘气泡。用于「本该退程序、但为了联机改成收托盘」这类必须让用户
-        /// 知道的场合——窗口已经 Hide 了，浮动提示没人看得见。
-        /// </summary>
         public void ShowBalloon(string title, string text, bool warning = false)
         {
             if (!_added) return;
             try
             {
                 var data = BuildData(new WindowInteropHelper(_window).Handle);
-                data.uFlags |= 0x00000010;                                  // NIF_INFO
+                data.uFlags |= 0x00000010;
                 data.szInfoTitle = Truncate(title ?? "", 60);
                 data.szInfo = Truncate(text ?? "", 250);
-                data.dwInfoFlags = warning ? 0x00000002 : 0x00000001;        // NIIF_WARNING : NIIF_INFO
+                data.dwInfoFlags = warning ? 0x00000002 : 0x00000001;
                 Shell_NotifyIconW(NIM_MODIFY, ref data);
             }
             catch { }
@@ -176,7 +162,6 @@ namespace StartRide.Core
 
         private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
-        /// <summary>取本进程 EXE 的小图标当托盘图标（不引 System.Drawing）。</summary>
         private static IntPtr LoadAppIcon()
         {
             try
@@ -220,7 +205,6 @@ namespace StartRide.Core
             {
                 _menu ??= BuildMenu();
 
-                // 让托盘菜单能正常收起（否则点别处菜单不消失）
                 IntPtr hwnd = new WindowInteropHelper(_window).Handle;
                 if (hwnd != IntPtr.Zero) SetForegroundWindow(hwnd);
 
@@ -230,7 +214,6 @@ namespace StartRide.Core
             }
             catch
             {
-                // 菜单弹不出来就退化成"把窗口叫回来"，不能让点击没反应
                 OnActivate?.Invoke();
             }
         }

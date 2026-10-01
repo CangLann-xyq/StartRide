@@ -16,10 +16,7 @@ internal sealed class PreviewMeshBuilder
 
 	internal void AddQuad(Point3D p0, Point3D p1, Point3D p2, Point3D p3, Rect textureRect, bool reverseWinding = false)
 	{
-		//IL_0051: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ab: Unknown result type (might be due to invalid IL or missing references)
+
 		int count = positions.Count;
 		positions.Add(p0);
 		positions.Add(p1);
@@ -70,9 +67,7 @@ internal sealed class PreviewMeshBuilder
 
 	private void AddTextureCoordinateAnchor()
 	{
-		//IL_0055: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0077: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0099: Unknown result type (might be due to invalid IL or missing references)
+
 		int count = positions.Count;
 		Point3D value = positions[0];
 		positions.Add(value);

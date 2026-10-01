@@ -9,7 +9,6 @@ using System.Windows;
 
 namespace StartRide.Core
 {
-    /// <summary>一个下载任务。</summary>
     public sealed class DownloadTask
     {
         public string Id { get; init; } = Guid.NewGuid().ToString("N")[..8];
@@ -62,20 +61,11 @@ namespace StartRide.Core
         public const string Canceled = "已取消";
     }
 
-    /// <summary>
-    /// 下载队列。对应原版的 InstallPageView —— 那里列的是"资源安装任务"，
-    /// 这里做成通用文件下载：给一个地址 + 目标目录就能跑，带进度与限速。
-    /// </summary>
     public sealed class DownloadManager
     {
         private readonly AppSettings _settings;
         private readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
-        /// <summary>
-        /// 并发闸门。设置页里的「下载线程数」以前只写进 settings.json，下载引擎根本不读，
-        /// 结果所有任务无条件并行（点一堆链接直接把带宽打满）。
-        /// 这里按 DownloadThreads 真正限流：拿不到槽位的任务停在"等待中"。
-        /// </summary>
         private readonly object _slotsLock = new();
         private SemaphoreSlim _slots = new(4, 4);
         private int _slotCount = 4;
@@ -87,13 +77,8 @@ namespace StartRide.Core
 
         public DownloadManager(AppSettings settings) => _settings = settings;
 
-        /// <summary>当前生效的并发数（= 设置里的下载线程数，1..16）。</summary>
         public int Concurrency => Math.Clamp(_settings.DownloadThreads, 1, 16);
 
-        /// <summary>
-        /// 取当前并发闸门。设置改了并发数就换一个新闸门：新任务按新上限排队，
-        /// 在跑的任务把槽位还到旧闸门上 —— 还槽时用 Release 的 Full 兜底，不会抛。
-        /// </summary>
         private SemaphoreSlim EnsureSlots()
         {
             int want = Concurrency;
@@ -108,7 +93,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>新建任务。fileName 为空时从 URL 推断。</summary>
         public DownloadTask Enqueue(string url, string targetDirectory, string? fileName = null)
         {
             string name = fileName ?? GuessFileName(url);
@@ -141,7 +125,6 @@ namespace StartRide.Core
             task.Cts = new CancellationTokenSource();
             var token = task.Cts.Token;
 
-            // 并发闸门：超过「下载线程数」的任务先停在"等待中"
             var slots = EnsureSlots();
             bool holdsSlot = false;
 
@@ -188,7 +171,6 @@ namespace StartRide.Core
                         {
                             task.SpeedBps = windowBytes / span.TotalSeconds;
 
-                            // 限速：睡够这一窗口该用的时间
                             if (limitKbps > 0)
                             {
                                 double allowedMs = windowBytes / 1024.0 / limitKbps * 1000.0;
@@ -221,7 +203,6 @@ namespace StartRide.Core
             }
             finally
             {
-                // 还槽位。并发数被改小过时可能还到已满的旧闸门 → 吞掉 Full，不影响流程。
                 if (holdsSlot)
                 {
                     try { slots.Release(); }
@@ -239,7 +220,6 @@ namespace StartRide.Core
             if (t == null) return;
             if (!t.IsFinished)
             {
-                // 排队中（Waiting）也要取消：不撤掉 CTS 的话它拿到槽位后照样会开始下
                 try { t.Cts?.Cancel(); } catch { }
                 if (!t.IsRunning) t.Status = DownloadStatus.Canceled;
             }

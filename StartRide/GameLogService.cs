@@ -6,25 +6,18 @@ using System.Text;
 
 namespace StartRide.Core
 {
-    /// <summary>游戏日志里的一行（解析出等级用）。</summary>
     public sealed class GameLogLine
     {
-        /// <summary>原始整行。</summary>
         public string Raw { get; init; } = "";
 
-        /// <summary>D/I/W/E/A（解析不出来就是 '?'）。</summary>
         public char Level { get; init; } = '?';
 
-        /// <summary>启动后经过的秒数（解析不出来就是 -1）。</summary>
         public double Seconds { get; init; } = -1;
 
-        /// <summary>模块名，例如 fmod / GELua.core_audio.audio。</summary>
         public string Module { get; init; } = "";
 
-        /// <summary>消息正文。</summary>
         public string Message { get; init; } = "";
 
-        /// <summary>等级中文名。</summary>
         public string LevelText => Level switch
         {
             'E' => "错误",
@@ -39,7 +32,6 @@ namespace StartRide.Core
         public bool IsWarning => Level == 'W';
     }
 
-    /// <summary>一份日志的统计结果。</summary>
     public sealed class GameLogSummary
     {
         public string Path { get; init; } = "";
@@ -55,26 +47,16 @@ namespace StartRide.Core
         public bool HasProblems => ErrorCount > 0;
     }
 
-    /// <summary>
-    /// 读 BeamNG 自己的运行日志。
-    ///
-    /// 日志格式（文件第 3 行自己写着）：
-    ///     Time since startup | Message level: D(ebug), I(nfo), W(arning), E(rror), A(lways) | Message
-    /// 实例：  9.35997|D|fmod| music: Closing project
-    /// 所以按 '|' 切四段就能精确判等级，不用猜关键字。
-    /// </summary>
     public sealed class GameLogService
     {
         private readonly AppSettings _settings;
 
         public GameLogService(AppSettings settings) => _settings = settings;
 
-        /// <summary>日志目录（&lt;userpath&gt;）。</summary>
         public string LogDirectory => _settings.ResolveUserDataRoot();
 
         public string PrimaryLogPath => Path.Combine(LogDirectory, "beamng.log");
 
-        /// <summary>已经存在的日志文件（含轮转出来的 beamng.1.log 等），按修改时间倒序。</summary>
         public List<string> FindLogFiles()
         {
             var list = new List<string>();
@@ -104,7 +86,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>最近在写的那个日志文件（优先 beamng.log）。</summary>
         public string ResolveActiveLogPath()
         {
             string primary = PrimaryLogPath;
@@ -112,7 +93,6 @@ namespace StartRide.Core
             return FindLogFiles().FirstOrDefault() ?? primary;
         }
 
-        /// <summary>把一整行解析成结构化对象；格式对不上也不丢内容。</summary>
         public static GameLogLine ParseLine(string raw)
         {
             var line = raw ?? "";
@@ -136,9 +116,6 @@ namespace StartRide.Core
             };
         }
 
-        /// <summary>
-        /// 读文件末尾 N 行（大日志也不整份载入）：从尾部按块回退，凑够行数就停。
-        /// </summary>
         public static List<string> ReadTail(string path, int maxLines)
         {
             var result = new List<string>();
@@ -178,7 +155,6 @@ namespace StartRide.Core
                     offset += c.Length;
                 }
 
-                // 日志里混着非 UTF-8 字节，用 Latin1 逐字节映射，永不抛异常
                 string text = Encoding.Latin1.GetString(all);
                 var lines = text.Split('\n');
                 for (int i = lines.Length - 1; i >= 0 && result.Count < maxLines; i--)
@@ -190,12 +166,10 @@ namespace StartRide.Core
             }
             catch
             {
-                // 读不到就返回已读到的部分
             }
             return result;
         }
 
-        /// <summary>统计一份日志：总量、各级别条数、错误/警告明细。</summary>
         public GameLogSummary Analyze(string path, out List<GameLogLine> problems, int problemSampleLimit = 200)
         {
             problems = new List<GameLogLine>();
@@ -212,7 +186,6 @@ namespace StartRide.Core
             try
             {
                 var info = new FileInfo(path);
-                // Latin1：逐字节映射，坏字节也不会抛异常
                 using var reader = new StreamReader(path, Encoding.Latin1, detectEncodingFromByteOrderMarks: false);
                 string? line;
                 while ((line = reader.ReadLine()) != null)
@@ -268,10 +241,6 @@ namespace StartRide.Core
             return m.Success ? m.Groups[1].Value : "";
         }
 
-        /// <summary>
-        /// 游戏日志的「最近一次写入时间」。用于启动器被强杀后估算会话长度
-        /// （PlaytimeTracker 会调用，保持签名兼容）。
-        /// </summary>
         public DateTime? GetLastWriteTime()
         {
             foreach (var f in new[] { PrimaryLogPath }.Concat(FindLogFiles()))

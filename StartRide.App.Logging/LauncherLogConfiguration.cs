@@ -33,10 +33,6 @@ internal static class LauncherLogConfiguration
 
 	private const string LogDirectoryName = "log";
 
-	/// <summary>
-	/// 「清空日志」时要扫的文件名。日志目录（%APPDATA%\StartRide\Log）为本程序独占，
-	/// 因此只按扩展名匹配即可，无需再把任何品牌前缀写进源码。
-	/// </summary>
 	private static readonly string[] LogFileSearchPatterns = new string[1] { "*.log" };
 
 	public static ILogger CreateLogger(LoggingLevelSwitch levelSwitch, LoggingLevelSwitch microsoftLevelSwitch)
@@ -64,12 +60,6 @@ internal static class LauncherLogConfiguration
 		return $"{LogFileNamePrefix}{startedAt:yyyyMMdd-HHmmss-fff}-p{processId}.log";
 	}
 
-	/// <summary>
-	/// 启动器日志目录。
-	/// 铁律：**不再使用 EXE 旁的旧品牌数据目录**。
-	/// 原因：EXE 旁写数据会导致"从不同目录启动各有一份配置/日志"，用户看到的设置与日志互相打架；
-	/// 统一落到 %APPDATA%\StartRide\Log（与 AppSettings.ConfigDirectory 同一棵树）。
-	/// </summary>
 	public static string ResolveLogDirectory()
 	{
 		return Path.Combine(

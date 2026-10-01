@@ -513,8 +513,7 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		this.downloadTasksPage = downloadTasksPage;
 		this.logLevelController = logLevelController;
 		this.logger = logger;
-		// StartRide：对话框改成"切换 BeamNG 游戏目录"用。当前值/确定动作都走分流：
-		// BeamNG 模式下读写的 AppSettings.GameDirectory，不再是 .minecraft 目录。
+
 		MinecraftDirectorySwitchDialog = new GameDirectorySwitchDialogViewModel(MinecraftDirectories, ResolveSwitchDialogCurrentDirectory, () => CanChangeMinecraftDirectory, () => IsMinecraftDirectoryChangeBlocked, ApplySwitchDialogDirectoryAsync);
 		if (downloadTasksPage != null)
 		{
@@ -592,14 +591,9 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 			LauncherLogDirectory = LauncherLogConfiguration.ResolveLogDirectory();
 			DiagnosticLoggingEnabled = settings.EnableDiagnosticLogging;
 			InitializeBeamNgSection();
-			// StartRide：运行状态 / 游玩统计 / 诊断包（见 GeneralSettingsViewModel.StartRide.Runtime.cs）
 			InitializeRuntimeSection();
 		});
 
-		// StartRide：启动行为 / 游戏日志 / 配置备份 / 磁盘占用 / 联机延迟
-		// （见 GeneralSettingsViewModel.StartRide.Launch.cs）
-		// 放在 LoadState 之外：里面有日志扫描、备份列表、磁盘占用这类后台任务，
-		// 塞进 LoadState 会让 CanPersist 长时间为 false，用户在这期间的改动会被丢掉。
 		InitializeStartRideLaunchSection();
 	}
 
@@ -609,7 +603,6 @@ public sealed partial class GeneralSettingsViewModel : SettingsSectionViewModelB
 		{
 			LoadMinecraftDirectories(base.Settings);
 		});
-		// StartRide：先把列表换成 BeamNG 安装目录候选，再打开（否则会列出 .minecraft）
 		PrepareBeamNgDirectorySwitchDialog();
 		MinecraftDirectorySwitchDialog.Open();
 	}

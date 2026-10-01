@@ -166,10 +166,7 @@ public partial class HomePageView : UserControl, IComponentConnector
 
 	static HomePageView()
 	{
-		//IL_0054: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005e: Expected O, but got Unknown
-		//IL_0059: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0063: Expected O, but got Unknown
+
 		FallbackPanelMargin = new Thickness(24.0, 24.0, 0.0, 24.0);
 		IsLaunchMenuPinnedProperty = DependencyProperty.Register("IsLaunchMenuPinned", typeof(bool), typeof(HomePageView), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsLaunchMenuPinnedChanged)));
 	}

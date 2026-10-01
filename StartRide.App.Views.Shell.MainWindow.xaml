@@ -5,12 +5,7 @@
   </shell:WindowChrome.WindowChrome>
   <Border x:Name="WindowRootBorder" CornerRadius="12" BorderBrush="{DynamicResource Brush.Surface.WindowBorder}" BorderThickness="{DynamicResource Thickness.Surface.WindowBorder}" SnapsToDevicePixels="True" ClipToBounds="True">
     <Grid>
-      <!-- ⚠️ 这里原来是一层**硬编码不透明**的底色 <Grid Background="#FF0F1014">，
-           它把 DWM 亚克力（TransientWindow）整个盖死 —— 所以「磨砂玻璃」以前从来透不出来。
-           现在换成一层半透明底色膜：颜色仍用主题的页面底色，透明度交给设置里的
-           「启动器背景不透明度」滑块（它写的就是 Opacity.Page.Background）。
-           0% = 纯亚克力（完全透出桌面），100% = 完全不透明。
-           Image 背景模式下整层让位（Opacity=0），交给下面 AmbientBackdropRoot 的图片。 -->
+
       <Border Name="WindowSurfaceTint" Background="{DynamicResource Brush.Page.Background}">
         <FrameworkElement.Style>
           <Style TargetType="{x:Type Border}">
@@ -23,7 +18,6 @@
           </Style>
         </FrameworkElement.Style>
       </Border>
-      <!-- StartRide 自绘氛围背景：纯色底（无渐变、无色块），保留空层作为侧栏亚克力模糊源 -->
       <Grid Name="AmbientBackdropRoot" IsHitTestVisible="False">
         <controls:ImageBackdropSource x:Name="LauncherBackgroundVisualSource" OverlayBrush="{DynamicResource Brush.LauncherBackground.Image.DimOverlay}" ImageSource="{Binding LauncherBackground.ImageSource}">
           <FrameworkElement.Style>
@@ -50,10 +44,8 @@
           <RowDefinition x:Name="TitleBarRow" Height="52" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <!-- 顶部拖拽区（z 序在导航之下：点空白拖动窗口，点标签正常切换） -->
         <Border x:Name="TitleBarDragArea" Grid.Column="1" Grid.Row="0" Background="#00FFFFFF" MouseLeftButtonDown="TitleBarDragArea_OnMouseLeftButtonDown" />
         <shellViews:ShellNavigationView x:Name="ShellNavView" Grid.Column="1" Grid.Row="0" />
-        <!-- 内容区不再单独铺底色：见上面 WindowSurfaceTint（避免两层叠加把透光压到 4%） -->
         <Grid Name="PageTransitionHost" Grid.Column="1" Grid.Row="1" ClipToBounds="True">
           <homeViews:HomePageView x:Name="HomePageView" DataContext="{Binding HomePage}" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Home}" />
           <vehiclesViews:VehiclesPageView x:Name="VehiclesPageView" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Download}" />
@@ -65,9 +57,7 @@
           <settingsViews:SettingsPageView x:Name="SettingsPageView" DataContext="{Binding SettingsPage}" Visibility="{Binding DataContext.CurrentPage, ElementName=RootWindow, Converter={StaticResource PageVisibilityConverter}, ConverterParameter=Settings}" />
           <generalViews:GeneralPageView x:Name="GeneralPageView" />
         </Grid>
-        <!-- 窗口按钮浮层：RowSpan=2 + ZIndex，全屏时导航行高度归零也依然浮在右上角。
-             Margin 上 12 = 在原本 52 高的标题行里垂直居中（12 + 28 + 12）。
-             容器自身 Background 为 null（不可命中测试），只有按钮接收鼠标。 -->
+
         <StackPanel Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Panel.ZIndex="99" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,14,0">
           <Button Style="{StaticResource WindowCaptionButtonStyle}" Command="{Binding MinimizeWindowCommand}">
             <controls:SvgIcon Width="14" Height="14" IconKey="general/general_window_minimize" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
@@ -564,9 +554,7 @@
           <TextBlock Text="{Binding UpdateDialogTitle}" Style="{StaticResource DialogTitleTextStyle}" />
           <StackPanel Grid.Row="1" Margin="0,16,0,12">
             <TextBlock Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" Text="{Binding UpdateDialogMessage}" />
-            <!-- 只在更新期间出现：阶段文案 + 进度条 + 「别手动启动」提示。
-                 以前这里什么都没有，下载二十多秒内界面毫无变化，
-                 用户既不知道在动、也不知道结束没有（实测被投诉过）。 -->
+
             <StackPanel Margin="0,14,0,0" Visibility="{Binding IsStartingUpdate, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
               <TextBlock Style="{StaticResource DialogFieldLabelTextStyle}" Text="{Binding UpdateProgressText}" />
               <ProgressBar Height="5" Margin="0,8,0,0" Minimum="0" Maximum="100" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding UpdateProgressPercent}" />
@@ -600,9 +588,7 @@
           </Grid>
         </Grid>
       </controls:DialogHost>
-      <!-- 上一次自更新的结果。自更新要跨进程（退出 → 覆盖 → 重启），新进程只能靠
-           交接条（StartRideUpdateJournal）判断成没成。若不明确告知，用户看到界面
-           没变化就只会得出「更新失败／还是旧版本」的结论 —— 实测被这样投诉过。 -->
+
       <controls:DialogHost x:Name="LauncherUpdateResultDialogHost" Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="420" UseIntegratedOverlay="True" IsOpen="{Binding DataContext.SettingsPage.Info.IsUpdateResultDialogOpen, ElementName=RootWindow}" DataContext="{Binding DataContext.SettingsPage.Info, ElementName=RootWindow}">
         <Grid Style="{StaticResource DialogContentGridStyle}">
           <Grid.RowDefinitions>
@@ -739,9 +725,7 @@
           <TextBlock Text="{x:Static res:Strings.Dialog_UserAgreementTitle}" Style="{StaticResource DialogTitleTextStyle}" />
           <StackPanel Grid.Row="1" Margin="0,16,0,24">
             <TextBlock Text="{x:Static res:Strings.Dialog_UserAgreementMessage}" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap" />
-            <!-- 逐条列出需要同意的文件（用户协议 / 隐私政策 / 未成年人保护规则 / 免责声明 /
-                 联机规范 / 第三方许可声明）。清单来自 StartRide.Core.LegalDocuments，
-                 点任意一条都会在下面的内置阅读器里打开（不再跳腾讯文档/浏览器）。 -->
+
             <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Documents}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -753,8 +737,7 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <!-- 弹窗只列「需要明确同意」的六份；版权声明与开源协议不在同意之列，
-                 但阅读器左侧的目录把八份全列了出来，点这一下就够得着。 -->
+
             <TextBlock Margin="0,6,0,0" Style="{StaticResource DialogBodyTextStyle}" TextWrapping="Wrap">
               <Hyperlink Foreground="{DynamicResource LauncherAccentBrush}" Command="{Binding OpenAllDocumentsCommand}">
                 <Run Text="{x:Static res:Strings.Dialog_UserAgreementIndexLink}" />
@@ -769,12 +752,6 @@
         </Grid>
       </controls:DialogHost>
 
-      <!-- 内置条款阅读器。首次运行弹窗与设置页的「查看」都往同一个
-           LegalReader 实例里塞条目，所以两个入口共用这一个浮层。
-           ⚠️ DataContext 与 IsOpen 都绑在同一个元素上：IsOpen 用的是
-           LegalReader 自己的属性（与上面 UserAgreementDialog 同一写法），
-           别改成 {Binding LegalReader.IsOpen} —— 那样会先取到 LegalReader 的 DataContext 再找
-           LegalReader，解析成 null。 -->
       <controls:DialogHost Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource SubtractConverter}, ConverterParameter=120|720|1080}" UseIntegratedOverlay="True" IsOpen="{Binding IsOpen}" DataContext="{Binding LegalReader}">
         <shellViews:LegalReaderPanel />
       </controls:DialogHost>

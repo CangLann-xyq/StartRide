@@ -7,12 +7,9 @@
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </FrameworkElement.Resources>
-  <!-- StartRide 自有版式：页头（图标 + 标题 + 说明 + 动作）→ 统计条 → 列表卡面。
-       原版这里是「分组框标题 + 又一个大标题」两层重复，中间还夹一个只装一句说明的
-       空分组框，是原版套模板的痕迹。 -->
+
   <StackPanel Margin="12,62,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
 
-    <!-- ① 页头 -->
     <DockPanel LastChildFill="False" Margin="0,0,0,14">
       <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Multiplayer_Join_RefreshButton}" Command="{Binding RefreshRoomsCommand}" />
       <StackPanel Orientation="Horizontal">
@@ -22,7 +19,6 @@
       </StackPanel>
     </DockPanel>
 
-    <!-- ② 统计条 -->
     <Border Style="{StaticResource RideStatStripStyle}" Margin="0,0,0,14">
       <DockPanel LastChildFill="False">
         <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding RoomsLoadStatus}" IsHitTestVisible="False" />
@@ -35,7 +31,6 @@
       </DockPanel>
     </Border>
 
-    <!-- ③ 房间列表 -->
     <Border Style="{StaticResource RideListSurfaceStyle}" MinHeight="200">
       <Grid>
         <ItemsControl ItemsSource="{Binding PublicRooms}">
@@ -59,7 +54,6 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- 状态：加载中 / 无房间 -->
         <TextBlock Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" LineHeight="20" Foreground="{DynamicResource Brush.Text.Subtle}" FontSize="12.5" Text="{Binding RoomsLoadStatus}">
           <FrameworkElement.Style>
             <Style TargetType="{x:Type TextBlock}">

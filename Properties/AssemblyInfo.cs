@@ -7,7 +7,6 @@ using System.Windows;
 [assembly: InternalsVisibleTo("Launcher.Tests")]
 [assembly: ThemeInfo(ResourceDictionaryLocation.None, ResourceDictionaryLocation.SourceAssembly)]
 [assembly: AssemblyMetadata("ReleaseChannel", "release")]
-// VersionCode 与 StartRide/BuildInfo.cs 的 Version 对齐：major*10000 + minor*100 + patch
 [assembly: AssemblyMetadata("VersionCode", "106")]
 [assembly: AssemblyCompany("肖又祺")]
 [assembly: AssemblyConfiguration("Release")]

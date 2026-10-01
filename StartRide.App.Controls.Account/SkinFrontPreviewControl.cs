@@ -68,14 +68,7 @@ public sealed class SkinFrontPreviewControl : Image
 
 	static SkinFrontPreviewControl()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Expected O, but got Unknown
+
 		SkinSourceProperty = DependencyProperty.Register("SkinSource", typeof(string), typeof(SkinFrontPreviewControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnPreviewPropertyChanged)));
 		SkinModelProperty = DependencyProperty.Register("SkinModel", typeof(MinecraftSkinModel?), typeof(SkinFrontPreviewControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnPreviewPropertyChanged)));
 	}

@@ -81,14 +81,7 @@ internal sealed class TransitionRenderCacheScope : IDisposable
 
 	private static TransitionRenderCacheScope TryAcquireCore(string transitionKind, IReadOnlyList<FrameworkElement> elements, TransitionRenderCacheCapabilities capabilities)
 	{
-		//IL_00e3: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00e8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fe: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0103: Unknown result type (might be due to invalid IL or missing references)
-		//IL_011c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0121: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0131: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0136: Unknown result type (might be due to invalid IL or missing references)
+
 		FrameworkElement[] array = elements.Where((FrameworkElement element) => element != null).Distinct().ToArray();
 		if (array.Length == 0)
 		{

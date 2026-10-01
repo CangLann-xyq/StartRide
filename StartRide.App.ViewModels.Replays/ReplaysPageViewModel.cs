@@ -11,7 +11,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Replays;
 
-/// <summary>回放文件条目。</summary>
 public sealed class ReplayItem : ObservableObject
 {
 	private bool isSelected;
@@ -21,13 +20,10 @@ public sealed class ReplayItem : ObservableObject
 	public string FileSizeText { get; }
 	public string MapName { get; }
 
-	/// <summary>原始字节数（排序/统计用）。</summary>
 	public long Bytes { get; }
 
-	/// <summary>录制时间字符串（文件名前 19 位就是 yyyy-MM-dd_HH-mm-ss）。</summary>
 	public string RecordedAtText { get; }
 
-	/// <summary>相对今天的人话时间，例如"3 天前"。</summary>
 	public string RecordedAgoText { get; }
 
 	public string FileName { get; }
@@ -67,10 +63,6 @@ public sealed class ReplayItem : ObservableObject
 	}
 }
 
-/// <summary>
-/// 回放管理页：扫描本机 BeamNG 用户数据目录的 replays/*.rpl。
-/// 识别不到回放目录/文件时，显示"启动游戏打开回放"引导（BeamNG 官方回放功能）。
-/// </summary>
 public sealed partial class ReplaysPageViewModel : ObservableObject
 {
 	private string statusMessage = "";
@@ -87,10 +79,8 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 	private int sortMode;
 	private FileSetSummary summary = new();
 
-	/// <summary>排序后的完整回放列表。Replays 是它按搜索词筛过的视图。</summary>
 	private readonly List<ReplayItem> allReplays = new();
 
-	/// <summary>当前选中的回放，右侧详情面板绑它。</summary>
 	public ReplayItem? SelectedReplay
 	{
 		get => selectedReplay;
@@ -126,7 +116,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 
 	public string SelectedDirectoryPath => selectedReplay?.DirectoryPath ?? "";
 
-	/// <summary>顶部统计条。</summary>
 	public string StatCountText => summary.CountText;
 
 	public string StatTotalText => summary.TotalText;
@@ -135,7 +124,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 
 	public string StatMaxText => summary.MaxText;
 
-	/// <summary>一共涉及多少张地图——比"总数"更能说明内容构成。</summary>
 	public string StatMapCountText { get; private set; } = "0";
 
 	public bool IsSortByNewest => sortMode == 0;
@@ -160,7 +148,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 
 	public string ReplaysDirectory { get; }
 
-	/// <summary>是否未检测到任何回放（用于显示引导卡片）。高光模式下不显示，否则会盖住高光列表。</summary>
 	public bool NeedsGuide => IsReplaysMode && !HasReplays;
 
 	public bool CanLaunchGame
@@ -182,11 +169,9 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 	public IRelayCommand OpenGameForReplayCommand =>
 		openGameForReplayCommand ?? (openGameForReplayCommand = new RelayCommand(OpenGameForReplay));
 
-	/// <summary>在资源管理器中定位某个回放文件。</summary>
 	public IRelayCommand<ReplayItem> OpenReplayLocationCommand =>
 		openReplayLocationCommand ?? (openReplayLocationCommand = new RelayCommand<ReplayItem>(OpenReplayLocation));
 
-	/// <summary>点行 = 选中（右侧详情面板跟着换）。</summary>
 	public IRelayCommand<ReplayItem> SelectReplayCommand =>
 		selectReplayCommand ?? (selectReplayCommand = new RelayCommand<ReplayItem>(SelectReplay));
 
@@ -262,7 +247,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>启动 BeamNG.drive（用户进入游戏后按 Esc → Replay 即可回放）。</summary>
 	private void OpenGameForReplay()
 	{
 		try
@@ -311,7 +295,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 		foreach (string file in Directory.GetFiles(ReplaysDirectory, "*.rpl"))
 		{
 			string name = Path.GetFileNameWithoutExtension(file);
-			// 回放文件名形如 "2026-02-17_14-39-56 west_coast_usa"，末段是地图名
 			string mapName = "";
 			int idx = name.LastIndexOf(' ');
 			if (idx >= 0 && idx < name.Length - 1)
@@ -329,7 +312,6 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 			}
 			catch
 			{
-				// 拿不到就当 0，不影响列表
 			}
 
 			entries.Add(new ReplayItem(name, file, FileSizeFormatter.Format(bytes), mapName, bytes, written));
@@ -360,21 +342,15 @@ public sealed partial class ReplaysPageViewModel : ObservableObject
 			}
 		}
 
-		// 云同步：回放列表上报云端
 		try
 		{
 			AppState.Current.CloudSync.PushReplays(entries.Select(r => new { name = r.Name, map = r.MapName, size = r.FileSizeText }));
 		}
 		catch
 		{
-			// 云同步失败不影响本地列表
 		}
 	}
 
-	/// <summary>
-	/// 把搜索词套到回放列表上（同时匹配文件名与地图名）。
-	/// 搜索框是回放/高光两个模式共用的，所以两边各有一个 Apply*Filter。
-	/// </summary>
 	private void ApplyReplayFilter()
 	{
 		string q = SearchQuery.Trim();

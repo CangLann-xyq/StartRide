@@ -204,8 +204,7 @@ public sealed class GameSettingsInstanceListViewModel : ObservableObject
 	public GameSettingsInstanceListViewModel(ILogger<GameSettingsInstanceListViewModel>? logger = null)
 	{
 		this.logger = logger ?? NullLogger<GameSettingsInstanceListViewModel>.Instance;
-		// StartRide：BeamNG 没有快照版/愚人节版/远古版这类"特殊版本"，
-		// 版本分类只保留官方正式版（release），不再出现任何 Minecraft 专用版本类型。
+
 		Categories.Add(new GameSettingsInstanceCategory("all", Strings.GameSettings_AllCategory, string.Empty, "general/general_all_application"));
 		Categories.Add(new GameSettingsInstanceCategory("release", Strings.Download_ReleaseCategory, string.Empty, "instance_download_page/release"));
 		Categories.Add(new GameSettingsInstanceCategory("local_import", Strings.Download_LocalImportCategory, string.Empty, "instance_download_page/localimport"));

@@ -76,21 +76,12 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand DisagreeAndExitCommand => disagreeAndExitCommand ?? (disagreeAndExitCommand = new RelayCommand(DisagreeAndExit));
 
-	/// <summary>
-	/// 首次运行弹窗里逐条列出的文件（用户协议 / 隐私政策 / 未成年人保护规则 /
-	/// 免责声明 / 联机规范 / 第三方许可声明）。
-	///
-	/// 以前这里只有一个「用户协议」超链接，而且指向 GitHub —— 国内直连打不开，
-	/// 用户点下去是白屏，等于"同意了一份自己看不到的文件"。现在六份一起列出来，
-	/// 点任意一条都会在软件内置的阅读器里打开（见 <see cref="LegalReaderViewModel"/>）。
-	/// </summary>
 	public IReadOnlyList<LegalDocumentItem> Documents { get; }
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand<LegalDocumentItem?> OpenLegalDocumentCommand => openLegalDocumentCommand ?? (openLegalDocumentCommand = new RelayCommand<LegalDocumentItem?>(OpenLegalDocument));
 
-	/// <summary>「查看全部条款与说明」——直接把内置阅读器打开（目录里八份齐全）。</summary>
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand OpenAllDocumentsCommand => openAllDocumentsCommand ?? (openAllDocumentsCommand = new RelayCommand(OpenAllDocuments));
@@ -166,18 +157,10 @@ public sealed class UserAgreementDialogViewModel : ObservableObject
 			return;
 		}
 
-		// 正文随包内嵌，这里只是把阅读器打开并定位到这一份：不跳浏览器，
-		// 离线可读，国内也一定打得开。「点了没反应」这类反馈看这行日志即可。
 		logger.LogInformation("User agreement dialog: opening built-in legal reader. Id={Id}", document.Id);
 		legalReader.Open(document);
 	}
 
-	/// <summary>
-	/// 「查看全部条款与说明」——直接把内置阅读器打开。
-	///
-	/// 弹窗里只列了需要用户明确同意的六份；版权声明与开源协议不在同意之列，
-	/// 但阅读器左侧的目录把八份全列了出来，所以点这一下就够得着。
-	/// </summary>
 	[RelayCommand]
 	private void OpenAllDocuments()
 	{

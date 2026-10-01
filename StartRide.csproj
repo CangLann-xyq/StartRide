@@ -17,16 +17,12 @@
     <RootNamespace />
   </PropertyGroup>
   <ItemGroup>
-    <!-- App 的入口 Main 由 WPF 从 ApplicationDefinition 的 XAML 生成；
-         反编译出的文件名不是约定的 App.xaml，所以要显式声明，否则报 CS5001。 -->
+
     <Page Remove="StartRide.App.App.xaml" />
     <ApplicationDefinition Include="StartRide.App.App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <!-- ⚠️ Setup\ 是**独立工程**（自研安装包，有自己的 csproj）。
-         SDK 风格的默认通配会把 Setup\ 下的 .cs/.xaml 一并吸进主工程，
-         轻则重名冲突、重则抢走 ApplicationDefinition 导致启动即崩。
-         这里必须显式排除，且要放在所有 Include 之前。 -->
+
     <Compile Remove="Setup\**" />
     <Page Remove="Setup\**" />
     <ApplicationDefinition Remove="Setup\**" />
@@ -206,11 +202,8 @@
     <Resource Include="assets\icons\account_page\third_party_login.svg" />
     <Resource Include="assets\icons\block\diamond_block.png" />
     <EmbeddedResource Include="StartRide.App.Resources.ReferenceProjects.json" LogicalName="StartRide.App.Resources.ReferenceProjects.json" />
-    <!-- 法律文书正文：随包内嵌，软件内的阅读器直接读，不再跳浏览器 / 第三方文档站。
-         LogicalName 必须与 StartRide/LegalDocuments.cs 里拼出来的资源名逐字一致。
-         README.md 是仓库里给维护者看的说明，不进包。 -->
+
     <EmbeddedResource Include="docs\legal\*.md" Exclude="docs\legal\README.md" LogicalName="StartRide.App.Resources.Legal.%(Filename)%(Extension)" />
-    <!-- StartRide：BeamNG 语境图标 -->
     <Resource Include="assets\icons\beamng\car.svg" />
     <Resource Include="assets\icons\beamng\map.svg" />
     <Resource Include="assets\icons\beamng\replay.svg" />
@@ -230,7 +223,6 @@
     <Resource Include="assets\icons\account_page\account_page_add_account_dialog_steam.svg" />
     <Resource Include="assets\icons\general\general_home.svg" />
     <Resource Include="assets\icons\general\general_person.svg" />
-    <!-- StartRide 官方品牌 logo（由用户提供的 logo 生成，四角圆角处理） -->
     <Resource Include="assets\branding\startride_icon_512.png" />
     <Resource Include="assets\branding\startride_icon_256.png" />
     <Resource Include="assets\branding\startride_icon_128.png" />
@@ -238,20 +230,15 @@
     <Resource Include="assets\branding\startride_icon_48.png" />
     <Resource Include="assets\branding\startride_mark_256.png" />
     <Resource Include="assets\branding\startride_logo_full.png" />
-    <!-- 完整 logo 的深色主题版：同一张图，深色前景换成冷白、品牌蓝保留。
-         原图前景近黑，直接铺在深色主题上几乎看不见（车和下方 StartRide 字样全糊进背景）。
-         生成脚本：_sr_shots/_sr_make_logo_ondark.py -->
+
     <Resource Include="assets\branding\startride_logo_full_dark.png" />
-    <!-- BeamNG.drive 官方 logo（取自游戏内 ui/images/beamng_logo_50x50.png，橙+黑，两主题都清楚） -->
     <Resource Include="assets\branding\beamng_logo_50x50.png" />
-    <!-- 同一 logo 的 256 方形高清版：列表行/卡片是 32px 且用 UniformToFill，
-         50px 原图缩放余量不够，这里由 _sr_make_beamng_icon.py 按官方几何重绘 -->
+
     <None Remove="assets\branding\beamng_logo_256.png" />
     <Resource Include="assets\branding\beamng_logo_256.png" />
   </ItemGroup>
   <ItemGroup>
-    <!-- 联机 Lua 模组源：ModInstaller 打包 startride.zip 时从这里读，
-         必须随 EXE 一起输出到 Mods\ 目录，否则联机模组装不上（游戏内就没有联机）。 -->
+
     <None Remove="Mods\**\*" />
     <None Include="Mods\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

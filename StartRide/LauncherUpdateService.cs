@@ -12,27 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// StartRide 自己的启动器更新检查，替换掉反编译版里那段硬编码指向第三方仓库的更新实现。
-    ///
-    /// 以前"检查更新"请求的是那个项目的清单（日志里 Source=gitee 就是这么来的）——
-    /// 既是别人的仓库，也永远不可能有 StartRide 的版本。
-    ///
-    /// 现在的行为：
-    ///   · 依次尝试 SiteLinks.UpdateManifestCandidates(channel) 里的地址（自有域名 → GitHub raw）
-    ///   · 第一个能取到并解析成功的清单生效；全部失败返回 Failed，界面按原逻辑提示"检查更新失败"
-    ///   · 版本比较优先用 versionCode，缺失时退化为 2.6.0 这种点分版本号的语义比较
-    ///
-    /// 清单格式（update/launcher-release.json）：
-    /// {
-    ///   "version": "2.6.1", "displayVersion": "2.6.1", "versionCode": 20601,
-    ///   "releasePageUrl": "...", "downloadUrl": "...", "downloadFileName": "...",
-    ///   "changelog": "...", "assetKind": "ZipPackage", "sizeBytes": 0,
-    ///   "sha256": "", "isMandatory": false, "minSupportedVersionCode": 0,
-    ///   "publishedAt": "2026-09-22T00:00:00Z",
-    ///   "downloadUrls": [ { "name": "GitHub", "url": "...", "priority": 0 } ]
-    /// }
-    /// </summary>
+
     public sealed class StartRideLauncherUpdateService : ILauncherUpdateService, IDisposable
     {
         private static readonly HttpClient Http = CreateClient();
@@ -118,8 +98,6 @@ namespace StartRide.Core
                 "所有更新源都不可用：" + (joined.Length > 300 ? joined.Substring(0, 300) : joined));
         }
 
-        // ------------------------------------------------------------------ 解析
-
         internal static LauncherUpdateInfo ParseManifest(string json, string channel)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
@@ -127,7 +105,6 @@ namespace StartRide.Core
             using var doc = JsonDocument.Parse(json);
             JsonElement root = doc.RootElement;
 
-            // 兼容 { "release": {...}, "beta": {...} } 这种一文件多通道的写法
             if (root.ValueKind == JsonValueKind.Object &&
                 root.TryGetProperty(channel, out JsonElement chNode) &&
                 chNode.ValueKind == JsonValueKind.Object)
@@ -155,7 +132,6 @@ namespace StartRide.Core
                 }
             }
 
-            // 清单里没给 downloadUrl 但有 downloadUrls 时，用优先级最高的那个顶上
             if (string.IsNullOrWhiteSpace(downloadUrl) && downloadUrls.Count > 0)
             {
                 downloadUrls.Sort((a, b) => a.Priority.CompareTo(b.Priority));
@@ -204,7 +180,6 @@ namespace StartRide.Core
             };
         }
 
-        /// <summary>2.6.0 → 20600，用来和清单里的 versionCode 对齐。</summary>
         internal static int VersionCodeFrom(string version)
         {
             if (string.IsNullOrWhiteSpace(version)) return 0;
@@ -221,7 +196,6 @@ namespace StartRide.Core
             return n[0] * 10000 + n[1] * 100 + n[2];
         }
 
-        /// <summary>远端是否比当前新：先比 versionCode，再退化到点分版本号。</summary>
         internal static bool IsNewer(LauncherUpdateInfo remote, string currentVersion)
         {
             if (remote == null) return false;
@@ -260,8 +234,6 @@ namespace StartRide.Core
             }
             return 0;
         }
-
-        // ------------------------------------------------------------------ JSON 取值helper
 
         private static string Str(JsonElement e, string name) =>
             e.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.String

@@ -143,12 +143,6 @@ public sealed partial class HomePageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>
-	/// 首页头像：只返回账户自带的真实头像（Steam 头像来自 avatars.steamstatic.com）。
-	/// 没有头像就返回 null，由昵称首字母的圆形占位（HomeAccountInitial）兜底——
-	/// 不再去拉 minotar / crafatar 这类第三方 Minecraft 皮肤服务：它们与 StartRide 无关，
-	/// 而且国内基本不可达，只会得到一个一直转圈的空图片。
-	/// </summary>
 	public string? HomeAvatarUrl
 	{
 		get
@@ -164,7 +158,6 @@ public sealed partial class HomePageViewModel : ObservableObject
 
 	public string HomeAccountDisplayName => accountPage.SelectedAccount?.DisplayName ?? Strings.Home_NoAccountSelected;
 
-	/// <summary>账户昵称首字母（大写），用于 StartRide 的圆形首字母头像。</summary>
 	public string HomeAccountInitial
 	{
 		get
@@ -188,8 +181,7 @@ public sealed partial class HomePageViewModel : ObservableObject
 			}
 			if (!string.IsNullOrWhiteSpace(SelectedInstance.Name))
 			{
-				// StartRide 只有官方正式版这一条通道，版本名后面带上「官方正式版」，
-				// 免得用户以为还有快照版/测试版之类的特殊版本可选。
+
 				return SelectedInstance.Name + " · " + Strings.Home_VersionOfficialSuffix;
 			}
 			if (!string.IsNullOrWhiteSpace(SelectedInstance.VersionName))
@@ -373,7 +365,6 @@ public sealed partial class HomePageViewModel : ObservableObject
 				NotifyAccountStateChanged();
 			}
 		};
-		// StartRide：首页底部"游戏运行中/累计游玩 + 结束游戏"那一行（见 HomePageViewModel.StartRide.cs）
 		InitializeGameRuntime();
 	}
 
@@ -460,10 +451,10 @@ public sealed partial class HomePageViewModel : ObservableObject
 	{
 		return kind switch
 		{
-			LaunchFailureKind.StartupProcessExited => Strings.Status_LaunchProcessExited, 
-			LaunchFailureKind.RuntimeAbnormalExit => Strings.Status_LaunchRuntimeAbnormalExit, 
-			LaunchFailureKind.StartupAbnormalExit => Strings.Status_LaunchAbnormalExit, 
-			_ => Strings.Status_LaunchFailed, 
+			LaunchFailureKind.StartupProcessExited => Strings.Status_LaunchProcessExited,
+			LaunchFailureKind.RuntimeAbnormalExit => Strings.Status_LaunchRuntimeAbnormalExit,
+			LaunchFailureKind.StartupAbnormalExit => Strings.Status_LaunchAbnormalExit,
+			_ => Strings.Status_LaunchFailed,
 		};
 	}
 
@@ -530,12 +521,12 @@ public sealed partial class HomePageViewModel : ObservableObject
 		{
 			string message = ex.Reason switch
 			{
-				LaunchAccountSessionFailureReason.AuthenticationNotConfigured => Strings.Status_MicrosoftLoginNotConfigured, 
-				LaunchAccountSessionFailureReason.AuthenticationApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized, 
-				LaunchAccountSessionFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired, 
-				LaunchAccountSessionFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable, 
-				LaunchAccountSessionFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed, 
-				_ => Strings.Status_LaunchAccountUnavailable, 
+				LaunchAccountSessionFailureReason.AuthenticationNotConfigured => Strings.Status_MicrosoftLoginNotConfigured,
+				LaunchAccountSessionFailureReason.AuthenticationApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized,
+				LaunchAccountSessionFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired,
+				LaunchAccountSessionFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable,
+				LaunchAccountSessionFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed,
+				_ => Strings.Status_LaunchAccountUnavailable,
 			};
 			statusService.Report(message);
 			floatingMessageService.Show(message);
@@ -690,8 +681,7 @@ public sealed partial class HomePageViewModel : ObservableObject
 		{
 			return instance.MinimizeLauncherAfterLaunch;
 		}
-		// 全局默认统一以 StartRide 配置为准：设置页两个入口（通用 / 内存与启动）
-		// 都写 AppSettings.MinimizeToTray，读同一份就不会再出现"勾了没反应"。
+
 		return StartRide.Core.AppSettings.Current.MinimizeToTray;
 	}
 

@@ -65,7 +65,7 @@ public sealed class SkinPreview3DControl : Viewport3D
 			{
 				Content = new Model3DGroup
 				{
-					Children = 
+					Children =
 					{
 						(Model3D)SkinPreviewModelBuilder.CreateAmbientLight(),
 						(Model3D)SkinPreviewModelBuilder.CreateDirectionalLight(),
@@ -78,14 +78,7 @@ public sealed class SkinPreview3DControl : Viewport3D
 
 	static SkinPreview3DControl()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Expected O, but got Unknown
+
 		SkinSourceProperty = DependencyProperty.Register("SkinSource", typeof(string), typeof(SkinPreview3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnPreviewPropertyChanged)));
 		SkinModelProperty = DependencyProperty.Register("SkinModel", typeof(MinecraftSkinModel?), typeof(SkinPreview3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnPreviewPropertyChanged)));
 	}

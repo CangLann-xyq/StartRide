@@ -11,7 +11,6 @@
     </ResourceDictionary>
   </FrameworkElement.Resources>
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
-    <!-- 游戏安装目录：StartRide 只有一份 BeamNG.drive，靠自动识别而不是手填 -->
     <GroupBox Header="{x:Static res:Strings.Settings_GameInstallSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -40,7 +39,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 必需配置文件：损坏/丢失时从云端模板补全 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameConfigSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -118,7 +116,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 运行状态：游戏在不在跑 / 累计游玩 / 一键结束残留进程 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RuntimeSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -139,7 +136,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 诊断包：日志 + 设置 + 体检结果 + 环境信息打包，出问题直接发出去 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_DiagnosticsSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -153,7 +149,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 启动行为：每一项都会真的拼进 BeamNG.drive.exe 的命令行，下面实时显示结果 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_LaunchBehaviorSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -274,7 +269,6 @@
           <TextBox Margin="0,8,0,0" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchExtraArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
           <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_LaunchExtraArgsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
 
-          <!-- 实际启动命令：设置到底有没有生效，看这一行就知道 -->
           <TextBlock Margin="0,18,0,0" Text="{x:Static res:Strings.Settings_LaunchArgsPreviewLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
           <Border Margin="0,8,0,0" Style="{StaticResource RideFieldSurfaceStyle}">
             <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12" Text="{Binding LaunchArgsPreviewText}" />
@@ -303,7 +297,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 启动器启动时 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StartupSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -336,7 +329,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 精彩瞬间：联机跑一局自动留下可回看的高光记录（截图 + 时间码 + 录像） -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_HighlightSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -370,7 +362,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 游戏日志：按 D/I/W/E 精确分级，不用自己翻目录 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_GameLogSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -421,7 +412,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 配置备份 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_BackupSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -457,7 +447,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 磁盘占用 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_StorageSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -492,7 +481,6 @@
       </Border>
     </GroupBox>
 
-    <!-- 联机延迟 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_RelaySection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>

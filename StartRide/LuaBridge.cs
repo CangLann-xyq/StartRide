@@ -9,16 +9,7 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 游戏内模组 &lt;-&gt; 启动器 的本地桥。
-    /// 监听 127.0.0.1:4444，与 BeamNG 里的 StartRide GE 扩展通信。
-    ///
-    /// 协议（与 Mods/startride_mod.lua 的 queuePacket / receiveTCP 严格对应）：
-    ///   4 字节小端长度前缀 + UTF-8 JSON 负载，跑在一条长连接上。
-    ///
-    /// 注意：必须是长连接。旧实现每收到一段数据就新建一次到 4444 的连接，
-    /// 既丢了帧边界也把游戏侧的单连接状态打乱，远程车流会直接断掉。
-    /// </summary>
+
     public sealed class LuaBridge : IDisposable
     {
         public const int Port = 4444;
@@ -31,21 +22,18 @@ namespace StartRide.Core
         private readonly object _lock = new();
         private readonly SemaphoreSlim _sendLock = new(1, 1);
 
-        /// <summary>游戏内模组是否已连上。</summary>
         public bool IsGameConnected
         {
             get { lock (_lock) return _game is { Connected: true }; }
         }
 
         public event Action<string>? Log;
-        /// <summary>模组就绪，参数为玩家名。</summary>
-        public event Action<string, string>? GameReady;          // (playerName, modVersion)
+        public event Action<string, string>? GameReady;
         public event Action<JsonElement>? VehicleReceived;
         public event Action<JsonElement>? VehCfgReceived;
         public event Action<JsonElement>? ChatReceived;
         public event Action? GameDisconnected;
 
-        /// <summary>本地桥是否已经在监听（供联机自检显示）。</summary>
         public bool IsStarted
         {
             get { lock (_lock) return _listener != null; }
@@ -86,13 +74,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>
-        /// ⚠️ stream 必须**按连接捕获**着传进来，不能在里面读字段 <c>_stream</c>：
-        /// 游戏侧重连（换了新 socket）时，_stream 会被换成新流，而旧循环可能刚从
-        /// Dispatch 绕回循环顶部 —— 于是新旧两个接收循环同时读同一条新流，
-        /// 每个循环各拿走一半字节，4 字节长度前缀直接错位，表现就是
-        /// 「远程车突然不动 / 时有时无」且日志里一堆解析失败。
-        /// </summary>
         private async Task ReceiveLoopAsync(TcpClient client, NetworkStream stream, CancellationToken token)
         {
             var buffer = new byte[65536];
@@ -106,7 +87,6 @@ namespace StartRide.Core
                     if (n == 0) break;
                     pending.Write(buffer, 0, n);
 
-                    // 按 4 字节小端长度前缀切分帧
                     while (true)
                     {
                         var data = pending.ToArray();
@@ -189,14 +169,12 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>把一条 JSON 字符串发进游戏（自动加 4 字节小端长度前缀）。</summary>
         public void SendJson(string json)
         {
             if (string.IsNullOrEmpty(json)) return;
             SendRaw(Encoding.UTF8.GetBytes(json));
         }
 
-        /// <summary>把一条已序列化的消息对象发进游戏。</summary>
         public async Task SendAsync(object payload)
         {
             string json = JsonSerializer.Serialize(payload);

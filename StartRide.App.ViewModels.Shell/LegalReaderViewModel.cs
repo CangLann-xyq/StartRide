@@ -8,22 +8,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Shell;
 
-/// <summary>
-/// 内置的条款阅读器。
-///
-/// 法律文书不再跳到浏览器或第三方文档站：正文随包内嵌，
-/// 点「查看」直接在这里打开 —— 离线可读，国内也一定打得开。
-///
-/// 界面上是"目录 + 正文"两栏：左边列全部八条入口，右边渲染当前选中那份的正文。
-/// 首次运行弹窗与设置页的「查看」按钮都调 <see cref="OpenCommand"/>，
-/// 只是传入的条目不同。
-///
-/// ⚠️ <see cref="SelectedDocument"/> 必须是**可写**属性：左边的 ListBox 会把它当 TwoWay 绑。
-/// 只读属性（哪怕有 private set）会在绑定挂上的那一刻抛 InvalidOperationException，
-/// 而这个面板即使 <see cref="IsOpen"/> 为 false 也已经在视觉树里（DialogHost 的内容一直存在），
-/// 于是异常发生在**启动阶段** —— 表现是启动器根本起不来，日志里只有一句
-/// "无法对…只读属性…进行 TwoWay 绑定"。
-/// </summary>
 public sealed class LegalReaderViewModel : ObservableObject
 {
 	private bool isOpen;
@@ -42,7 +26,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 
 	private RelayCommand? closeCommand;
 
-	/// <summary>全部条目（目录栏显示的顺序就是清单顺序）。</summary>
 	public IReadOnlyList<LegalDocumentItem> Documents { get; } = LegalDocumentItemFactory.CreateAll();
 
 	public bool IsOpen
@@ -58,7 +41,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>当前选中的条目。写它就会换正文，所以目录栏点一下就够用。</summary>
 	public LegalDocumentItem? SelectedDocument
 	{
 		get => selectedDocument;
@@ -101,7 +83,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>正文读不到时给用户的说明（正常情况下是空串）。</summary>
 	public string MissingContentHint
 	{
 		get => missingContentHint;
@@ -125,7 +106,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>打开阅读器；<paramref name="document"/> 为 null 时落到第一份。</summary>
 	public IRelayCommand<LegalDocumentItem?> OpenCommand => openCommand ??= new RelayCommand<LegalDocumentItem?>(Open);
 
 	public IRelayCommand CloseCommand => closeCommand ??= new RelayCommand(Close);
@@ -140,8 +120,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 
 		SelectedDocument = target;
 
-		// 关掉再打开同一份时 SelectedDocument 没变，setter 里的换正文不会跑；
-		// 但内容还在，不需要重算。这里只是保证"被清空过"的情况下也能恢复。
 		if (target is not null && Blocks.Count == 0 && string.IsNullOrEmpty(MissingContentHint))
 		{
 			LoadContent(target);
@@ -182,12 +160,6 @@ public sealed class LegalReaderViewModel : ObservableObject
 		Blocks = SkipDocumentTitle(MarkdownParser.Parse(markdown));
 	}
 
-	/// <summary>
-	/// 去掉正文开头的那个一级标题。
-	///
-	/// 七份 md 的第一行都是 <c># 《…》</c>，而阅读器的头部已经把这个标题显示了一次 ——
-	/// 不去掉的话正文第一行就是标题的重复。
-	/// </summary>
 	private static IReadOnlyList<MarkdownBlock> SkipDocumentTitle(IReadOnlyList<MarkdownBlock> parsed)
 	{
 		if (parsed.Count == 0)

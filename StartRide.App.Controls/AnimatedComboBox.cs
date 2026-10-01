@@ -146,16 +146,7 @@ public class AnimatedComboBox : ComboBox
 
 	static AnimatedComboBox()
 	{
-		//IL_007b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0085: Expected O, but got Unknown
-		//IL_00a9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b3: Expected O, but got Unknown
-		//IL_00d2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00dc: Expected O, but got Unknown
-		//IL_00fb: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0105: Expected O, but got Unknown
-		//IL_0124: Unknown result type (might be due to invalid IL or missing references)
-		//IL_012e: Expected O, but got Unknown
+
 		OpenDuration = TimeSpan.FromMilliseconds(210.0);
 		CloseDuration = TimeSpan.FromMilliseconds(180.0);
 		OpenEasing = new CubicEase
@@ -260,9 +251,7 @@ public class AnimatedComboBox : ComboBox
 
 	private void BeginCloseAnimation()
 	{
-		//IL_0120: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0125: Unknown result type (might be due to invalid IL or missing references)
-		//IL_013d: Expected O, but got Unknown
+
 		if (!IsPopupOpen)
 		{
 			return;
@@ -317,8 +306,7 @@ public class AnimatedComboBox : ComboBox
 
 	private void EnsurePopupTransforms()
 	{
-		//IL_0042: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Unknown result type (might be due to invalid IL or missing references)
+
 		if (popupSurface != null)
 		{
 			popupSurface.RenderTransformOrigin = (opensAbove ? new Point(0.5, 1.0) : new Point(0.5, 0.0));
@@ -424,13 +412,7 @@ public class AnimatedComboBox : ComboBox
 
 	private void UpdatePopupPlacement()
 	{
-		//IL_002d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0037: Unknown result type (might be due to invalid IL or missing references)
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0053: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0064: Unknown result type (might be due to invalid IL or missing references)
+
 		if (popup != null)
 		{
 			double num = GetPopupHeightEstimate() + 28.0;
@@ -624,14 +606,7 @@ public class AnimatedComboBox : ComboBox
 
 	private void PopupListBox_PreviewKeyDown(object sender, KeyEventArgs e)
 	{
-		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_000f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0010: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0012: Invalid comparison between Unknown and I4
-		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0017: Invalid comparison between Unknown and I4
-		//IL_0019: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001c: Invalid comparison between Unknown and I4
+
 		if (base.IsDropDownOpen)
 		{
 			Key key = e.Key;
@@ -756,9 +731,7 @@ public class AnimatedComboBox : ComboBox
 
 	private bool IsCursorOverPopupSurface()
 	{
-		//IL_0027: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0031: Unknown result type (might be due to invalid IL or missing references)
+
 		if (popupSurface == null || !GetCursorPos(out var point))
 		{
 			return false;

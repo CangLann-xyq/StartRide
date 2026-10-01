@@ -7,15 +7,10 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 云同步服务：把启动器本地状态（配置/账户/下载记录/回放车辆列表）实时增量同步到
-    /// 云后端（https://windseek.cloud/api/startride/sync，nginx 反代 :3002），登录后启动时拉取云端最新状态合并。
-    ///
-    /// 所有 push 都防抖 + 异步 + 失败静默（云不可用时不影响本地功能，下次操作再补推）。
-    /// </summary>
+
     public sealed class CloudSyncService : IDisposable
     {
-        private const string AUTH_FILE = "cloud-auth.json"; // %AppData%\StartRide\ 下
+        private const string AUTH_FILE = "cloud-auth.json";
 
         private readonly ApiService _api;
         private readonly AppSettings _settings;
@@ -23,10 +18,8 @@ namespace StartRide.Core
         private CancellationTokenSource? _debounceCts;
         private bool _disposed;
 
-        /// <summary>当前登录态（null 表示未登录云端）。</summary>
         public AuthResponse? Auth { get; private set; }
 
-        /// <summary>是否有云端登录态。</summary>
         public bool IsLoggedIn => Auth != null && !string.IsNullOrEmpty(Auth.Token);
 
         public CloudSyncService(ApiService api, AppSettings settings)
@@ -45,8 +38,6 @@ namespace StartRide.Core
 
         private static string AuthPath => Path.Combine(AppSettings.ConfigDirectory, AUTH_FILE);
 
-        // ================= 登录态 =================
-
         private void LoadAuth()
         {
             try
@@ -64,11 +55,9 @@ namespace StartRide.Core
             }
             catch
             {
-                // 登录态损坏视为未登录
             }
         }
 
-        /// <summary>保存登录态（登录成功时调用）。</summary>
         public void SaveAuth(AuthResponse auth)
         {
             Auth = auth;
@@ -80,11 +69,9 @@ namespace StartRide.Core
             }
             catch
             {
-                // 写盘失败不影响本次会话
             }
         }
 
-        /// <summary>清除登录态（登出）。</summary>
         public void ClearAuth()
         {
             Auth = null;
@@ -92,9 +79,6 @@ namespace StartRide.Core
             try { if (File.Exists(AuthPath)) File.Delete(AuthPath); } catch { }
         }
 
-        // ================= push（实时增量）=================
-
-        /// <summary>把整个设置对象 push 到云端（防抖合并）。</summary>
         public void PushSettings()
         {
             if (!IsLoggedIn) return;
@@ -105,7 +89,6 @@ namespace StartRide.Core
             });
         }
 
-        /// <summary>push 账户列表（账户名/steamId/头像，不含敏感 token）。</summary>
         public void PushAccounts(IEnumerable<object> accounts)
         {
             if (!IsLoggedIn) return;
@@ -116,7 +99,6 @@ namespace StartRide.Core
             });
         }
 
-        /// <summary>push 下载记录（已下载模组列表）。</summary>
         public void PushDownloads(IEnumerable<object> downloads)
         {
             if (!IsLoggedIn) return;
@@ -127,7 +109,6 @@ namespace StartRide.Core
             });
         }
 
-        /// <summary>push 回放列表。</summary>
         public void PushReplays(IEnumerable<object> replays)
         {
             if (!IsLoggedIn) return;
@@ -138,7 +119,6 @@ namespace StartRide.Core
             });
         }
 
-        /// <summary>push 车辆列表。</summary>
         public void PushVehicles(IEnumerable<object> vehicles)
         {
             if (!IsLoggedIn) return;
@@ -149,9 +129,6 @@ namespace StartRide.Core
             });
         }
 
-        // ================= pull（登录后合并）=================
-
-        /// <summary>登录成功后拉取云端全部同步项。</summary>
         public async Task<Dictionary<string, string>?> PullAllAsync()
         {
             if (!IsLoggedIn) return null;
@@ -166,7 +143,6 @@ namespace StartRide.Core
             return result;
         }
 
-        /// <summary>拉取云端的设置并合并到本地（云端优先，覆盖本地）。</summary>
         public async Task<bool> PullSettingsAsync()
         {
             var v = await _api.GetSyncAsync("settings");
@@ -175,7 +151,6 @@ namespace StartRide.Core
             {
                 var remote = JsonSerializer.Deserialize<AppSettings>(v);
                 if (remote == null) return false;
-                // 用云端值覆盖本地（保留本机路径等敏感字段）
                 _settings.AccentKey = remote.AccentKey;
                 _settings.Language = remote.Language;
                 _settings.AutoUpdate = remote.AutoUpdate;
@@ -191,8 +166,6 @@ namespace StartRide.Core
             }
             catch { return false; }
         }
-
-        // ================= 防抖 =================
 
         private void Debounce(Func<Task<bool>> work)
         {
@@ -210,7 +183,6 @@ namespace StartRide.Core
                     }
                     catch
                     {
-                        // 云不可用静默，下次操作再补推
                     }
                 }, ct);
             }

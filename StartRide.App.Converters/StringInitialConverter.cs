@@ -4,7 +4,6 @@ using System.Windows.Data;
 
 namespace StartRide.App.Converters;
 
-/// <summary>取字符串首字符（用于账户首字母徽章），空串返回 "?"。</summary>
 public sealed class StringInitialConverter : IValueConverter
 {
 	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

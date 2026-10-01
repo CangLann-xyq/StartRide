@@ -28,11 +28,7 @@ public partial class GameSettingsPageView : UserControl, IComponentConnector
 
 	public GameSettingsPageView()
 	{
-		//IL_0078: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0082: Expected O, but got Unknown
-		//IL_0083: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0088: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a1: Expected O, but got Unknown
+
 		InitializeComponent();
 		FrameworkElement frameworkElement = FindStepHost();
 		stepTransition = new SlidingContentTransitionCoordinator(this, frameworkElement, FindStepContent<FrameworkElement>((DependencyObject)(object)frameworkElement, "InstanceListStep", "Instance list step was not found."), FindStepContent<FrameworkElement>((DependencyObject)(object)frameworkElement, "InstanceDetailsStep", "Instance details step was not found."));

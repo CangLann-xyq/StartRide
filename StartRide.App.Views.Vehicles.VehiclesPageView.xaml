@@ -1,24 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl x:Class="StartRide.App.Views.Vehicles.VehiclesPageView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:vehicles="clr-namespace:StartRide.App.ViewModels.Vehicles" xmlns:views="clr-namespace:StartRide.App.Views.Vehicles" x:Name="Root" Focusable="False">
-  <!-- StartRide 自有版式（2026-09-26 重排，同日再把工具条拆出来独立成行）：
-       左栏是**从页面顶部一直铺到底部**的车辆列表，右半边自上而下依次是
-       「标题行 → 统计条 → 工具条（搜索 / 排序 / 来源筛选 / 刷新）→ 详情面板」。
-       为什么工具条要独立一行：上一版把标题和这些控件塞在同一行，控件一多标题就被压没了，
-       详见下面标题行那段注释。
 
-       为什么这么排：账户 / 下载 / 游戏设置 / 联机 / 资源 / 全局设置 这六个页面用的
-       都是 SecondaryMenuFrame。车辆页原来把标题行和统计条横跨整页压在列表上方，
-       页面里就出现了"一节一节的横带"，跟那六个页面放在一起一眼能看出不是一套东西。
-
-       同日稍后一并把 SecondaryMenuFrame 那侧也改成了贴边满高（它原先在控件内部
-       自带 24px 外边距 + 18px 圆角 + 投影，是一张悬浮卡片），两边的左栏现在是同一套观感。 -->
   <Grid Name="PageRoot">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*" MinWidth="380" />
       <ColumnDefinition Width="*" MinWidth="600" />
     </Grid.ColumnDefinitions>
 
-    <!-- ① 左栏：贴边、不内缩，从窗口顶铺到底；右侧两个角 18px 圆角（见 RideSidebarSurfaceStyle）。 -->
     <Border Grid.Column="0" Style="{StaticResource RideSidebarSurfaceStyle}">
       <Grid>
         <ListBox Background="{x:Null}" BorderThickness="0" Padding="0" PreviewMouseLeftButtonDown="VehiclesList_PreviewMouseLeftButtonDown" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource RideWideListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding Vehicles}">
@@ -29,7 +17,6 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type vehicles:VehicleItem}">
-              <!-- IconKey 必须写 目录/文件名 双前缀；不写的话左侧图标列是空的 -->
               <controls:ListPageItemButton IconKey="beamng/car" IconWidth="21" IconHeight="21" IconColumnWidth="58" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="9" IconTileCornerRadius="11" Title="{Binding DisplayName}" Subtitle="{Binding FileName}" TrailingText="{Binding FileSizeText}" TrailingFontSize="12.5" SubtitleFontSize="11.5" IsSelected="{Binding IsSelected}" ToolTip="{x:Static res:Strings.Vehicles_ListItemTooltip}" Command="{Binding DataContext.SelectVehicleCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -49,7 +36,6 @@
       </Grid>
     </Border>
 
-    <!-- ② 右栏：标题行 / 统计条 / 工具条 / 详情面板 -->
     <Grid Grid.Column="1">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -58,17 +44,6 @@
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
 
-      <!-- ① 标题行：只有「图标 + 标题 + 路径」(左) 与两个目录入口 (右)，不放任何列表控件。
-           ⚠️ 这里必须是 Grid 的 Auto / * / Auto 三列，不能再是 DockPanel。
-           DockPanel 里"末位填充"的孩子只拿到**剩余宽度** —— 上一版把排序按钮、来源筛选、
-           打开文件夹全塞进同一行后，DockPanel 只给标题留下 137px：
-           1440×900 窗口实测，右侧控件簇占 523px / 整行 660px，
-           标题最后一个「理」字只剩 14px 宽（正常 22px），被右边的按钮压掉半截 ——
-           这正是用户报的"车辆管理字样一部分被挡住了"。
-           Grid 的 Auto 列按孩子自身需要测量、**永不压缩**，图标+标题放进 Auto 列就不可能
-           再被挤；路径放 * 列，宽度不足时先牺牲它（RidePageSubtitleTextStyle 自带
-           TextTrimming=CharacterEllipsis），永远不会盖到右边按钮上。
-           排序 / 来源筛选 / 搜索 / 刷新这些"操作列表"的控件全部下移到工具条那一行。 -->
       <Grid Grid.Row="0" Margin="30,18,30,0">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
@@ -79,8 +54,7 @@
           <Image Width="24" Height="24" Margin="0,0,11,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/beamng_logo_256.png" />
           <TextBlock Style="{StaticResource RidePageTitleTextStyle}" Text="{x:Static res:Strings.Page_Download}" />
         </StackPanel>
-        <!-- 右边距 14：路径被省略后文字紧贴右侧按钮会显得挤，留出一条缝（实测路径右缘
-             与「打开模组文件夹」左缘原本正好等于 1597，贴在一起）。 -->
+
         <TextBlock Grid.Column="1" Margin="14,0,14,0" Style="{StaticResource RidePageSubtitleTextStyle}" Text="{Binding VehiclesDirectory}" ToolTip="{Binding VehiclesDirectory}" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
           <Button Content="{x:Static res:Strings.Vehicles_OpenModsFolderButton}" Command="{Binding OpenModsFolderCommand}" Style="{StaticResource LauncherDialogButtonStyle}" ToolTip="{x:Static res:Strings.Vehicles_OpenModsFolderTooltip}" />
@@ -88,7 +62,6 @@
         </StackPanel>
       </Grid>
 
-      <!-- 统计条 -->
       <Border Grid.Row="1" Margin="30,14,30,0" Style="{StaticResource RideStatStripStyle}">
         <DockPanel LastChildFill="False">
           <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding StatBandText}" />
@@ -121,10 +94,6 @@
         </DockPanel>
       </Border>
 
-      <!-- ② 工具条：搜索 + 排序 + 来源筛选 + 重新扫描。
-           跟标题行分开各占一行后，这四组控件在 1440 宽窗口下合计约 560px，
-           整行可用 660px，留了 100px 余量 —— 不会再出现"谁把谁挤没"。
-           搜索框放 * 列（吃剩余宽度），其余靠 Auto 列排在右边。 -->
       <Grid Grid.Row="2" Margin="30,12,30,0">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" MinWidth="150" />
@@ -157,17 +126,14 @@
             </FrameworkElement.Style>
           </Button>
           <Border Width="1" Margin="12,6,12,6" Background="#1AFFFFFF" />
-          <!-- 来源筛选：内置 200+ 辆 + 模组车辆，一眼分开 -->
           <controls:AnimatedComboBox Width="94" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding SourceOptions}" SelectedItem="{Binding SelectedSource}" ToolTip="{x:Static res:Strings.Vehicles_SourceFilterTooltip}" />
           <Border Width="1" Margin="12,6,12,6" Background="#1AFFFFFF" />
           <Button Content="{x:Static res:Strings.Vehicles_RefreshButton}" Command="{Binding RefreshCommand}" Style="{StaticResource LauncherDialogButtonStyle}" ToolTip="{x:Static res:Strings.Vehicles_RefreshTooltip}" />
         </StackPanel>
       </Grid>
 
-      <!-- ③ 详情面板 -->
       <Border Grid.Row="3" Margin="24,16,30,18" Style="{StaticResource RideDetailSurfaceStyle}">
         <Grid>
-          <!-- 未选中：给一句明确的引导 -->
           <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="240">
             <FrameworkElement.Style>
               <Style TargetType="{x:Type StackPanel}">

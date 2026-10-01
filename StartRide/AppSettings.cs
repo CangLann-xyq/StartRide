@@ -8,34 +8,18 @@ using System.Text.RegularExpressions;
 
 namespace StartRide.Core
 {
-    /// <summary>启动器设置，持久化到 %AppData%\StartRide\settings.json。</summary>
     public sealed class AppSettings
     {
-        // ---- 通用 ----
         public string GameDirectory { get; set; } = "";
         public string LauncherLogDirectory { get; set; } = "";
         public bool DiagnosticLog { get; set; }
 
-        // ---- 启动 ----
         public bool AutoDetectGame { get; set; } = true;
 
-        /// <summary>
-        /// 启动游戏时**预装**联机模组（不必先进联机页）。
-        /// 注意：当 <see cref="RemoveModOnLeave"/> 为真（默认）时本项不生效 ——
-        /// 那时模组只在联机期间存在，引擎由联机流程自己装卸，见 <see cref="PreInstallMod"/>。
-        /// </summary>
         public bool AutoInstallMod { get; set; } = true;
 
-        /// <summary>
-        /// 退出 / 解散房间后自动把联机模组从游戏 mods 目录移除（游戏还在跑就等它退出再删）。
-        /// 默认开：不联机时 mods 目录保持干净，下次开房 / 进房再自动装回来。
-        /// </summary>
         public bool RemoveModOnLeave { get; set; } = true;
 
-        /// <summary>
-        /// 是否在"启动游戏"时预装联机模组。按需模式下恒为 false ——
-        /// 模组的安装时机交给联机流程（开房 / 进房），启动器不再主动往 mods 里塞东西。
-        /// </summary>
         [JsonIgnore]
         public bool PreInstallMod => AutoInstallMod && !RemoveModOnLeave;
 
@@ -43,101 +27,59 @@ namespace StartRide.Core
         public bool MinimizeToTray { get; set; }
         public int MaxMemoryMB { get; set; } = 4096;
 
-        /// <summary>
-        /// 把「内存分配」真的作用到游戏进程上：启动时用 Windows 作业对象（Job Object）
-        /// 给 BeamNG.drive.exe 设一个内存上限，超了就分配失败，而不是只记个数。
-        /// </summary>
         public bool LimitGameMemory { get; set; } = true;
         public string ExtraLaunchArgs { get; set; } = "";
         public bool AutoCheckVehicleMods { get; set; } = true;
         public bool ForceHighPerformanceGpu { get; set; } = true;
 
-        /// <summary>
-        /// 启动游戏前自动检查必需配置文件，缺失/损坏就从云端模板补全。
-        /// </summary>
         public bool AutoRepairGameConfig { get; set; } = true;
 
-        // ---- 精彩瞬间自动捕捉（写到 <回放目录>/startride/config.json，游戏内模组读它）----
-
-        /// <summary>总开关。关掉后模组仍会检测（HUD 上看得到）但不落盘。</summary>
         public bool HighlightCaptureEnabled { get; set; } = true;
 
-        /// <summary>联机时自动开始录制回放（分段保存，见 HighlightSegmentMinutes）。</summary>
         public bool HighlightAutoRecord { get; set; } = true;
 
-        /// <summary>
-        /// 单人开车也记录。默认关 —— 单人随便跑一圈也生成一份记录，会白白占磁盘。
-        /// </summary>
         public bool HighlightInSinglePlayer { get; set; }
 
-        /// <summary>单段录制的分钟数。模组接受 2~120，超出会被夹回范围。</summary>
         public int HighlightSegmentMinutes { get; set; } = 5;
 
-        // ---- 启动行为（这些以前只存在 LauncherSettings 里、没有任何代码读，等于摆设；
-        //      现在统一落到 StartRide 自己的配置，并且在 GameLauncher / 启动服务里真的执行）----
-
-        /// <summary>启动前做一次游戏文件体检（缺什么先告诉用户，别等进游戏才发现）。</summary>
         public bool CheckFilesBeforeLaunch { get; set; } = true;
 
-        /// <summary>启动游戏之前执行的命令（可空）。</summary>
         public string PreLaunchCommand { get; set; } = "";
 
-        /// <summary>是否等启动前命令执行完再拉起游戏（关掉则并行，不等它结束）。</summary>
         public bool WaitForPreLaunchCommand { get; set; }
 
-        /// <summary>游戏退出之后执行的命令（可空）。常用于重启启动器、关机等收尾动作。</summary>
         public string PostExitCommand { get; set; } = "";
 
-        /// <summary>追加给 BeamNG.drive.exe 的游戏参数（与 ExtraLaunchArgs 合并生效）。</summary>
         public string GameArguments { get; set; } = "";
 
-        /// <summary>以全屏方式启动游戏（追加 -fullscreen）。</summary>
         public bool LaunchFullScreen { get; set; }
 
-        /// <summary>
-        /// 渲染后端：""=跟随游戏默认，"dx11" / "d3d12" / "vk"。
-        /// 对应游戏真实支持的 -gfx 参数（d3d12 自 0.39 起、vk 为 beta）。
-        /// </summary>
         public string GraphicsBackend { get; set; } = "";
 
-        /// <summary>跳过游戏启动菜单（追加 -noninteractive），直接进驾驶界面，省一次点击。</summary>
         public bool SkipLaunchMenu { get; set; }
 
-        /// <summary>物理步进频率（-physicsfps N）；0=游戏默认（2000）。调低会掉精度，调高更吃 CPU。</summary>
         public int PhysicsFps { get; set; }
 
-        /// <summary>点关闭按钮时收进托盘而不是退出（托盘菜单里可以真退出）。</summary>
         public bool CloseToTray { get; set; }
 
-        /// <summary>最近一次配置备份的 zip 路径。</summary>
         public string LastBackupPath { get; set; } = "";
 
-        /// <summary>最近一次中继延迟测试结果（毫秒）；-1 表示没测过/不可达。</summary>
         public int LastRelayLatencyMs { get; set; } = -1;
 
-        // ---- 账户 ----
         public string PlayerName { get; set; } = "";
         public string LastAccount { get; set; } = "";
-        /// <summary>离线账户名列表（BeamNG 联机不需要正版账号，这里只存昵称）。</summary>
         public List<string> Accounts { get; set; } = new();
 
-        // ---- 游戏实例 ----
-        /// <summary>当前选中的游戏实例 Id（对应 instances.json 里的条目）。</summary>
         public string ActiveInstanceId { get; set; } = "";
 
-        // ---- 外观 ----
         public string AccentKey { get; set; } = "Blue";
 
-        // ---- 下载 ----
         public int DownloadThreads { get; set; } = 8;
-        /// <summary>0 表示不限速。</summary>
         public int DownloadSpeedLimitKbps { get; set; }
         public bool AutoUpdate { get; set; } = true;
 
-        // ---- 语言 ----
         public string Language { get; set; } = "zh-CN";
 
-        // ---- 联机（中继） ----
         public const string DefaultRelayHost = "43.138.224.197";
         public const int DefaultRelayWsPort = 80;
         public const int DefaultRelayTcpPort = 7777;
@@ -148,61 +90,32 @@ namespace StartRide.Core
         public int RelayWebSocketPort { get; set; } = DefaultRelayWsPort;
         public string RelayWebSocketPath { get; set; } = DefaultRelayWsPath;
 
-        /// <summary>
-        /// 优先走 WebSocket 隧道（80 端口，能穿过云安全组）；
-        /// 失败再回退到直连 RelayTcpPort。腾讯云安全组只放行 80/443/8443，
-        /// 所以直连 7777 在公网通常不可达，WebSocket 才是主通道。
-        /// </summary>
         public bool PreferWebSocket { get; set; } = true;
 
-        /// <summary>
-        /// 一站式联机：创建 / 加入房间后自动完成「检测游戏 → 安装联机模组 → 连接中继 → 启动游戏」，
-        /// 关掉则只建房间不自动拉起游戏（方便调试或先改车辆再进）。
-        /// </summary>
         public bool AutoLaunchGameOnLobby { get; set; } = true;
 
-        // ---------------- 游玩统计 ----------------
-        // 由 PlaytimeTracker 维护：启动时开一个"会话"，游戏退出时结算成累计时长。
-        // 时间一律存 ISO-8601 字符串（JsonSerializer 直接写 DateTimeOffset 也可以，
-        // 但字符串便于用户自己看/改，也避免旧配置反序列化出奇怪值）。
-
-        /// <summary>累计游玩秒数。</summary>
         public long TotalPlaytimeSeconds { get; set; }
 
-        /// <summary>累计启动次数。</summary>
         public int LaunchCount { get; set; }
 
-        /// <summary>最近一次启动时间（ISO-8601，本地时区）。</summary>
         public string LastLaunchAt { get; set; } = "";
 
-        /// <summary>最近一次会话时长（秒）。</summary>
         public int LastSessionSeconds { get; set; }
 
-        /// <summary>最近一次会话结束时间（ISO-8601）。</summary>
         public string LastSessionEndedAt { get; set; } = "";
 
-        /// <summary>正在进行的会话开始时间；空串=当前没有会话（游戏已退出或还没启动）。</summary>
         public string RunningSessionStartedAt { get; set; } = "";
 
-        /// <summary>诊断包最近一次导出的完整路径。</summary>
         public string LastDiagnosticsBundlePath { get; set; } = "";
 
-        // ---------------- 持久化 ----------------
-
-        /// <summary>配置目录。收敛到 <see cref="StartRidePaths.Root"/>，全工程只此一处定义。</summary>
         [JsonIgnore]
         public static string ConfigDirectory => StartRidePaths.Root;
 
-        /// <summary>设置文件。与 <see cref="StartRidePaths.SettingsFile"/> 同一路径（框架设置文件在 LauncherState，不在这）。</summary>
         [JsonIgnore]
         public static string ConfigPath => StartRidePaths.SettingsFile;
 
         private static readonly JsonSerializerOptions Opts = new() { WriteIndented = true };
 
-        /// <summary>
-        /// 全局唯一设置实例。以前每个服务各自 Load() 一份，设置页改了游戏目录
-        /// 别的页面还拿着旧值；改成同一个实例后，任何一处 Save() 全应用立即可见。
-        /// </summary>
         public static AppSettings Current
         {
             get
@@ -219,7 +132,6 @@ namespace StartRide.Core
 
         public static AppSettings Load() => Current;
 
-        /// <summary>丢弃缓存重新读盘（外部改过 settings.json 时用）。</summary>
         public static void Reload()
         {
             lock (SyncRoot)
@@ -248,7 +160,6 @@ namespace StartRide.Core
             }
             catch
             {
-                // 配置损坏时退回默认值，不阻断启动
             }
 
             var fresh = new AppSettings
@@ -271,15 +182,12 @@ namespace StartRide.Core
             }
             catch
             {
-                // 写盘失败不影响运行
             }
             Saved?.Invoke(this);
         }
 
-        /// <summary>设置保存后触发（云同步服务订阅，实时 push 到云端）。</summary>
         public static event Action<AppSettings>? Saved;
 
-        /// <summary>保证账户列表里至少有当前玩家名。</summary>
         public void EnsureAccounts()
         {
             Accounts ??= new List<string>();
@@ -289,24 +197,12 @@ namespace StartRide.Core
                 PlayerName = Accounts[0];
         }
 
-        /// <summary>
-        /// 在常见位置探测 BeamNG.drive 安装目录（含 lua/ge 的那一层）。
-        /// 保留旧签名，内部走多策略探测，取第一个命中。
-        /// </summary>
         public static string DetectGameDirectory()
         {
             var all = DetectGameDirectoryCandidates();
             return all.Count > 0 ? all[0] : "";
         }
 
-        /// <summary>
-        /// 自动识别 BeamNG.drive 安装目录（多策略，按可信度排序去重）：
-        ///   1. 正在运行的 BeamNG.drive.exe 所在目录（最准）
-        ///   2. Steam 客户端注册表 → 所有游戏库（libraryfolders.vdf）里的 BeamNG.drive
-        ///   3. 卸载表里的 BeamNG 安装位置
-        ///   4. 各盘常见路径
-        /// 任何一步失败都跳过，不会抛异常。
-        /// </summary>
         public static List<string> DetectGameDirectoryCandidates()
         {
             var found = new List<string>();
@@ -322,7 +218,6 @@ namespace StartRide.Core
                 if (seen.Add(full)) found.Add(full);
             }
 
-            // 1) 正在跑的游戏进程
             try
             {
                 foreach (var p in Process.GetProcessesByName("BeamNG.drive"))
@@ -334,7 +229,6 @@ namespace StartRide.Core
             }
             catch { }
 
-            // 2) Steam：注册表拿安装根，再解析每个游戏库
             foreach (var steamRoot in SteamRoots())
             {
                 Push(Path.Combine(steamRoot, "steamapps", "common", "BeamNG.drive"));
@@ -342,13 +236,11 @@ namespace StartRide.Core
                     Push(Path.Combine(lib, "steamapps", "common", "BeamNG.drive"));
             }
 
-            // 3) 卸载表（非 Steam 安装 / Humble / 绿色版）
             foreach (var loc in UninstallLocations())
                 Push(loc);
             foreach (var loc in UninstallLocations())
                 Push(Path.Combine(loc, "BeamNG.drive"));
 
-            // 4) 常见路径兜底
             foreach (var drive in new[] { "C:", "D:", "E:", "F:", "G:" })
             {
                 Push($@"{drive}\BeamNG.drive");
@@ -361,7 +253,6 @@ namespace StartRide.Core
             return found;
         }
 
-        /// <summary>这个目录是不是一份可用的 BeamNG.drive 安装。</summary>
         public static bool IsBeamNgInstall(string dir)
         {
             try
@@ -373,7 +264,6 @@ namespace StartRide.Core
             catch { return false; }
         }
 
-        /// <summary>Steam 安装根目录（注册表 + 常见位置）。</summary>
         private static IEnumerable<string> SteamRoots()
         {
             var roots = new List<string>();
@@ -397,7 +287,6 @@ namespace StartRide.Core
             return roots;
         }
 
-        /// <summary>解析 steamapps\libraryfolders.vdf，拿到所有游戏库路径。</summary>
         private static IEnumerable<string> SteamLibraryFolders(string steamRoot)
         {
             var libs = new List<string>();
@@ -416,7 +305,6 @@ namespace StartRide.Core
             return libs;
         }
 
-        /// <summary>从卸载表里找 BeamNG 相关安装目录。</summary>
         private static IEnumerable<string> UninstallLocations()
         {
             var list = new List<string>();
@@ -450,14 +338,9 @@ namespace StartRide.Core
             return list;
         }
 
-        /// <summary>BeamNG 用户数据根目录（mods 所在处；可用 -userpath 重定向）。</summary>
         public static string UserDataDirectory =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BeamNG.drive");
 
-        /// <summary>
-        /// 可能作为 userpath 的根目录列表：系统默认 AppData 目录，
-        /// 加上各盘形如 "D:\BeamNG.Drive'sAppDataRoaming" 的重定向目录。
-        /// </summary>
         public static List<string> ResolveUserPathRoots()
         {
             var roots = new List<string> { UserDataDirectory };
@@ -480,10 +363,6 @@ namespace StartRide.Core
             return roots;
         }
 
-        /// <summary>
-        /// 真正在用的 userpath（settings/ 的父目录）。BeamNG 常把 userpath
-        /// 重定向成 "&lt;root&gt;\current"，这里两种都认。
-        /// </summary>
         public string ResolveUserDataRoot()
         {
             foreach (var r in ResolveUserPathRoots())
@@ -499,13 +378,8 @@ namespace StartRide.Core
             return UserDataDirectory;
         }
 
-        /// <summary>游戏必需配置文件所在的 settings 目录（不存在则返回理论路径）。</summary>
         public string ResolveSettingsDirectory() => Path.Combine(ResolveUserDataRoot(), "settings");
 
-        /// <summary>
-        /// 定位真正在用的 mods 目录。BeamNG 的 userpath 可能被重定向到
-        /// 形如 "D:\BeamNG.Drive'sAppDataRoaming" 这样的目录（含 current 子目录）。
-        /// </summary>
         public string ResolveModsDirectory()
         {
             var roots = new List<string> { UserDataDirectory };
@@ -540,10 +414,6 @@ namespace StartRide.Core
             return Path.Combine(UserDataDirectory, "mods");
         }
 
-        /// <summary>
-        /// 定位 BeamNG 回放目录（replays）。userpath 可能被重定向，
-        /// 和 mods 一样遍历常见根目录的 current/replays 或 replays。
-        /// </summary>
         public string ResolveReplaysDirectory()
         {
             var roots = new List<string> { UserDataDirectory };

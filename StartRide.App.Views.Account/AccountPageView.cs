@@ -22,8 +22,7 @@ public partial class AccountPageView : UserControl, IComponentConnector
 
 	public AccountPageView()
 	{
-		//IL_0050: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005a: Expected O, but got Unknown
+
 		InitializeComponent();
 		selectionTransition = new SlidingContentTransitionCoordinator(this, AccountContentHost, AccountEmptyStateView, AccountDetailsView);
 		base.Loaded += AccountPageView_Loaded;

@@ -58,8 +58,7 @@ public sealed class ImageBackdropSource : Border
 
 	protected override void OnRender(DrawingContext drawingContext)
 	{
-		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0064: Unknown result type (might be due to invalid IL or missing references)
+
 		base.OnRender(drawingContext);
 		Rect rectangle = new Rect(base.RenderSize);
 		if (!(rectangle.Width <= 0.0) && !(rectangle.Height <= 0.0))
@@ -119,10 +118,7 @@ public sealed class ImageBackdropSource : Border
 
 	static ImageBackdropSource()
 	{
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002d: Expected O, but got Unknown
-		//IL_0097: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a1: Expected O, but got Unknown
+
 		ImageSourceProperty = DependencyProperty.Register("ImageSource", typeof(ImageSource), typeof(ImageBackdropSource), (PropertyMetadata)(object)new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnImageSourceChanged)));
 		OverlayBrushProperty = DependencyProperty.Register("OverlayBrush", typeof(Brush), typeof(ImageBackdropSource), (PropertyMetadata)(object)new FrameworkPropertyMetadata((object)null, FrameworkPropertyMetadataOptions.AffectsRender));
 		OverlayOpacityProperty = DependencyProperty.Register("OverlayOpacity", typeof(double), typeof(ImageBackdropSource), (PropertyMetadata)(object)new FrameworkPropertyMetadata((object)0.0, FrameworkPropertyMetadataOptions.AffectsRender), new ValidateValueCallback(IsValidOpacity));

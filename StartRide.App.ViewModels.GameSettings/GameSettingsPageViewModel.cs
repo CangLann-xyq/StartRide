@@ -119,14 +119,12 @@ public sealed class GameSettingsPageViewModel : ObservableObject
 		{
 			if (!IsDetailsStep)
 			{
-				// 列表步骤显示的是版本分类（正式版/全部），标题前统一挂 BeamNG 官方 logo。
 				return BeamNgLogoIconSource;
 			}
 			return InstanceList.SelectedInstance?.IconSource ?? BeamNgLogoIconSource;
 		}
 	}
 
-	/// <summary>BeamNG.drive 官方 logo（随 EXE 打包的品牌资源，统一走 BrandingIcons）。</summary>
 	private const string BeamNgLogoIconSource = StartRide.Core.BrandingIcons.BeamNgLogo;
 
 	public bool IsModManagementDetailsStep => IsDetailsSection("mod_management");

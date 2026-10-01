@@ -35,29 +35,7 @@
   </Style>
   <Style x:Key="TopNavigationTabStyle" TargetType="{x:Type Button}">
     <Setter Property="Height" Value="38" />
-    <!-- ⚠️ 这两个值决定 8 个一级导航项能不能一行放下，别随手调大。
-         每项占宽 = 2*Margin + 2*Padding + 图标 18 + 图标文字间距 6 + 文字宽。
 
-         判据（真实字体实测，工具 _sr_shots/_measure_nav8.ps1，可复算：
-         FormattedText + Segoe UI Variable Text SemiBold 13.5 DIU @96DPI。
-         ⚠️ 该脚本直接从 4 个 resx 解析 Page_* 真实文案 —— 导航栏显示的是
-            PageTitleConverter(Page) 的结果，不是 NavigationCatalog 的 Title 字段，
-            手写标签测出来的宽度会跟真机对不上）：
-           导航列可用宽 = 窗口宽 - 18(左距) - 96(右距) - 品牌块 121 - 右侧下载按钮 56
-                        → 默认窗口 1000px 时 709px；MinWidth 960 时 669px
-           8 项文字总宽（含「高光时刻」）：简中 324 / 繁中 324 / 英文 406 / 日文 399
-         现值 Margin2 + Padding8 + 间距6 → chrome 352：
-           简中 676 / 英文 758 / 日文 751
-           → 默认 1000px 下简中不缩放、英文缩 6%；MinWidth 960 下英文缩 12%
-             （由 ShellNavigationView 的 Viewbox 兜底等比缩小，不会裁字）。
-
-         历史（同一个坑踩了两次，都是「只按中文验」惹的祸）：
-           20/6  → 7 项需 819px，「全局设置」文字被整段裁掉，只剩齿轮图标；
-           12/4  → 中文过了（679px ≤ 709px），但英文要 968px、日文要 940px
-                   → 末端两项照样被静默截掉（这就是「改成英语后全局设置不见了」）；
-           26/9  → 加上第 8 项「高光时刻」：Padding 由 10 收到 8（原值下 8 项英文
-                   要 790px，默认 1000px 窗口就得缩 10%）。
-         教训：调这两个值后必须用上面那个脚本把 4 种语言全量一遍。 -->
     <Setter Property="Margin" Value="2,0" />
     <Setter Property="Padding" Value="8,0" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.A8FFFFFF}" />

@@ -66,16 +66,12 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	[ObservableProperty]
 	private string updateDialogMessage = string.Empty;
 
-	/// <summary>更新弹窗里的更新说明文本（来自清单的 changelog）。</summary>
 	private string updateDialogChangelog = string.Empty;
 
-	/// <summary>更新过程中的阶段文案（下载 3.2 MB / 5.1 MB 之类）。</summary>
 	private string updateProgressText = string.Empty;
 
-	/// <summary>更新进度百分比（0-100）。</summary>
 	private double updateProgressPercent;
 
-	/// <summary>上一次更新结果的弹窗（下次启动时结算，见 StartRideUpdateJournal）。</summary>
 	private bool isUpdateResultDialogOpen;
 
 	private string updateResultTitle = string.Empty;
@@ -127,14 +123,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	public IReadOnlyList<InfoReferenceProjectItem> ReferenceProjects { get; }
 
-	/// <summary>
-	/// 「版权及法律声明」里的全部条目（用户协议 / 隐私政策 / 未成年人保护规则 /
-	/// 免责声明 / 联机规范 / 第三方许可声明 / 版权声明 / 开源协议）。
-	///
-	/// ⚠️ 以前这里是三行**硬编码**的 &lt;Grid&gt;，加一份文件得同时改 XAML、VM、
-	/// 四套 resx 和 <c>SiteLinks</c> —— 漏一处界面就少一项。现在清单只有一份
-	/// （<see cref="StartRide.Core.LegalDocuments"/>），设置页与首次运行弹窗都遍历它。
-	/// </summary>
 	public IReadOnlyList<LegalDocumentItem> LegalDocuments { get; }
 
 	public ObservableCollection<SettingsUpdateChannelOption> UpdateChannelOptions { get; }
@@ -165,14 +153,12 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	private string updateDialogTitle = string.Empty;
 
-	/// <summary>更新弹窗标题：平时是「有可用更新」，点下去后换成「正在安装更新」。</summary>
 	public string UpdateDialogTitle
 	{
 		get => updateDialogTitle;
 		set => SetProperty(ref updateDialogTitle, value);
 	}
 
-	/// <summary>更新阶段文案（更新期间对话框里实时显示）。</summary>
 	public string UpdateProgressText
 	{
 		get => updateProgressText;
@@ -180,20 +166,17 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		{
 			if (SetProperty(ref updateProgressText, value))
 			{
-				// 更新按钮上的字也跟着阶段走，避免整块界面在下载期间毫无变化
 				OnPropertyChanged("ConfirmUpdateButtonText");
 			}
 		}
 	}
 
-	/// <summary>更新进度百分比（下载阶段按已收字节算；总大小未知时保持 0）。</summary>
 	public double UpdateProgressPercent
 	{
 		get => updateProgressPercent;
 		set => SetProperty(ref updateProgressPercent, value);
 	}
 
-	/// <summary>是否弹出「上次更新结果」提示。</summary>
 	public bool IsUpdateResultDialogOpen
 	{
 		get => isUpdateResultDialogOpen;
@@ -212,7 +195,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		set => SetProperty(ref updateResultMessage, value);
 	}
 
-	/// <summary>上次更新是否失败（失败时才给「重新更新」按钮）。</summary>
 	public bool UpdateResultIsFailure
 	{
 		get => updateResultIsFailure;
@@ -323,13 +305,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>
-	/// 更新弹窗里的「本次更新内容」。
-	///
-	/// 之前这个弹窗只有一个「打开更新日志」按钮，点了跳 GitHub Releases ——
-	/// 国内基本打不开，等于用户永远看不到改了什么。清单里本来就有 changelog 字段，
-	/// 直接显示出来，按钮只作为「想看详情」的补充入口。
-	/// </summary>
 	public string UpdateDialogChangelog
 	{
 		get
@@ -348,7 +323,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>清单没给更新说明时，那块区域整体收起。</summary>
 	public bool HasUpdateDialogChangelog => !string.IsNullOrWhiteSpace(updateDialogChangelog);
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
@@ -412,8 +386,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	{
 		try
 		{
-			// 关于页四个按钮的目标地址都记一行日志 —— 「点了按钮跳到别人仓库」这种反馈，
-			// 有这行日志就能一秒分辨是旧包（日志里的 URL 是上游地址）还是真的改错了。
+
 			logger.LogInformation("About page external link. Target=source-repository Url={Url}", StartRide.Core.SiteLinks.GitHubRepo);
 			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.GitHubRepo))
 			{
@@ -426,7 +399,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>打开项目主页（startride.top）。地址来自 SiteLinks，换域名只改那一处。</summary>
 	[RelayCommand]
 	private void OpenProjectHome()
 	{
@@ -444,15 +416,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>
-	/// 打开反馈入口——自有反馈页（startride.top/feedback.html?type=feature&amp;v=版本号）。
-	///
-	/// ⚠️ 这里原先指 GitHub 的新建 issue 页（带 feature_request.md 模板）。改掉的原因有两个：
-	///   1) GitHub 在国内直连打不开，用户点开等于没有反馈入口；
-	///   2) 关于页上「查看源码仓库」本来就已经是 GitHub，反馈入口再指 GitHub 会让人以为
-	///      反馈是提到别人的仓库里去 —— 关于页的四个按钮里，只有「查看源码仓库」该出去。
-	/// 反馈页与设置里的「建议与反馈」对话框现在同源（都走 SiteLinks.FeedbackUrl）。
-	/// </summary>
 	[RelayCommand]
 	private void OpenFeedback()
 	{
@@ -490,12 +453,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>
-	/// 打开一份法律文件。
-	///
-	/// 正文随包内嵌，点「查看」在软件内置的阅读器里直接读 —— 不跳浏览器，
-	/// 离线可读，国内也一定打得开（以前跳腾讯文档，网络一差就是白屏）。
-	/// </summary>
 	[RelayCommand]
 	private void OpenLegalDocument(LegalDocumentItem? document)
 	{
@@ -518,8 +475,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 
 	public Task CheckUpdatesOnStartupAsync()
 	{
-		// 先结算上一次自更新的结果：成功要告诉用户「已更新到 vX」，
-		// 失败更要说明白（否则用户只会看到"还是旧版本"，却不知道更新没装上）。
+
 		ReportUpdateJournalResult();
 		return CheckUpdatesCoreAsync(UpdateCheckPresentation.StartupSilent);
 	}
@@ -578,9 +534,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 				ReportVisibleStatus(Strings.Status_LauncherUpdateStartFailed);
 				return;
 			}
-			// 走到这里 = 包已解包好、替换脚本正在后台等本进程退出。
-			// 对话框保持打开、明说「已就绪、马上自动重启」，再留一小会儿让用户看清：
-			// 以前是直接消失 + 退进程，用户会以为更新失败了（实测被投诉过）。
+
 			UpdateProgressPercent = 100;
 			UpdateProgressText = Strings.Status_UpdateReadyRestarting;
 			ReportStatus(UpdateProgressText);
@@ -598,7 +552,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 	}
 
-	/// <summary>把自更新进度翻成界面文案（Progress&lt;T&gt; 保证回到 UI 线程）。</summary>
 	private void OnUpdateProgress(StartRide.Services.StartRideUpdateProgress progress)
 	{
 		if (!IsStartingUpdate)
@@ -654,18 +607,12 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		IsUpdateResultDialogOpen = false;
 	}
 
-	/// <summary>「重新更新」：关掉结果弹窗，立刻重查一次（有更新就直接弹更新框）。</summary>
 	private async Task RetryUpdateAsync()
 	{
 		IsUpdateResultDialogOpen = false;
 		await CheckUpdatesCoreAsync(UpdateCheckPresentation.Manual);
 	}
 
-	/// <summary>
-	/// 结算上一次自更新的结果。
-	/// 单靠版本号无法判断「刚才那次更新到底成没成」，所以安装前会留下一张交接条，
-	/// 由这里对照实际版本给用户一个明确答复（成功 / 失败 + 卡在哪）。
-	/// </summary>
 	private void ReportUpdateJournalResult()
 	{
 		try
@@ -702,7 +649,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		}
 		catch (Exception exception)
 		{
-			// 结算失败绝不能拖累启动流程
 			logger.LogWarning(exception, "Failed to settle the previous launcher update result.");
 		}
 	}
@@ -735,8 +681,7 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 		LauncherVersionText = ResolveLauncherVersion();
 		ReferenceProjects = referenceProjectCatalog.GetProjects();
 		LegalDocuments = LegalDocumentItemFactory.CreateAll();
-		// StartRide 不是 Minecraft，不存在快照版/测试版之类的「特殊版本」，
-		// 更新通道固定只留官方正式版，避免用户切到不存在的通道。
+
 		UpdateChannelOptions = new ObservableCollection<SettingsUpdateChannelOption>
 		{
 			new SettingsUpdateChannelOption(LauncherUpdateChannel.Release, Strings.Settings_UpdateChannelReleaseTitle)
@@ -748,7 +693,6 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	{
 		LoadState(delegate
 		{
-			// 历史配置里可能残留 Beta，统一回正到正式版。
 			SelectedUpdateChannelOption = UpdateChannelOptions[0];
 		});
 	}

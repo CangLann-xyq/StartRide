@@ -8,28 +8,16 @@ using StartRide.Core;
 
 namespace StartRide.App.Views.Shell;
 
-/// <summary>
-/// 主窗口的托盘集成（partial 扩展，不动反编译主体）。
-///
-/// 背景：设置里一直有「最小化到托盘」这个开关，但整个工程里没有任何托盘代码，
-/// 勾了也没有任何变化。这里补齐：
-///   · 启动完成时装一个托盘图标，双击回到主界面
-///   · 右键菜单：打开主界面 / 启动 BeamNG.drive / 打开游戏目录 / 退出启动器
-///   · 「关闭窗口时收进托盘」开启后，点 X 只隐藏；从托盘菜单退出才真的退
-/// </summary>
 public partial class MainWindow
 {
 	private TrayIcon? startRideTray;
 
-	/// <summary>托盘菜单里点了「退出启动器」——此时不再拦截关闭。</summary>
 	private bool startRideTrayExitRequested;
 
 	private async void StartRideStartup_OnLoaded(object? sender, RoutedEventArgs e)
 	{
 		EnsureStartRideTray();
 
-		// 启动自检：自动探测游戏目录 / 检查车辆模组完整性
-		// （设置页「启动器启动时」那两个开关以前没有任何代码读，这里接上）
 		try
 		{
 			var service = new StartupTaskService(AppSettings.Current);
@@ -40,7 +28,6 @@ public partial class MainWindow
 				floatingMessageService.Show(result.Notice);
 			}
 
-			// 自动修正了游戏目录 → 让设置页/首页立刻显示新值
 			if (result.GameDirectoryApplied)
 			{
 				viewModel.SettingsPage.General.RefreshBeamNgDirectoryState();
@@ -52,7 +39,6 @@ public partial class MainWindow
 		}
 	}
 
-	/// <summary>装托盘图标（幂等）。窗口句柄没好就等下一次。</summary>
 	private void EnsureStartRideTray()
 	{
 		try
@@ -83,7 +69,6 @@ public partial class MainWindow
 		}
 	}
 
-	/// <summary>把窗口从托盘叫回来（隐藏状态下 Show 会一并恢复任务栏按钮）。</summary>
 	private void StartRideRestoreFromTray()
 	{
 		Dispatcher.BeginInvoke(new Action(() =>
@@ -93,8 +78,7 @@ public partial class MainWindow
 				if (!IsVisible) Show();
 				if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
 				Activate();
-				// 切 WS_EX_TOPMOST 会动窗口的扩展样式，DWM 可能顺手把 backdrop
-				// 属性重置 —— 不补这一下就是“最小化到托盘再打开，玻璃没了”。
+
 				Topmost = true;
 				Topmost = false;
 				LauncherWindowBackdrop.Reapply(this, themeService);
@@ -107,7 +91,6 @@ public partial class MainWindow
 		}));
 	}
 
-	/// <summary>托盘菜单直接启动游戏（不必先回到主界面）。</summary>
 	private void StartRideTrayLaunchGame()
 	{
 		try
@@ -129,7 +112,6 @@ public partial class MainWindow
 			string? error = launcher.Launch(withMod: app.PreInstallMod);
 			if (error != null)
 			{
-				// 启动失败就回到界面让用户看到原因，别静默失败
 				StartRideRestoreFromTray();
 			}
 		}
@@ -177,21 +159,12 @@ public partial class MainWindow
 		}));
 	}
 
-	/// <summary>
-	/// 点关闭时是否收进托盘。返回 true 表示「已拦下，只隐藏窗口」。
-	/// </summary>
 	internal bool StartRideTryMinimizeToTray()
 	{
 		try
 		{
 			if (startRideTrayExitRequested) return false;
 
-			// ⚠️ 联机进行中时必须收进托盘，而不是退出进程 —— 哪怕用户没开「关闭窗口时收进托盘」。
-			// 启动器同时就是联机的本地桥（游戏内模组连 127.0.0.1:4444 → 启动器 → 中继）。
-			// 用户进房后点 X 多半只是嫌窗口挡着游戏，可一旦真的退进程：
-			//   本地桥消失 → 游戏侧每 8 秒 `连接断开: connect timeout` → 双方互相看不到车。
-			// 2026-09-18 实测过一次：游戏跑了 4 分半、连了 30+ 次全超时，当天本机没有任何
-			// launcher-*.log —— 启动器全程没在运行。这里兜住它。
 			bool inRoom = StartRideMultiplayerRuntime.IsInRoom;
 			bool closeToTray = AppSettings.Current.CloseToTray;
 			if (!closeToTray && !inRoom) return false;
@@ -201,8 +174,7 @@ public partial class MainWindow
 
 			if (inRoom && !closeToTray)
 			{
-				// 只在「本不该收托盘、但为了联机才收」的时候提示一次，
-				// 免得给已经开了该选项的用户多嘴。
+
 				logger.LogInformation("联机进行中，关闭窗口改为收进托盘以保持本地桥与中继连接。");
 				StartRideTrayNotify("StartRide 仍在后台保持联机",
 					"关闭窗口不会退出联机。要真正退出请右键托盘图标选择「退出启动器」。");
@@ -212,15 +184,10 @@ public partial class MainWindow
 		}
 		catch
 		{
-			// 出任何问题都按原来的"真关闭"走，不能让用户关不掉窗口
 			return false;
 		}
 	}
 
-	/// <summary>
-	/// 托盘气泡提示。窗口已经 Hide 了，浮动提示（floatingMessageService）没人看得见，
-	/// 所以走系统托盘气泡。托盘没装上就静默退化，不能因为提示失败影响关闭流程。
-	/// </summary>
 	private void StartRideTrayNotify(string title, string text)
 	{
 		try
@@ -232,7 +199,6 @@ public partial class MainWindow
 		}
 	}
 
-	/// <summary>游戏运行状态变化时刷一下托盘提示（由主页 VM 调用）。</summary>
 	internal void StartRideTrayUpdateTooltip(string tooltip)
 	{
 		try

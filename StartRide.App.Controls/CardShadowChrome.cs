@@ -204,11 +204,7 @@ internal sealed class CardShadowChrome : FrameworkElement
 
 	private DrawingGroup? BuildDrawing()
 	{
-		//IL_015d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0219: Unknown result type (might be due to invalid IL or missing references)
-		//IL_021d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_022c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0230: Unknown result type (might be due to invalid IL or missing references)
+
 		DrawingBuildCount++;
 		DropShadowEffect referenceEffect = ReferenceEffect;
 		if (referenceEffect == null || base.ActualWidth <= 0.0 || base.ActualHeight <= 0.0 || referenceEffect.Opacity <= 0.0)
@@ -281,7 +277,6 @@ internal sealed class CardShadowChrome : FrameworkElement
 
 	private static RectangleGeometry CreateRoundedRectangleGeometry(Rect rect, double radius)
 	{
-		//IL_0000: Unknown result type (might be due to invalid IL or missing references)
 		RectangleGeometry rectangleGeometry = new RectangleGeometry(rect, radius, radius);
 		if (((Freezable)rectangleGeometry).CanFreeze)
 		{
@@ -292,7 +287,6 @@ internal sealed class CardShadowChrome : FrameworkElement
 
 	private static Rect Inflate(Rect rect, double amount)
 	{
-		//IL_0009: Unknown result type (might be due to invalid IL or missing references)
 		rect.Inflate(amount, amount);
 		return rect;
 	}
@@ -363,22 +357,7 @@ internal sealed class CardShadowChrome : FrameworkElement
 
 	static CardShadowChrome()
 	{
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002d: Expected O, but got Unknown
-		//IL_0067: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0071: Expected O, but got Unknown
-		//IL_009e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a8: Expected O, but got Unknown
-		//IL_00d5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00df: Expected O, but got Unknown
-		//IL_010c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0116: Expected O, but got Unknown
-		//IL_0143: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014d: Expected O, but got Unknown
-		//IL_017f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0189: Expected O, but got Unknown
-		//IL_01b6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01c0: Expected O, but got Unknown
+
 		ReferenceEffectProperty = DependencyProperty.Register("ReferenceEffect", typeof(DropShadowEffect), typeof(CardShadowChrome), (PropertyMetadata)(object)new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnReferenceEffectChanged)));
 		CornerRadiusProperty = DependencyProperty.Register("CornerRadius", typeof(CornerRadius), typeof(CardShadowChrome), (PropertyMetadata)(object)new FrameworkPropertyMetadata(default(CornerRadius), FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnDrawingPropertyChanged)));
 		SurfaceBrushProperty = DependencyProperty.Register("SurfaceBrush", typeof(Brush), typeof(CardShadowChrome), (PropertyMetadata)(object)new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnDrawingPropertyChanged)));

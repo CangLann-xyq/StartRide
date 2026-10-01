@@ -87,14 +87,12 @@ internal static class SkinPreviewModelBuilder
 
 	private static void AddBatchedLayer(Model3DGroup model, BitmapSource skin, IEnumerable<BatchedSkinFace> layerFaces, double brightness, bool opaqueUnusedPixels)
 	{
-		//IL_009f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a4: Unknown result type (might be due to invalid IL or missing references)
+
 		BatchedSkinFace[] array = layerFaces.ToArray();
 		if (array.Length != 0)
 		{
 			PreviewTextureAtlas previewTextureAtlas = PreviewTextureAtlasBuilder.Build(skin, array.Select(delegate(BatchedSkinFace item)
 			{
-				//IL_0001: Unknown result type (might be due to invalid IL or missing references)
 				return item.TextureRect;
 			}), 8, brightness, 128, opaqueUnusedPixels);
 			ImageBrush obj = new ImageBrush(previewTextureAtlas.Bitmap)
@@ -118,12 +116,7 @@ internal static class SkinPreviewModelBuilder
 
 	private static void AddBatchedCuboid(ICollection<BatchedSkinFace> target, Rect3D bounds, SkinPart part, int armWidth = 4, bool isOverlay = false)
 	{
-		//IL_000d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0039: Unknown result type (might be due to invalid IL or missing references)
-		//IL_004f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Unknown result type (might be due to invalid IL or missing references)
-		//IL_007b: Unknown result type (might be due to invalid IL or missing references)
+
 		SkinPartFaces faces = SkinPreviewGeometry.GetFaces(part, armWidth);
 		target.Add(new BatchedSkinFace(bounds, CubeFace.Front, faces.Front, isOverlay));
 		target.Add(new BatchedSkinFace(bounds, CubeFace.Back, faces.Back, isOverlay));
@@ -135,7 +128,6 @@ internal static class SkinPreviewModelBuilder
 
 	private static void AddBatchedFace(PreviewMeshBuilder mesh, Rect3D bounds, CubeFace face, Rect textureCoordinates)
 	{
-		//IL_018d: Unknown result type (might be due to invalid IL or missing references)
 		double x = bounds.X;
 		double x2 = bounds.X + bounds.SizeX;
 		double y = bounds.Y;

@@ -13,12 +13,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Replays;
 
-/// <summary>
-/// 高光时刻列表里的一条 = 某局里的某条高光 + 它所属的那一局（地图/时间/录像文件）。
-///
-/// 为什么要包一层：HighlightItem 是纯数据模型（反序列化用），不能带 IsSelected 这类
-/// UI 状态；列表又是**跨局扁平**展示（一屏看完所有高光，而不是先选局再看高光）。
-/// </summary>
 public sealed class HighlightEntry : ObservableObject
 {
 	private bool isSelected;
@@ -35,7 +29,6 @@ public sealed class HighlightEntry : ObservableObject
 
 	public string Type => Item.Type;
 
-	/// <summary>"大跳跃 2.5 秒 · 61 米" —— 类型 + 数值，这一行就是全部信息量。</summary>
 	public string Title
 	{
 		get
@@ -45,12 +38,10 @@ public sealed class HighlightEntry : ObservableObject
 		}
 	}
 
-	/// <summary>副标题：地图 · 何时。</summary>
 	public string Subtitle => Session.MapText + " · " + Session.AgoText;
 
 	public string TimeCodeText => Item.TimeCodeText;
 
-	/// <summary>鼠标悬停时的完整信息（含录像文件名与房间），列表上放不下。</summary>
 	public string DetailText
 	{
 		get
@@ -68,7 +59,6 @@ public sealed class HighlightEntry : ObservableObject
 
 	public bool HasShot => Item.HasShot;
 
-	/// <summary>有截图就定位截图，没有就退回这一局的 JSON —— 点一下总要有东西发生。</summary>
 	public string? RevealTarget
 	{
 		get
@@ -88,7 +78,6 @@ public sealed class HighlightEntry : ObservableObject
 		set => SetProperty(ref isSelected, value);
 	}
 
-	/// <summary>复制到剪贴板的一行文本（贴到群里就能说明这是哪一条）。</summary>
 	public string ShareText
 	{
 		get
@@ -103,17 +92,14 @@ public sealed class HighlightEntry : ObservableObject
 	}
 }
 
-/// <summary>高光类型筛选按钮。</summary>
 public sealed partial class HighlightFilterChip : ObservableObject
 {
 	private bool isActive;
 
-	/// <summary>空串 = 全部。</summary>
 	public string Type { get; }
 
 	public string Label { get; }
 
-	/// <summary>该类型一共多少条（"全部"就是总条数）。</summary>
 	public int Count { get; set; }
 
 	public string Text => Count > 0 ? Label + " " + Count : Label;
@@ -133,7 +119,6 @@ public sealed partial class HighlightFilterChip : ObservableObject
 
 public sealed partial class ReplaysPageViewModel
 {
-	/// <summary>0 = 回放文件，1 = 高光时刻。</summary>
 	private int replaysViewMode;
 
 	private string searchQuery = "";
@@ -153,34 +138,29 @@ public sealed partial class ReplaysPageViewModel
 
 	private readonly List<HighlightEntry> allHighlights = new();
 
-	// ── 高光设置（写到 <回放目录>/startride/config.json 给游戏内模组读）──
 	private bool highlightConfigPushed;
 	private bool captureEnabled = true;
 	private bool captureAutoRecord = true;
 	private bool captureInSinglePlayer;
 
-	/// <summary>总开关（对应设置里的"精彩瞬间自动捕捉"）。</summary>
 	public bool CaptureEnabled
 	{
 		get => captureEnabled;
 		set { if (captureEnabled != value) { captureEnabled = value; OnPropertyChanged(); PushCaptureSettings(); } }
 	}
 
-	/// <summary>联机时自动开始录制回放。</summary>
 	public bool CaptureAutoRecord
 	{
 		get => captureAutoRecord;
 		set { if (captureAutoRecord != value) { captureAutoRecord = value; OnPropertyChanged(); PushCaptureSettings(); } }
 	}
 
-	/// <summary>单人开车也记录（默认关：随便跑一圈也生成记录会白占磁盘）。</summary>
 	public bool CaptureInSinglePlayer
 	{
 		get => captureInSinglePlayer;
 		set { if (captureInSinglePlayer != value) { captureInSinglePlayer = value; OnPropertyChanged(); PushCaptureSettings(); } }
 	}
 
-	/// <summary>设置写盘 —— 同时更新启动器设置与模组配置，两处不能只改一处。</summary>
 	private void PushCaptureSettings()
 	{
 		try
@@ -193,7 +173,6 @@ public sealed partial class ReplaysPageViewModel
 		}
 		catch
 		{
-			// 存不下也不该让开关点不动
 		}
 		try
 		{
@@ -201,48 +180,33 @@ public sealed partial class ReplaysPageViewModel
 		}
 		catch
 		{
-			// 同上
 		}
 	}
 
-	/// <summary>跨局扁平的高光列表（按时间倒序）。</summary>
 	public ObservableCollection<HighlightEntry> Highlights { get; } = new();
 
 	public ObservableCollection<HighlightFilterChip> HighlightFilters { get; } = new();
 
-	/// <summary>筛完后一条都没有（但确实有高光数据）时，列表区显示这句。</summary>
 	public string HighlightsEmptyText { get; private set; } = "";
 
 	public string HighlightStatText { get; private set; } = "";
 
-	/// <summary>高光目录（&lt;replays&gt;/startride）。可能不存在。</summary>
 	public string HighlightsDirectory => HighlightStore.ResolveDirectory(ReplaysDirectory);
 
 	public bool IsReplaysMode => replaysViewMode == 0;
 
 	public bool IsHighlightsMode => replaysViewMode == 1;
 
-	/// <summary>
-	/// 页面大标题（ListPageFrame.Title 绑这个）。必须跟着模式走 ——
-	/// 导航栏有「回放 / 高光时刻」两个入口，共用一个页面；标题写死就不会变，
-	/// 从导航进「高光时刻」时大标题还写着「回放」，和选中的导航项对不上。
-	/// </summary>
 	public string HeaderTitle => IsHighlightsMode ? "高光时刻" : "回放";
 
 	public bool HasHighlights => allHighlights.Count > 0;
 
-	/// <summary>一条高光都没有（用来显示引导卡片）。</summary>
 	public bool NoHighlights => allHighlights.Count == 0;
 
 	public bool HasHighlightSessions { get; private set; }
 
-	/// <summary>筛选条只在"高光模式 + 确实有数据"时出现。</summary>
 	public bool IsHighlightFilterVisible => IsHighlightsMode && allHighlights.Count > 0;
 
-	/// <summary>
-	/// 搜索框同时服务两个列表：回放模式筛地图名，高光模式筛地图/类型/房间。
-	/// 存一个共用字段，切模式时不用清空（用户视角是"同一个框"）。
-	/// </summary>
 	public string SearchQuery
 	{
 		get => searchQuery;
@@ -276,7 +240,6 @@ public sealed partial class ReplaysPageViewModel
 	public IRelayCommand ShowHighlightsViewCommand =>
 		showHighlightsViewCommand ?? (showHighlightsViewCommand = new RelayCommand(() => SetViewMode(1)));
 
-	/// <summary>在资源管理器里打开高光目录（截图和 JSON 都在这儿）。</summary>
 	public IRelayCommand OpenHighlightsFolderCommand =>
 		openHighlightsFolderCommand ?? (openHighlightsFolderCommand = new RelayCommand(OpenHighlightsFolder));
 
@@ -289,29 +252,14 @@ public sealed partial class ReplaysPageViewModel
 	public IRelayCommand<HighlightEntry> RevealHighlightCommand =>
 		revealHighlightCommand ?? (revealHighlightCommand = new RelayCommand<HighlightEntry>(RevealHighlight));
 
-	/// <summary>
-	/// 「在资源管理器中定位这段高光对应的 .rpl 录像」。
-	/// 目前**没有界面入口** —— 高光条目悬停时那个 ▶ 按钮已按用户要求去掉。
-	/// 保留命令只是因为去掉的是按钮、不是能力，以后想恢复入口不必再挖一遍；
-	/// 双击整条高光走的仍是 <see cref="RevealHighlightCommand"/>（定位那张截图）。
-	/// </summary>
 	public IRelayCommand<HighlightEntry> RevealHighlightReplayCommand =>
 		revealHighlightReplayCommand ?? (revealHighlightReplayCommand = new RelayCommand<HighlightEntry>(RevealHighlightReplay));
 
 	public IRelayCommand<HighlightEntry> CopyHighlightCommand =>
 		copyHighlightCommand ?? (copyHighlightCommand = new RelayCommand<HighlightEntry>(CopyHighlight));
 
-	/// <summary>
-	/// 视图模式变化（0 = 回放文件，1 = 高光时刻）。
-	/// **只在页内切换时触发**；Shell 主动拨模式（ApplyShellViewMode）不回调 ——
-	/// 否则 Shell 拨模式 → 事件 → 又去改导航 → 再拨模式，来回打转。
-	/// </summary>
 	public event Action<int>? ViewModeChanged;
 
-	/// <summary>
-	/// Shell 拨视图模式（从导航栏进"回放 / 高光时刻"时用）：只改模式，不反向通知导航。
-	/// 幂等 —— 模式相同直接返回，所以和导航的联动不会成环。
-	/// </summary>
 	public void ApplyShellViewMode(int mode) => SetViewMode(mode, notifyShell: false);
 
 	private void SetViewMode(int mode) => SetViewMode(mode, notifyShell: true);
@@ -327,8 +275,7 @@ public sealed partial class ReplaysPageViewModel
 		OnPropertyChanged(nameof(IsHighlightsMode));
 		OnPropertyChanged(nameof(HeaderTitle));
 		OnPropertyChanged(nameof(IsHighlightFilterVisible));
-		OnPropertyChanged(nameof(NeedsGuide));      // 引导卡片只在回放模式出现
-		// 切到高光模式时顺手重扫一遍 —— 用户很可能刚在游戏里跑完一局
+		OnPropertyChanged(nameof(NeedsGuide));
 		if (mode == 1)
 		{
 			RefreshHighlights();
@@ -341,7 +288,6 @@ public sealed partial class ReplaysPageViewModel
 			}
 			catch
 			{
-				// 通知 Shell 失败不能影响页面自身
 			}
 		}
 	}
@@ -418,11 +364,7 @@ public sealed partial class ReplaysPageViewModel
 
 	private void RevealInExplorer(string path)
 	{
-		// 双击条目时 Button 会连发两次 Click（Click 不看 ClickCount），而 explorer 对同一路径的
-		// 第二次 /select 常常不生效 —— 现象就是"打开了文件夹却没标出那张图"。
-		// 同一路径 900ms 内只执行一次，双击 / 连点都只弹一次。
-		// 反过来第 1 下点击也可能被 Windows 拿去激活窗口（click-through）而没进 Click，
-		// 所以不能靠"拦掉第 2 下"来去重 —— 放行全部点击、在这里去重，两种情况都恰好弹一次。
+
 		if (string.Equals(path, lastRevealPath, StringComparison.OrdinalIgnoreCase)
 			&& (DateTime.UtcNow - lastRevealAt).TotalMilliseconds < 900)
 		{
@@ -438,7 +380,6 @@ public sealed partial class ReplaysPageViewModel
 			}
 			else
 			{
-				// 文件可能已经被删了 —— 退而打开它应该在的目录
 				string dir = Path.GetDirectoryName(path) ?? "";
 				if (Directory.Exists(dir))
 				{
@@ -474,10 +415,6 @@ public sealed partial class ReplaysPageViewModel
 		}
 	}
 
-	/// <summary>
-	/// 重扫高光会话。坏文件/半截文件由 HighlightStore 内部吞掉（游戏随时可能被强杀，
-	/// 这些 JSON 是"随时可能在写"的），这里不再兜第二层。
-	/// </summary>
 	private void RefreshHighlights()
 	{
 		EnsureCaptureSettings();
@@ -493,7 +430,6 @@ public sealed partial class ReplaysPageViewModel
 				allHighlights.Add(new HighlightEntry(it, s));
 			}
 		}
-		// 同一局里按时间码升序（还原当时的顺序），跨局按会话倒序（新的在前）
 		allHighlights.Sort((a, b) =>
 		{
 			DateTime da = a.Session.StartedLocal ?? DateTime.MinValue;
@@ -511,10 +447,6 @@ public sealed partial class ReplaysPageViewModel
 		OnPropertyChanged(nameof(IsHighlightFilterVisible));
 	}
 
-	/// <summary>
-	/// 首次进页面时把设置读进来，并**把配置推给模组**。
-	/// 只做一次：RefreshHighlights 每次切模式都会跑，重复推没必要。
-	/// </summary>
 	private void EnsureCaptureSettings()
 	{
 		if (highlightConfigPushed)
@@ -531,7 +463,6 @@ public sealed partial class ReplaysPageViewModel
 		}
 		catch
 		{
-			// 读不到就用字段默认值（都是"开"，对用户最友好的降级）
 		}
 		OnPropertyChanged(nameof(CaptureEnabled));
 		OnPropertyChanged(nameof(CaptureAutoRecord));
@@ -542,7 +473,6 @@ public sealed partial class ReplaysPageViewModel
 		}
 		catch
 		{
-			// 推不进去不影响页面
 		}
 	}
 
@@ -550,7 +480,6 @@ public sealed partial class ReplaysPageViewModel
 	{
 		HighlightFilters.Clear();
 		HighlightFilters.Add(new HighlightFilterChip("", "全部") { IsActive = highlightFilterType.Length == 0 });
-		// 固定顺序，不按数量排 —— 按钮位置来回变会让人点错
 		foreach ((string type, string label) in new[]
 		{
 			("jump", "大跳跃"), ("impact", "重击"), ("rollover", "翻车"),
@@ -560,7 +489,7 @@ public sealed partial class ReplaysPageViewModel
 			int n = allHighlights.Count(e => e.Type == type);
 			if (n == 0 && highlightFilterType != type)
 			{
-				continue;      // 没这个类型就别摆个 0 条的空按钮
+				continue;
 			}
 			HighlightFilters.Add(new HighlightFilterChip(type, label)
 			{
@@ -598,7 +527,6 @@ public sealed partial class ReplaysPageViewModel
 		OnPropertyChanged(nameof(HighlightsEmptyText));
 		OnPropertyChanged(nameof(HasHighlights));
 
-		// 选中的那条被筛掉了就取消选中，避免右侧/详情指向看不见的东西
 		if (selectedHighlight != null && !Highlights.Contains(selectedHighlight))
 		{
 			selectedHighlight.IsSelected = false;

@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>启动 BeamNG.drive 并跟踪进程状态。</summary>
     public sealed class GameLauncher
     {
         private readonly AppSettings _settings;
@@ -22,10 +21,8 @@ namespace StartRide.Core
         public bool IsRunning => _process is { HasExited: false };
         public int? ProcessId => IsRunning ? _process?.Id : null;
 
-        /// <summary>本次运行实际施加成功的内存上限（MB）；0 表示没限制。</summary>
         public int AppliedMemoryLimitMb { get; private set; }
 
-        /// <summary>游戏可执行文件路径；找不到返回空串。</summary>
         public string ExecutablePath
         {
             get
@@ -38,7 +35,6 @@ namespace StartRide.Core
 
         public bool IsInstalled => ExecutablePath.Length > 0;
 
-        /// <summary>游戏版本号（依次从 version.txt / 启动日志 / 用户设置里读，读不到返回"已安装"）。</summary>
         public string GameVersion
         {
             get
@@ -54,7 +50,6 @@ namespace StartRide.Core
                 }
                 catch { }
 
-                // 游戏自己的启动日志第一行就写着版本，例如：Log started - v 0.39.4.0 - x86 - build 20972
                 try
                 {
                     string root = _settings.ResolveUserDataRoot();
@@ -82,11 +77,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>
-        /// 组装真正传给 BeamNG.drive.exe 的参数。
-        /// 抽成静态方法是为了能单独验证（探针直接调它断言参数内容），
-        /// 也避免以后改启动流程时把某个开关漏掉。
-        /// </summary>
         public static List<string> BuildLaunchArguments(AppSettings settings)
         {
             var args = new List<string>();
@@ -100,7 +90,6 @@ namespace StartRide.Core
 
             if (settings.ForceHighPerformanceGpu)
             {
-                // 让游戏走独显，避免笔记本上跑核显掉帧
                 args.Add("-highperformancegpu");
             }
 
@@ -111,11 +100,9 @@ namespace StartRide.Core
 
             if (settings.SkipLaunchMenu)
             {
-                // 跳过游戏启动菜单，直接进驾驶界面
                 args.Add("-noninteractive");
             }
 
-            // 渲染后端：只认游戏真实支持的取值，别把用户乱填的东西塞进去
             string gfx = NormalizeGraphicsBackend(settings.GraphicsBackend);
             if (gfx.Length > 0)
             {
@@ -135,7 +122,6 @@ namespace StartRide.Core
             return args;
         }
 
-        /// <summary>渲染后端取值归一化：只放行游戏文档里支持的三个值。</summary>
         public static string NormalizeGraphicsBackend(string? value)
         {
             return (value ?? "").Trim().ToLowerInvariant() switch
@@ -147,9 +133,6 @@ namespace StartRide.Core
             };
         }
 
-        /// <summary>
-        /// 把用户填的一行参数拆开追加。支持带引号的路径（"C:\a b\x.dll"）。
-        /// </summary>
         internal static void AddUserArguments(List<string> args, string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return;
@@ -159,7 +142,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>按空格拆参数，但保留引号内的空格。</summary>
         internal static List<string> SplitArguments(string raw)
         {
             var result = new List<string>();
@@ -188,10 +170,6 @@ namespace StartRide.Core
             return result;
         }
 
-        /// <summary>
-        /// 启动游戏。返回 null 表示成功。
-        /// 会带上 -userpath 指向真实用户目录，保证 mods 与启动器安装位置一致。
-        /// </summary>
         public string? Launch(bool withMod)
         {
             if (withMod)
@@ -204,7 +182,6 @@ namespace StartRide.Core
             string exe = ExecutablePath;
             if (exe.Length == 0) return "找不到 BeamNG.drive.exe，请先在「全局设置 → 通用」里指定游戏目录。";
 
-            // 启动前命令：以前只在设置页里能填、没人执行；现在真的跑
             RunPreLaunchCommand();
 
             try
@@ -224,7 +201,6 @@ namespace StartRide.Core
                 _process = Process.Start(psi);
                 if (_process != null)
                 {
-                    // 内存上限必须在进程还活着时立刻施加
                     ApplyMemoryLimit();
                     _process.EnableRaisingEvents = true;
                     _process.Exited += (_, _) =>
@@ -247,7 +223,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>启动前命令：按设置决定是等它跑完还是并行拉起。</summary>
         private void RunPreLaunchCommand()
         {
             string cmd = _settings.PreLaunchCommand;
@@ -272,7 +247,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>游戏退出后命令：收尾动作，异常不影响界面。</summary>
         private void RunPostExitCommand()
         {
             string cmd = _settings.PostExitCommand;
@@ -296,10 +270,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>
-        /// 把「内存分配」真正作用到游戏进程上（Windows 作业对象硬上限）。
-        /// 服务端没有内存参数可用，只在设置里记数字等于没生效，所以走系统层限制。
-        /// </summary>
         private void ApplyMemoryLimit()
         {
             try
@@ -338,7 +308,6 @@ namespace StartRide.Core
             _memoryLimit = null;
         }
 
-        /// <summary>把游戏窗口拉到前台。</summary>
         public void Focus()
         {
             try

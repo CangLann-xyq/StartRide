@@ -349,48 +349,7 @@ public partial class SecondaryMenuOptionButton : UserControl, IComponentConnecto
 
 	static SecondaryMenuOptionButton()
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0028: Expected O, but got Unknown
-		//IL_0074: Unknown result type (might be due to invalid IL or missing references)
-		//IL_007e: Expected O, but got Unknown
-		//IL_00a8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b2: Expected O, but got Unknown
-		//IL_00ad: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b7: Expected O, but got Unknown
-		//IL_00d6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00e0: Expected O, but got Unknown
-		//IL_0103: Unknown result type (might be due to invalid IL or missing references)
-		//IL_010d: Expected O, but got Unknown
-		//IL_012c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0136: Expected O, but got Unknown
-		//IL_0155: Unknown result type (might be due to invalid IL or missing references)
-		//IL_015f: Expected O, but got Unknown
-		//IL_017e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0188: Expected O, but got Unknown
-		//IL_01ac: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01b6: Expected O, but got Unknown
-		//IL_01e1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01eb: Expected O, but got Unknown
-		//IL_01e6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01f0: Expected O, but got Unknown
-		//IL_0214: Unknown result type (might be due to invalid IL or missing references)
-		//IL_021e: Expected O, but got Unknown
-		//IL_024a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0254: Expected O, but got Unknown
-		//IL_0280: Unknown result type (might be due to invalid IL or missing references)
-		//IL_028a: Expected O, but got Unknown
-		//IL_02b2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02bc: Expected O, but got Unknown
-		//IL_02e8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02f2: Expected O, but got Unknown
-		//IL_031a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0324: Expected O, but got Unknown
-		//IL_0348: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0352: Expected O, but got Unknown
-		//IL_0376: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0380: Expected O, but got Unknown
-		//IL_03a4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03ae: Expected O, but got Unknown
+
 		TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SecondaryMenuOptionButton), new PropertyMetadata((object)string.Empty));
 		TextMarginProperty = DependencyProperty.Register("TextMargin", typeof(Thickness), typeof(SecondaryMenuOptionButton), new PropertyMetadata((object)new Thickness(4.0, 0.0, 8.0, 0.0)));
 		IconModeProperty = DependencyProperty.Register("IconMode", typeof(string), typeof(SecondaryMenuOptionButton), new PropertyMetadata((object)"Svg", new PropertyChangedCallback(OnIconModeChanged)));

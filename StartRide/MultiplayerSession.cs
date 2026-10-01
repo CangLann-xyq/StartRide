@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>房间内的实时状态。</summary>
     public sealed class MultiplayerState
     {
         public bool Connected { get; set; }
@@ -23,16 +22,6 @@ namespace StartRide.Core
         public List<string> Players { get; } = new();
     }
 
-    /// <summary>
-    /// 联机会话：把「游戏内模组 &lt;-&gt; 本地桥」和「中继」两头接起来。
-    ///
-    /// 数据流：
-    ///   游戏(GE 扩展) --4444--> 本地桥 --> 中继(WS/7777) --> 别的玩家
-    ///   别的玩家 --> 中继 --> 本地桥 --4444--> 游戏（生成远程车）
-    ///
-    /// 这里取代了旧的 MultiplayerManager —— 那个版本根本没接中继，
-    /// 只用 HTTP 轮询房间和聊天，玩家数还是写死的，等于没有联机。
-    /// </summary>
     public sealed class MultiplayerSession : IDisposable
     {
         private readonly AppSettings _settings;
@@ -43,8 +32,7 @@ namespace StartRide.Core
 
         public event Action<string>? Log;
         public event Action? StateChanged;
-        /// <summary>需要在界面上冒泡提示的消息。</summary>
-        public event Action<string, string>? Notice;   // (level, text)
+        public event Action<string, string>? Notice;
 
         public MultiplayerSession(AppSettings settings)
         {
@@ -83,8 +71,7 @@ namespace StartRide.Core
                 PushRelayStateToGame();
                 StateChanged?.Invoke();
             };
-            // 自动重连成功 = 房间身份恢复了，但游戏侧并不知道中间断过。
-            // 必须重推状态，并把断线期间攒下的远程车补发一遍，否则车里别人的车会一直空着。
+
             _relay.Reconnected += _ =>
             {
                 Log?.Invoke("中继已自动重连，正在把房间状态与远程车辆同步回游戏");
@@ -107,12 +94,9 @@ namespace StartRide.Core
             EnsureStatsTimer();
         }
 
-        /// <summary>启动本地桥（进程启动时调用一次）。</summary>
         public void StartBridge() => _bridge.Start();
 
         public bool IsHost { get; private set; }
-
-        // ==================== 会话控制 ====================
 
         public async Task<bool> CreateRoomAsync(Room room, string playerName)
         {
@@ -130,16 +114,6 @@ namespace StartRide.Core
         {
             string name = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName;
 
-            // ⚠️ 房主名的兜底只能由**房主自己**做；加入方拿不到房主名时必须原样送空。
-            //
-            // 中继收到 join 里非空的 host 就会写进房间的 meta.host
-            // （relay-server.js：`if (msg.host) r.meta.host = String(msg.host).slice(0,30)`），
-            // 而加入方在「大厅里查不到这个房间」（离线 / 房间没登记 / 记录已过期）时
-            // 本地兜底 room.Host 是空的 —— 以前这里兜成自己的昵称，于是**房主名被后加入的人覆盖**：
-            //   · 房主之后 close-room 被中继判「只有房主可以关闭房间」→ 房间关不掉，
-            //     同房的人留在一个没人管的房间里；
-            //   · 界面里所有人的「房主」标记一起错位（房主显示成加入者）。
-            // 送空串时中继不会覆盖已有 host，且新加入者自己也不会被误标成房主。
             var meta = new RoomMeta
             {
                 Host = string.IsNullOrWhiteSpace(room.Host)
@@ -150,8 +124,6 @@ namespace StartRide.Core
                 Map = room.Map,
             };
 
-            // 只有真的连上中继才算进了房间。旧实现先把 RoomId 写上再连，
-            // 结果连不上时界面照样显示"已在房间"，用户以为通了却看不到任何人。
             bool ok = await _relay.JoinAsync(room.Id, name, meta);
 
             State.Connected = ok;
@@ -194,10 +166,6 @@ namespace StartRide.Core
         private string LastErrorText() =>
             string.IsNullOrWhiteSpace(State.LastError) ? "无响应" : State.LastError;
 
-        /// <summary>
-        /// 房主关房：让中继把房间关掉。同房其他人会收到 <c>room-closed</c> 并被断开，
-        /// 不会留在「房间里只剩自己」的幽灵房间里。必须在 <see cref="LeaveRoomAsync"/> 之前调。
-        /// </summary>
         public void CloseRoomOnRelay(string reason = "房主已关闭房间") => _relay.CloseRoom(reason);
 
         public async Task LeaveRoomAsync()
@@ -213,8 +181,6 @@ namespace StartRide.Core
             StateChanged?.Invoke();
         }
 
-        // ==================== 游戏 -> 中继 ====================
-
         private void OnGameReady(string playerName, string version)
         {
             State.GameConnected = true;
@@ -222,7 +188,6 @@ namespace StartRide.Core
 
             PushRelayStateToGame();
 
-            // 游戏侧重连后把远程车补发一遍，避免车辆凭空消失
             foreach (var v in _relay.GetCachedVehicles())
             {
                 try { _bridge.SendJson(v.GetRawText()); } catch { }
@@ -247,16 +212,11 @@ namespace StartRide.Core
         private bool _loggedFirstOutboundVehicle;
         private bool _loggedFirstInboundVehicle;
 
-        // ==================== 数据流统计 ====================
-        //
-        // 游戏里 F8 面板那一节「数据流（哪一项为 0 就是哪里断了）」就是靠这里推下去的。
-        // 每个值是**最近一个统计周期的增量**，不是累计值——面板标题写的是「/10秒」。
-
         private const int StatsIntervalSeconds = 10;
 
-        private long _statGameIn;          // 游戏 -> 本地桥
-        private long _statRelayOut;        // 本地桥 -> 中继
-        private long _statRelayVehicle;    // 中继 -> 本地桥 的车辆包
+        private long _statGameIn;
+        private long _statRelayOut;
+        private long _statRelayVehicle;
         private long _lastGameIn;
         private long _lastRelayOut;
         private long _lastRelayIn;
@@ -300,8 +260,6 @@ namespace StartRide.Core
                     relayConnected = _relay.IsConnected ? 1 : 0,
                 });
 
-                // 只有「人在房间里、游戏也在线」的那个会话才写日志。
-                // AppState 里还有一个从不连游戏的空会话，不过滤就会每 10 秒刷一行全 0。
                 if (State.RoomId.Length > 0 && _bridge.IsGameConnected)
                 {
                     Log?.Invoke(
@@ -325,15 +283,11 @@ namespace StartRide.Core
                 state = _relay.IsConnected ? "connected" : "disconnected",
                 detail = _relay.LastError,
                 roomId = _relay.CurrentRoomId,
-                // ⚠️ playerId 必须下发给游戏。游戏内模组用它当车辆标识，
-                // 以前用昵称，两个都没配昵称的玩家（都是 'Player'）会互相丢包 ——
-                // 这正是「看不见对方的车」的根因之一。
+
                 playerId = _relay.PlayerId,
                 playerName = _relay.PlayerName,
             });
         }
-
-        // ==================== 中继 -> 游戏 ====================
 
         private void OnRelayVehicle(JsonElement packet)
         {

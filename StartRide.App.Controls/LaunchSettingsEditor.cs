@@ -482,40 +482,7 @@ public partial class LaunchSettingsEditor : UserControl, IComponentConnector, IS
 
 	static LaunchSettingsEditor()
 	{
-		//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Expected O, but got Unknown
-		//IL_0048: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0052: Expected O, but got Unknown
-		//IL_00a4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ae: Expected O, but got Unknown
-		//IL_00d2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00dc: Expected O, but got Unknown
-		//IL_00fb: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0105: Expected O, but got Unknown
-		//IL_019a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01a4: Expected O, but got Unknown
-		//IL_01d0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01da: Expected O, but got Unknown
-		//IL_0206: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0210: Expected O, but got Unknown
-		//IL_0234: Unknown result type (might be due to invalid IL or missing references)
-		//IL_023e: Expected O, but got Unknown
-		//IL_0262: Unknown result type (might be due to invalid IL or missing references)
-		//IL_026c: Expected O, but got Unknown
-		//IL_0290: Unknown result type (might be due to invalid IL or missing references)
-		//IL_029a: Expected O, but got Unknown
-		//IL_02bd: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02c7: Expected O, but got Unknown
-		//IL_02ea: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02f4: Expected O, but got Unknown
-		//IL_0317: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0321: Expected O, but got Unknown
-		//IL_0344: Unknown result type (might be due to invalid IL or missing references)
-		//IL_034e: Expected O, but got Unknown
-		//IL_0371: Unknown result type (might be due to invalid IL or missing references)
-		//IL_037b: Expected O, but got Unknown
-		//IL_039f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03a9: Expected O, but got Unknown
+
 		ShowModeSelectorProperty = DependencyProperty.Register("ShowModeSelector", typeof(bool), typeof(LaunchSettingsEditor), new PropertyMetadata((object)true));
 		LaunchSettingsModeOptionsProperty = DependencyProperty.Register("LaunchSettingsModeOptions", typeof(IEnumerable), typeof(LaunchSettingsEditor), new PropertyMetadata((PropertyChangedCallback)null));
 		SelectedLaunchSettingsModeOptionProperty = DependencyProperty.Register("SelectedLaunchSettingsModeOption", typeof(object), typeof(LaunchSettingsEditor), (PropertyMetadata)(object)new FrameworkPropertyMetadata((object)null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));

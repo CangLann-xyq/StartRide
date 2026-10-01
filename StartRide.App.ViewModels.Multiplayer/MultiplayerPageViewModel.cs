@@ -655,7 +655,6 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		SelectedSection = Sections[0];
 		lobbyService.SnapshotChanged += OnLobbySnapshotChanged;
 		lobbyService.Stopped += OnLobbyStopped;
-		// 首次进入联机页即拉取公开房间列表。
 		_ = RefreshRoomsAsync(CancellationToken.None);
 	}
 
@@ -668,8 +667,7 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		{
 			List<Room> rooms = await api.GetRoomsAsync().ConfigureAwait(true);
 			PublicRooms.Clear();
-			// 后端只返回没过期的房间（90 秒无心跳即被清理），不再按 live 二次过滤，
-			// 否则后端字段缺失时列表会永远是空的。
+
 			foreach (Room room in rooms)
 			{
 				PublicRooms.Add(new PublicRoomItem(room));
@@ -920,8 +918,7 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		try
 		{
-			// 归属行写的是「StartRide 中继」，链接也必须指自己的项目（原先硬编码指向
-			// 上游那套 Minecraft 穿透方案的仓库，改文案时漏掉了）。
+
 			if (externalLinkService?.TryOpen(StartRide.Core.SiteLinks.RelayProjectUrl) ?? false)
 			{
 				return;
@@ -952,10 +949,10 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 			ResetLobbyView();
 			string text = stopped.Reason switch
 			{
-				MultiplayerLobbyStopReason.MinecraftWorldClosed => Strings.Multiplayer_LobbyWorldClosed, 
-				MultiplayerLobbyStopReason.TerracottaExited => Strings.Multiplayer_LobbyTerracottaExited, 
-				MultiplayerLobbyStopReason.TerracottaServiceFailed => Strings.Multiplayer_LobbyTerracottaServiceFailed, 
-				_ => string.Empty, 
+				MultiplayerLobbyStopReason.MinecraftWorldClosed => Strings.Multiplayer_LobbyWorldClosed,
+				MultiplayerLobbyStopReason.TerracottaExited => Strings.Multiplayer_LobbyTerracottaExited,
+				MultiplayerLobbyStopReason.TerracottaServiceFailed => Strings.Multiplayer_LobbyTerracottaServiceFailed,
+				_ => string.Empty,
 			};
 			if (!string.IsNullOrEmpty(text))
 			{
@@ -1018,11 +1015,11 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		return failure switch
 		{
-			MultiplayerLobbyCreationFailure.TerracottaUnavailable => Strings.Multiplayer_Create_TerracottaUnavailable, 
-			MultiplayerLobbyCreationFailure.MinecraftWorldUnavailable => Strings.Multiplayer_Create_WorldUnavailable, 
-			MultiplayerLobbyCreationFailure.TerracottaBusy => Strings.Multiplayer_Create_TerracottaBusy, 
-			MultiplayerLobbyCreationFailure.TerracottaProtocolFailed => Strings.Multiplayer_Create_TerracottaProtocolFailed, 
-			_ => Strings.Multiplayer_Create_LobbyFailed, 
+			MultiplayerLobbyCreationFailure.TerracottaUnavailable => Strings.Multiplayer_Create_TerracottaUnavailable,
+			MultiplayerLobbyCreationFailure.MinecraftWorldUnavailable => Strings.Multiplayer_Create_WorldUnavailable,
+			MultiplayerLobbyCreationFailure.TerracottaBusy => Strings.Multiplayer_Create_TerracottaBusy,
+			MultiplayerLobbyCreationFailure.TerracottaProtocolFailed => Strings.Multiplayer_Create_TerracottaProtocolFailed,
+			_ => Strings.Multiplayer_Create_LobbyFailed,
 		};
 	}
 
@@ -1030,11 +1027,11 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		return failure switch
 		{
-			MultiplayerLobbyCreationFailure.InvalidRoomCode => Strings.Multiplayer_Join_InvalidRoomCode, 
-			MultiplayerLobbyCreationFailure.TerracottaUnavailable => Strings.Multiplayer_Create_TerracottaUnavailable, 
-			MultiplayerLobbyCreationFailure.TerracottaBusy => Strings.Multiplayer_Create_TerracottaBusy, 
-			MultiplayerLobbyCreationFailure.TerracottaProtocolFailed => Strings.Multiplayer_Create_TerracottaProtocolFailed, 
-			_ => Strings.Multiplayer_Join_Failed, 
+			MultiplayerLobbyCreationFailure.InvalidRoomCode => Strings.Multiplayer_Join_InvalidRoomCode,
+			MultiplayerLobbyCreationFailure.TerracottaUnavailable => Strings.Multiplayer_Create_TerracottaUnavailable,
+			MultiplayerLobbyCreationFailure.TerracottaBusy => Strings.Multiplayer_Create_TerracottaBusy,
+			MultiplayerLobbyCreationFailure.TerracottaProtocolFailed => Strings.Multiplayer_Create_TerracottaProtocolFailed,
+			_ => Strings.Multiplayer_Join_Failed,
 		};
 	}
 

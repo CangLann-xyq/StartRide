@@ -27,10 +27,8 @@ public sealed class AccountItemViewModel : ObservableObject
 
 	public string AvatarUrl => Account.AvatarUrl;
 
-	/// <summary>Steam/本地头像：可为本地绝对路径或 URL；为空时界面回退通用人形图标。</summary>
 	public string AvatarSource => Account.AvatarSource;
 
-	/// <summary>是否有可用头像（决定列表项用头像还是通用图标）。</summary>
 	public bool HasAvatar => !string.IsNullOrWhiteSpace(Account.AvatarSource);
 
 	public MinecraftSkinModel? SkinModel => Account.SkinModel;

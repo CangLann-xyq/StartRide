@@ -380,26 +380,26 @@ public sealed class AccountDialogViewModel : ObservableObject
 
 	public string AddAccountDialogTitle => AddAccountDialogStep switch
 	{
-		"MicrosoftReauthenticationPrompt" => Strings.Dialog_MicrosoftAccountExpiredTitle, 
-		"MicrosoftReauthentication" => Strings.Dialog_ReauthenticateMicrosoftAccountTitle, 
-		"MicrosoftReauthenticationResult" => Strings.Dialog_ReauthenticateMicrosoftAccountTitle, 
-		"ThirdPartyReauthentication" => Strings.Dialog_ReauthenticateThirdPartyAccountTitle, 
-		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionTitle, 
-		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressTitle, 
-		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultTitle, 
-		_ => AccountDialogText.GetAddTitle(AddAccountDialogStep, IsMicrosoftAccountAlreadyAdded, IsMicrosoftLoginSuccessful), 
+		"MicrosoftReauthenticationPrompt" => Strings.Dialog_MicrosoftAccountExpiredTitle,
+		"MicrosoftReauthentication" => Strings.Dialog_ReauthenticateMicrosoftAccountTitle,
+		"MicrosoftReauthenticationResult" => Strings.Dialog_ReauthenticateMicrosoftAccountTitle,
+		"ThirdPartyReauthentication" => Strings.Dialog_ReauthenticateThirdPartyAccountTitle,
+		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionTitle,
+		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressTitle,
+		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultTitle,
+		_ => AccountDialogText.GetAddTitle(AddAccountDialogStep, IsMicrosoftAccountAlreadyAdded, IsMicrosoftLoginSuccessful),
 	};
 
 	public string AddAccountDialogSubtitle => AddAccountDialogStep switch
 	{
-		"MicrosoftReauthenticationPrompt" => Strings.Dialog_MicrosoftAccountExpiredSubtitle, 
-		"MicrosoftReauthentication" => Strings.Dialog_ReauthenticateMicrosoftAccountSubtitle, 
-		"MicrosoftReauthenticationResult" => Strings.Dialog_ReauthenticateMicrosoftAccountSubtitle, 
-		"ThirdPartyReauthentication" => Strings.Dialog_ReauthenticateThirdPartyAccountSubtitle, 
-		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionSubtitle, 
-		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressSubtitle, 
-		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultSubtitle, 
-		_ => AccountDialogText.GetAddSubtitle(AddAccountDialogStep), 
+		"MicrosoftReauthenticationPrompt" => Strings.Dialog_MicrosoftAccountExpiredSubtitle,
+		"MicrosoftReauthentication" => Strings.Dialog_ReauthenticateMicrosoftAccountSubtitle,
+		"MicrosoftReauthenticationResult" => Strings.Dialog_ReauthenticateMicrosoftAccountSubtitle,
+		"ThirdPartyReauthentication" => Strings.Dialog_ReauthenticateThirdPartyAccountSubtitle,
+		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionSubtitle,
+		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressSubtitle,
+		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultSubtitle,
+		_ => AccountDialogText.GetAddSubtitle(AddAccountDialogStep),
 	};
 
 	public bool IsThirdPartyIdentityReadOnly => IsThirdPartyReauthenticationStep;
@@ -1136,11 +1136,6 @@ public sealed class AccountDialogViewModel : ObservableObject
 		ReportStatus(string.Format(Strings.Status_OfflineAccountAddedFormat, accountName));
 	}
 
-	/// <summary>
-	/// Steam 授权登录：类型选择步骤选中"Steam 账户"后点确定，
-	/// 检测本机 Steam 客户端的当前登录用户（loginusers.vdf），导入昵称与头像（可离线）。
-	/// 未检测到 Steam / 登录用户时停留本步骤并给出状态提示。
-	/// </summary>
 	private async Task<bool> TryHandleSteamTypeStepAsync()
 	{
 		if (!IsAccountTypeStep || SelectedAccountTypeOption?.Kind != "Steam")
@@ -1158,12 +1153,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 				return true;
 			}
 
-			// 1) 把 SteamID64 上报云端，服务器用 Web API Key 查昵称/头像/BeamNG 库存与时长
 			var api = new ApiService();
 			var auth = await api.SteamLoginAsync(steamUser.SteamId64, steamUser.DisplayName);
 			if (auth == null || !string.IsNullOrEmpty(auth.Error))
 			{
-				// 云端不可用也允许本地导入（降级为纯本地识别，不阻断登录）
 				logger?.LogWarning("Steam login: cloud auth failed ({Error}), fallback to local", auth?.Error);
 			}
 			else
@@ -1172,14 +1165,12 @@ public sealed class AccountDialogViewModel : ObservableObject
 				logger?.LogInformation("Steam login: cloud auth ok username={U} ownsBeamng={O} playtime={P}min",
 					auth.Username, auth.OwnsBeamng, auth.BeamngPlaytimeMin);
 
-				// 2) 库存检测：只有"明确没有 BeamNG"才拦截；无 Key（null）降级放行
 				if (auth.OwnsBeamng == false)
 				{
 					ReportStatus(Strings.Status_SteamNoBeamng);
 					IsAddAccountDialogBusy = false;
 					return true;
 				}
-				// 明确拥有：提示时长；无法判断（null）：静默放行
 				if (auth.OwnsBeamng == true)
 				{
 					ReportStatus(string.Format(Strings.Status_SteamBeamngFoundFormat,
@@ -1189,7 +1180,6 @@ public sealed class AccountDialogViewModel : ObservableObject
 
 			string accountId = "steam-" + steamUser.SteamId64;
 
-			// 先解析头像：本地 vdf hash 下载 → 云端 Web API 的 CDN 地址下载 → 退回远程 URL 直连
 			string? avatarSource = null;
 			if (!string.IsNullOrWhiteSpace(steamUser.AvatarHash))
 			{
@@ -1204,7 +1194,6 @@ public sealed class AccountDialogViewModel : ObservableObject
 			}
 			if (string.IsNullOrWhiteSpace(avatarSource))
 			{
-				// 已有本地缓存直接复用（离线可用、避免重复下载）
 				avatarSource = SteamLoginClient.GetCachedAvatarPath(steamUser.SteamId64);
 			}
 			if (string.IsNullOrWhiteSpace(avatarSource) && auth != null && !string.IsNullOrEmpty(auth.Avatar))
@@ -1222,7 +1211,6 @@ public sealed class AccountDialogViewModel : ObservableObject
 					avatarSource = auth.Avatar;
 				}
 			}
-			// 云端昵称（PersonaName）优先于本地 vdf 的登录名
 			string displayName = !string.IsNullOrWhiteSpace(auth?.Username) ? auth.Username : steamUser.DisplayName;
 
 			LauncherAccount? existing = null;
@@ -1236,12 +1224,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 			}
 			if (existing != null)
 			{
-				// 已有账户：补齐头像（无 API Key 时期导入的账户头像为空），昵称不覆盖（尊重用户改过的名字）
 				if (!string.IsNullOrWhiteSpace(avatarSource)
 					&& !string.Equals(existing.AvatarSource, avatarSource, StringComparison.Ordinal))
 				{
-					// 注意：WithAvatar 会按名字重算联机 ID（SteamID64 会被覆盖成本地 UUID），
-					// 这里把联机 ID 强制写回 SteamID64，保证联机身份稳定、且与 Steam 账号一一对应。
+
 					LauncherAccount refreshed = AccountMapper.WithAvatar(existing, avatarSource);
 					refreshed = AccountMapper.WithOfflineUuid(refreshed, existing.OfflineUuidGenerationMode, steamUser.SteamId64);
 					await accountList.ReplaceSelectedAccountAndPersistAsync(existing, refreshed);
@@ -1473,13 +1459,13 @@ public sealed class AccountDialogViewModel : ObservableObject
 			logger.LogWarning("Microsoft account login failed. Reason={Reason}", ex2.Reason);
 			string message3 = ex2.Reason switch
 			{
-				MicrosoftAccountLoginFailureReason.NotConfigured => Strings.Status_MicrosoftLoginNotConfigured, 
-				MicrosoftAccountLoginFailureReason.ApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized, 
-				MicrosoftAccountLoginFailureReason.TimedOut => Strings.Status_MicrosoftAuthenticationTimedOut, 
-				MicrosoftAccountLoginFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired, 
-				MicrosoftAccountLoginFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable, 
-				MicrosoftAccountLoginFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed, 
-				_ => Strings.Status_LoginFailed, 
+				MicrosoftAccountLoginFailureReason.NotConfigured => Strings.Status_MicrosoftLoginNotConfigured,
+				MicrosoftAccountLoginFailureReason.ApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized,
+				MicrosoftAccountLoginFailureReason.TimedOut => Strings.Status_MicrosoftAuthenticationTimedOut,
+				MicrosoftAccountLoginFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired,
+				MicrosoftAccountLoginFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable,
+				MicrosoftAccountLoginFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed,
+				_ => Strings.Status_LoginFailed,
 			};
 			ReportStatus(message3);
 			ShowMicrosoftLoginResult(isSuccess: false, message3);
@@ -1535,14 +1521,14 @@ public sealed class AccountDialogViewModel : ObservableObject
 			logger.LogWarning("Microsoft account reauthentication failed. AccountId={AccountId} Reason={Reason}", account.Id, ex2.Reason);
 			ShowMicrosoftReauthenticationFailure(ex2.Reason switch
 			{
-				MicrosoftAccountReauthenticationFailureReason.NotConfigured => Strings.Status_MicrosoftLoginNotConfigured, 
-				MicrosoftAccountReauthenticationFailureReason.ApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized, 
-				MicrosoftAccountReauthenticationFailureReason.TimedOut => Strings.Status_MicrosoftAuthenticationTimedOut, 
-				MicrosoftAccountReauthenticationFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired, 
-				MicrosoftAccountReauthenticationFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable, 
-				MicrosoftAccountReauthenticationFailureReason.AccountMismatch => Strings.Status_MicrosoftReauthenticationAccountMismatch, 
-				MicrosoftAccountReauthenticationFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed, 
-				_ => Strings.Status_LoginFailed, 
+				MicrosoftAccountReauthenticationFailureReason.NotConfigured => Strings.Status_MicrosoftLoginNotConfigured,
+				MicrosoftAccountReauthenticationFailureReason.ApplicationNotAuthorized => Strings.Status_MicrosoftApplicationNotAuthorized,
+				MicrosoftAccountReauthenticationFailureReason.TimedOut => Strings.Status_MicrosoftAuthenticationTimedOut,
+				MicrosoftAccountReauthenticationFailureReason.GameOwnershipRequired => Strings.Status_MinecraftJavaOwnershipRequired,
+				MicrosoftAccountReauthenticationFailureReason.AuthenticationServerUnavailable => Strings.Status_MicrosoftAuthenticationServerUnavailable,
+				MicrosoftAccountReauthenticationFailureReason.AccountMismatch => Strings.Status_MicrosoftReauthenticationAccountMismatch,
+				MicrosoftAccountReauthenticationFailureReason.CredentialStorageFailed => Strings.Status_MicrosoftCredentialStorageFailed,
+				_ => Strings.Status_LoginFailed,
 			});
 			return false;
 		}
@@ -1748,7 +1734,6 @@ public sealed class AccountDialogViewModel : ObservableObject
 		IsNewOfflineAccountNameInvalid = false;
 		IsAddAccountDialogBusy = false;
 		ResetMicrosoftLoginResultState();
-		// 只剩 Steam 一种账户类型时直接选中，"确定"即可一键授权，省去一次点击。
 		SelectedAccountTypeOption = AccountTypeOptions.Count == 1 ? AccountTypeOptions[0] : null;
 	}
 
@@ -1829,10 +1814,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 		{
 			return ex.Reason switch
 			{
-				MicrosoftAccountNameChangeFailureReason.DuplicateName => Strings.Status_AccountRenameFailedDuplicateName, 
-				MicrosoftAccountNameChangeFailureReason.NotAllowed => Strings.Status_AccountRenameFailedNotAllowed, 
-				MicrosoftAccountNameChangeFailureReason.InvalidName => Strings.Status_AccountRenameFailedInvalidName, 
-				_ => Strings.Status_AccountRenameFailed, 
+				MicrosoftAccountNameChangeFailureReason.DuplicateName => Strings.Status_AccountRenameFailedDuplicateName,
+				MicrosoftAccountNameChangeFailureReason.NotAllowed => Strings.Status_AccountRenameFailedNotAllowed,
+				MicrosoftAccountNameChangeFailureReason.InvalidName => Strings.Status_AccountRenameFailedInvalidName,
+				_ => Strings.Status_AccountRenameFailed,
 			};
 		}
 		return Strings.Status_AccountRenameFailed;

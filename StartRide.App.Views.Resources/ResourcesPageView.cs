@@ -29,10 +29,7 @@ public partial class ResourcesPageView : UserControl, IComponentConnector
 
 	public ResourcesPageView()
 	{
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0058: Expected O, but got Unknown
-		//IL_0060: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006a: Expected O, but got Unknown
+
 		InitializeComponent();
 		sectionTransitionService = new PageTransitionService(((DispatcherObject)this).Dispatcher, (string _) => sectionContentRoot, GetCurrentSectionId(), SectionOrder);
 		base.Loaded += ResourcesPageView_Loaded;

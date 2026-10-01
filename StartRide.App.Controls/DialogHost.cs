@@ -247,18 +247,7 @@ public partial class DialogHost : UserControl, IComponentConnector
 
 	static DialogHost()
 	{
-		//IL_0057: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0061: Expected O, but got Unknown
-		//IL_0080: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008a: Expected O, but got Unknown
-		//IL_00b5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00bf: Expected O, but got Unknown
-		//IL_00ba: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c4: Expected O, but got Unknown
-		//IL_00ef: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f9: Expected O, but got Unknown
-		//IL_00f4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fe: Expected O, but got Unknown
+
 		FadeInDuration = TimeSpan.FromMilliseconds(140.0);
 		FadeOutDuration = TimeSpan.FromMilliseconds(180.0);
 		DialogWidthProperty = DependencyProperty.Register("DialogWidth", typeof(double), typeof(DialogHost), new PropertyMetadata((object)420.0));

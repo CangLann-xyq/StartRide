@@ -51,11 +51,6 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private readonly ILogger<MainWindow> logger;
 
-	/// <summary>
-	/// 上一次解析出的页面根元素。用来识别「换了页面名，但宿主是同一个 View」
-	/// （回放 / 高光时刻共用 ReplaysPageView）：这种情况不能播页面转场 ——
-	/// PageTransitionService.MoveTo 只比较页面名，会把同一个元素整页重新淡入一次。
-	/// </summary>
 	private FrameworkElement? lastResolvedPageRoot;
 
 	private IDataObject? cachedThirdPartyAccountDropData;
@@ -82,7 +77,6 @@ public partial class MainWindow : Window, IComponentConnector
 
 	private WindowStyle preFullscreenWindowStyle = WindowStyle.SingleBorderWindow;
 
-	/// <summary>最大化尺寸的钳制钩子。见 <see cref="ClampMaximizedSize"/>。</summary>
 	private const int WmGetMinMaxInfo = 0x0024;
 
 	private const uint MonitorDefaultToNearest = 2u;
@@ -125,7 +119,6 @@ public partial class MainWindow : Window, IComponentConnector
 		NativeCaptionButtons.Hide(this);
 		base.SourceInitialized += MainWindow_OnSourceInitialized;
 		base.Loaded += MainWindow_Loaded;
-		// StartRide：托盘图标 + 启动自检（见 MainWindow.StartRide.Tray.cs）
 		base.Loaded += StartRideStartup_OnLoaded;
 		base.Closing += Window_OnClosing;
 		base.Closed += delegate
@@ -134,15 +127,6 @@ public partial class MainWindow : Window, IComponentConnector
 		};
 	}
 
-	/// <summary>
-	/// 窗口句柄一建好就挂消息钩子。
-	///
-	/// ⚠️ 为什么必须钩 WM_GETMINMAXINFO：本窗口是 WindowStyle=None + WindowChrome，
-	/// 最大化时系统按「显示器 + 8px 边框」给尺寸，实测 1920x1080 上窗口变成
-	/// 1936x1096、原点 (-8,-8) —— 界面比屏幕高 16px，顶部切 8px、
-	/// 底部状态条被推到任务栏底下压住（用户报的"全屏的时候有错位"）。
-	/// 全屏（F11，WindowStyle=None + NoResize）不受这个 bug 影响，保持钳到显示器。
-	/// </summary>
 	private void MainWindow_OnSourceInitialized(object? sender, EventArgs e)
 	{
 		try
@@ -151,19 +135,10 @@ public partial class MainWindow : Window, IComponentConnector
 			HwndSource? source = handle == IntPtr.Zero ? null : HwndSource.FromHwnd(handle);
 			source?.AddHook(WindowMessageHook);
 
-			// ⚠️ 必须在这里再下发一次 DWM 外观，而且必须是**最后**一个碰窗口样式的人。
-			// SourceInitialized 上有三个处理器，注册顺序 = 执行顺序：
-			//   ① LauncherWindowBackdrop.Attach（构造函数第 124 行）
-			//   ② NativeCaptionButtons.Hide（第 125 行）→ GetWindowLong/SetWindowLong 改样式位
-			//      + SetWindowPos(SWP_FRAMECHANGED)，DWM 会因此重建窗口 frame，
-			//      把刚写进去的 SystemBackdropType 一起丢掉
-			//   ③ 本处理器（第 126 行）← 我们是最后一个
-			// 症状：启动后是一块死板的主题底色，手动拉一下窗口尺寸它才突然出现。
 			LauncherWindowBackdrop.Reapply(this, themeService);
 		}
 		catch (Exception exception)
 		{
-			// 钩不上只是错位，不该让窗口起不来。
 			logger.LogWarning(exception, "Failed to hook the window message loop.");
 		}
 	}
@@ -172,11 +147,9 @@ public partial class MainWindow : Window, IComponentConnector
 	{
 		if (message == WmGetMinMaxInfo)
 		{
-			// ⚠️ 全屏（F11）也走 WindowState.Maximized，但它要盖住任务栏 ——
-			// 所以全屏钳「显示器」，普通最大化钳「工作区」，两者不能混。
+
 			ClampMaximizedSize(hwnd, lParam, isFullscreen);
 		}
-		// 不设 handled：这只是"改个数字"，系统的既有处理继续走。
 		return IntPtr.Zero;
 	}
 
@@ -197,8 +170,7 @@ public partial class MainWindow : Window, IComponentConnector
 			}
 			NativeRectangle target = useWholeMonitor ? info.monitor : info.work;
 			MinMaxInformation value = Marshal.PtrToStructure<MinMaxInformation>(lParam);
-			// ptMaxPosition / ptMaxSize 都是相对「显示器原点」的坐标：
-			// 任务栏在下面时工作区高度少 48px，最大化就该只占这 1032。
+
 			value.maxPosition.x = target.left - info.monitor.left;
 			value.maxPosition.y = target.top - info.monitor.top;
 			value.maxSize.x = target.right - target.left;
@@ -207,7 +179,6 @@ public partial class MainWindow : Window, IComponentConnector
 		}
 		catch (Exception)
 		{
-			// 钳不住就退回系统默认：宁可错位一点，也不能在这里抛异常。
 		}
 	}
 
@@ -275,7 +246,6 @@ public partial class MainWindow : Window, IComponentConnector
 				lastResolvedPageRoot = pageRoot;
 				if (sameHost)
 				{
-					// 同一宿主换视图（回放 <-> 高光时刻）：只同步状态，不播转场。
 					pageTransitionService.SyncTo(mainViewModel.CurrentPage);
 				}
 				else
@@ -318,11 +288,6 @@ public partial class MainWindow : Window, IComponentConnector
 		}
 	}
 
-	/// <summary>
-	/// F11 进出全屏；Esc 只负责退出。全屏时把 WindowStyle 换成 None（否则盖不住任务栏），
-	/// 同时把顶上的标题行收成 0 高、隐藏导航条 —— 窗口按钮是浮层（RowSpan=2 + ZIndex），
-	/// 所以仍然浮在内容右上角，用户不会被"关在里面出不来"。
-	/// </summary>
 	private void ToggleFullscreen()
 	{
 		if (!isFullscreen)
@@ -330,12 +295,10 @@ public partial class MainWindow : Window, IComponentConnector
 			preFullscreenState = base.WindowState;
 			preFullscreenResizeMode = base.ResizeMode;
 			preFullscreenWindowStyle = base.WindowStyle;
-			// ⚠️ WindowStyle / ResizeMode 在「已最大化」状态下改会被系统忽略，必须先回 Normal。
 			base.WindowState = WindowState.Normal;
 			base.WindowStyle = WindowStyle.None;
 			base.ResizeMode = ResizeMode.NoResize;
-			// ⚠️ isFullscreen 必须在改 WindowState 之前置位：最大化会触发
-			// WM_GETMINMAXINFO，钩子要靠这个字段决定钳「显示器」还是「工作区」。
+
 			isFullscreen = true;
 			base.WindowState = WindowState.Maximized;
 		}
@@ -345,25 +308,18 @@ public partial class MainWindow : Window, IComponentConnector
 			base.WindowState = WindowState.Normal;
 			base.WindowStyle = preFullscreenWindowStyle;
 			base.ResizeMode = preFullscreenResizeMode;
-			// ⚠️ 必须在这里、在恢复 WindowState 之前重剥一次原生标题栏样式位。
-			// WindowStyle 从 None 改回 SingleBorderWindow 时，WPF 会把整套原生样式写回去，
-			// 把 NativeCaptionButtons 在 SourceInitialized 时剥掉的边框又装回来；装回来之后
-			// 这次最大化就会按「工作区 + 每边 8px 边框」算尺寸 —— 实测 Esc 退出全屏后窗口
-			// 变成 (-8,-8)-(1928,1040)，四边都探出屏幕，底部还被任务栏压住。
-			// 放在 WindowState 之前是因为这条路径上"恢复最大化"本身就要重算一次尺寸。
+
 			NativeCaptionButtons.Reapply(this);
 			base.WindowState = preFullscreenState;
 		}
 		ApplyFullscreenChrome();
-		// WindowStyle 变化会让 WindowChrome 的圆角/边框失效，DWM 属性也可能被重置，重新下发一次。
 		LauncherWindowBackdrop.Reapply(this, themeService);
 		UpdateCaptionButtons();
 	}
 
 	private void ApplyFullscreenChrome()
 	{
-		// 最大化时也算"贴满屏幕"：窗口矩形被钳到工作区之后，四角再留 12px 圆角
-		// 就会直接透出后面的桌面（以前是靠系统多给 8px 把圆角推到屏幕外盖住的）。
+
 		bool square = isFullscreen || base.WindowState == WindowState.Maximized;
 		WindowChrome windowChrome = WindowChrome.GetWindowChrome(this);
 		if (windowChrome != null)
@@ -402,23 +358,14 @@ public partial class MainWindow : Window, IComponentConnector
 		}
 	}
 
-	// XAML 里挂的 StateChanged：最大化状态一变就换图标。
 	private void Window_OnStateChanged(object? sender, EventArgs e)
 	{
-		// 最大化/还原会改变"要不要圆角"，得跟着重算一次。
 		ApplyFullscreenChrome();
-		// ⚠️ 改 WindowChrome 的属性会让它自己重新下发一次玻璃框（= DwmExtendFrameIntoClientArea(0)），
-		// 这一步会把亚克力的命门（NativeBackdrop 里的 -1）踩掉 —— 表现就是"最大化/还原一下磨砂玻璃就没了"。
-		// 所以每次状态变化都重新下发一遍 DWM 外观。
+
 		LauncherWindowBackdrop.Reapply(this, themeService);
 		UpdateCaptionButtons();
 	}
 
-	/// <summary>
-	/// DPI 变化（跨显示器拖动、系统缩放调整）会让 WPF 重算窗口框架，
-	/// WindowChrome 会借此重下发一次 DwmExtendFrameIntoClientArea(0)，
-	/// 把亚克力的命门踩掉 —— 表现就是“拖到另一块屏玻璃就没了”。
-	/// </summary>
 	protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
 	{
 		base.OnDpiChanged(oldDpi, newDpi);
@@ -466,13 +413,6 @@ public partial class MainWindow : Window, IComponentConnector
 		}
 	}
 
-	/// <summary>
-	/// 回放页与「高光时刻」共用同一个 View/VM，但导航栏是两项，所以要做双向同步：
-	/// ① 点导航进页面 → 让 VM 拨到对应视图模式；
-	/// ② 在页内点"回放文件 / 高光时刻"标签 → 把导航选中态跟着挪过去。
-	/// 两边都靠 CurrentPage 表达，所以每条路都必须幂等，否则会互相触发打转 ——
-	/// 而 SetViewMode 与 CurrentPage 的 setter 都自带"值相同就返回"，天然断路。
-	/// </summary>
 	private void AttachReplaysViewModeBridge()
 	{
 		try
@@ -506,7 +446,6 @@ public partial class MainWindow : Window, IComponentConnector
 		}
 	}
 
-	/// <summary>进页面时把回放页的视图模式拨到与该导航项一致（页内切换不会回调）。</summary>
 	private void SyncReplaysViewMode(string? page)
 	{
 		try
@@ -619,10 +558,7 @@ public partial class MainWindow : Window, IComponentConnector
 	private async void MainWindow_Loaded(object? sender, RoutedEventArgs e)
 	{
 		_ = 1;
-		// ⚠ 兜底：SourceInitialized 时窗口还没真正上屏，个别情况下
-		// HwndSource.CompositionTarget 尚未就绪，那一次下发的 DWM 外观会白跑
-		// （窗口就成了一块死板的主题底色）。Loaded 是“窗口确实显示出来”
-		// 之后的第一站，在这里再下发一次。
+
 		try
 		{
 			LauncherWindowBackdrop.Reapply(this, themeService);
@@ -653,8 +589,6 @@ public partial class MainWindow : Window, IComponentConnector
 			return;
 		}
 
-		// StartRide：开了「关闭窗口时收进托盘」的话，点 X 只隐藏窗口，从托盘菜单才能真正退出。
-		// 这段必须放在 CanCloseWindow 之前：托盘常驻是用户的显式选择，不该被"有任务在跑"挡住。
 		if (StartRideTryMinimizeToTray())
 		{
 			e.Cancel = true;
@@ -1031,8 +965,7 @@ public partial class MainWindow : Window, IComponentConnector
 
 	static MainWindow()
 	{
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
-		//IL_003c: Expected O, but got Unknown
+
 		ShutdownTimeout = TimeSpan.FromSeconds(5.0);
 		IsMenuExpandedProperty = DependencyProperty.Register("IsMenuExpanded", typeof(bool), typeof(MainWindow), new PropertyMetadata((object)false));
 	}

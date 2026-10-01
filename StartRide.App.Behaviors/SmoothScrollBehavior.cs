@@ -470,30 +470,7 @@ public static class SmoothScrollBehavior
 
 	static SmoothScrollBehavior()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_0061: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006b: Expected O, but got Unknown
-		//IL_008f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0099: Expected O, but got Unknown
-		//IL_00c5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cf: Expected O, but got Unknown
-		//IL_0102: Unknown result type (might be due to invalid IL or missing references)
-		//IL_010c: Expected O, but got Unknown
-		//IL_0107: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0111: Expected O, but got Unknown
-		//IL_0130: Unknown result type (might be due to invalid IL or missing references)
-		//IL_013a: Expected O, but got Unknown
-		//IL_015e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0168: Expected O, but got Unknown
-		//IL_018c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0196: Expected O, but got Unknown
-		//IL_01ba: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01c4: Expected O, but got Unknown
-		//IL_01e3: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01ed: Expected O, but got Unknown
+
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(SmoothScrollBehavior), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 		ScrollAmountProperty = DependencyProperty.RegisterAttached("ScrollAmount", typeof(double), typeof(SmoothScrollBehavior), new PropertyMetadata((object)84.0));
 		AllowContentScrollProperty = DependencyProperty.RegisterAttached("AllowContentScroll", typeof(bool), typeof(SmoothScrollBehavior), new PropertyMetadata((object)false));

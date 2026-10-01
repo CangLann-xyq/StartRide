@@ -13,7 +13,6 @@
         TextOptions.TextRenderingMode="Grayscale">
 
   <Window.Resources>
-    <!-- 安装路径输入框 -->
     <Style x:Key="PathBox" TargetType="{x:Type TextBox}">
       <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
       <Setter Property="FontSize" Value="13" />
@@ -41,7 +40,6 @@
       </Setter>
     </Style>
 
-    <!-- 步骤条文 -->
     <Style x:Key="StepTitle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BodyText}">
       <Setter Property="FontSize" Value="13" />
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -55,7 +53,6 @@
       <RowDefinition Height="78" />
     </Grid.RowDefinitions>
 
-    <!-- ═══════════ 标题栏（自绘，可拖动） ═══════════ -->
     <Border Grid.Row="0" Background="{StaticResource Brush.Window}" MouseLeftButtonDown="TitleBar_OnMouseLeftButtonDown">
       <Grid>
         <TextBlock Text="StartRide 安装程序" Margin="18,0,0,0" VerticalAlignment="Center"
@@ -66,14 +63,12 @@
       </Grid>
     </Border>
 
-    <!-- ═══════════ 主体：左品牌栏 + 右步骤区 ═══════════ -->
     <Grid Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="272" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
-      <!-- 左栏 -->
       <Border Grid.Column="0" Background="{StaticResource Brush.Rail}"
               BorderBrush="{StaticResource Brush.Line}" BorderThickness="0,0,1,0">
         <StackPanel Margin="30,30,28,24">
@@ -116,10 +111,8 @@
         </StackPanel>
       </Border>
 
-      <!-- 右栏 -->
       <Grid Grid.Column="1" Margin="36,30,36,0">
 
-        <!-- ── 第 1 步：欢迎 ── -->
         <StackPanel x:Name="PanelWelcome">
           <TextBlock x:Name="WelcomeTitle" Text="安装 StartRide" FontSize="24"
                      Style="{StaticResource BodyText}" FontWeight="SemiBold" />
@@ -156,7 +149,6 @@
                     Style="{StaticResource CheckBoxStyle}" IsChecked="True" />
         </StackPanel>
 
-        <!-- ── 第 2 步：进度 ── -->
         <StackPanel x:Name="PanelProgress" Visibility="Collapsed">
           <TextBlock Text="正在安装" FontSize="24" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
           <TextBlock x:Name="ProgressLead" Margin="0,12,0,0" MaxWidth="520" HorizontalAlignment="Left"
@@ -180,7 +172,6 @@
                      Foreground="{StaticResource Brush.Text}" />
         </StackPanel>
 
-        <!-- ── 第 3 步：完成 ── -->
         <StackPanel x:Name="PanelDone" Visibility="Collapsed">
           <TextBlock Text="安装完成" FontSize="24" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
           <TextBlock x:Name="DoneLead" Margin="0,12,0,0" MaxWidth="520" HorizontalAlignment="Left"
@@ -201,7 +192,6 @@
       </Grid>
     </Grid>
 
-    <!-- ═══════════ 底部按钮条 ═══════════ -->
     <Border Grid.Row="2" Background="{StaticResource Brush.Footer}"
             BorderBrush="{StaticResource Brush.Line}" BorderThickness="0,1,0,0">
       <Grid Margin="28,0">

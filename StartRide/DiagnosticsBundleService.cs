@@ -8,28 +8,14 @@ using System.Text;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 一键诊断包：把排查问题需要的东西打成一个 zip。
-    ///
-    /// 收进去的：
-    ///   logs/            最近几份启动器日志
-    ///   settings.json    启动器设置（不含任何令牌 —— 令牌在 cloud-auth.json，故意不收）
-    ///   environment.txt  系统/.NET/硬件/游戏目录/版本/联机中继等环境信息
-    ///   game-files.txt   游戏文件体检结果（缺什么、该去 Steam 校验哪些）
-    ///
-    /// 目的很直接：出了问题不用来回复述环境，导一个包发出去就能看。
-    /// </summary>
+
     public static class DiagnosticsBundleService
     {
         private const int MaxLogFiles = 6;
 
-        /// <summary>诊断包输出目录：%AppData%\StartRide\diagnostics。</summary>
         public static string DiagnosticsDirectory =>
             Path.Combine(AppSettings.ConfigDirectory, "diagnostics");
 
-        /// <summary>
-        /// 导出诊断包，返回生成的 zip 完整路径；失败抛异常（调用方负责提示）。
-        /// </summary>
         public static string Export(AppSettings settings, string? launcherLogDirectory, Action<string>? progress = null)
         {
             Directory.CreateDirectory(DiagnosticsDirectory);
@@ -64,7 +50,6 @@ namespace StartRide.Core
                 }
                 catch
                 {
-                    // 设置读不到不影响诊断包
                 }
 
                 progress?.Invoke("复制启动器日志");
@@ -78,7 +63,6 @@ namespace StartRide.Core
                     }
                     catch
                     {
-                        // 单份日志复制失败就跳过（可能是正在写入）
                     }
                 }
 
@@ -101,12 +85,10 @@ namespace StartRide.Core
                 }
                 catch
                 {
-                    // 临时目录清理失败无所谓
                 }
             }
         }
 
-        /// <summary>诊断目录里最新的一个包；没有返回 null。</summary>
         public static string? FindLatestBundle()
         {
             try
@@ -171,7 +153,6 @@ namespace StartRide.Core
             }
             catch
             {
-                // 拿不到就算
             }
 
             sb.AppendLine();

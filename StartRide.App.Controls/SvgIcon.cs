@@ -81,22 +81,7 @@ public sealed class SvgIcon : Control
 
 	protected override void OnRender(DrawingContext drawingContext)
 	{
-		//IL_0048: Unknown result type (might be due to invalid IL or missing references)
-		//IL_004d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0062: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0067: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0087: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b3: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ca: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00e9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ee: Unknown result type (might be due to invalid IL or missing references)
-		//IL_010f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0114: Unknown result type (might be due to invalid IL or missing references)
+
 		base.OnRender(drawingContext);
 		if (string.IsNullOrWhiteSpace(IconKey) || base.ActualWidth <= 0.0 || base.ActualHeight <= 0.0)
 		{
@@ -182,7 +167,6 @@ public sealed class SvgIcon : Control
 
 	private static SvgIconData? LoadIconData(string iconKey)
 	{
-		//IL_0074: Unknown result type (might be due to invalid IL or missing references)
 		try
 		{
 			string text = iconKey.Replace("\\", "/", StringComparison.Ordinal).TrimStart('/');
@@ -210,8 +194,7 @@ public sealed class SvgIcon : Control
 
 	private static void ReadShapes(XElement element, List<SvgShape> shapes, SvgStyleContext? inheritedStyle = null)
 	{
-		//IL_0158: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0295: Unknown result type (might be due to invalid IL or missing references)
+
 		SvgStyleContext inheritedStyle2 = SvgStyleContext.Merge(inheritedStyle, element);
 		Point center = default(Point);
 		foreach (XElement item in element.Elements())
@@ -284,9 +267,7 @@ public sealed class SvgIcon : Control
 
 	private static Rect ParseViewBox(string? value)
 	{
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00af: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009d: Unknown result type (might be due to invalid IL or missing references)
+
 		if (string.IsNullOrWhiteSpace(value))
 		{
 			return new Rect(0.0, 0.0, 24.0, 24.0);
@@ -338,10 +319,7 @@ public sealed class SvgIcon : Control
 
 	private static Transform? ParseTransform(string? value)
 	{
-		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_000f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0153: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00bb: Unknown result type (might be due to invalid IL or missing references)
+
 		if (string.IsNullOrWhiteSpace(value))
 		{
 			return null;

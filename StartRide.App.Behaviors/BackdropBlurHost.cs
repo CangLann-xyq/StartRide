@@ -298,7 +298,7 @@ public static class BackdropBlurHost
 		return new MultiBinding
 		{
 			Converter = BlurClipRadiusConverter.Instance,
-			Bindings = 
+			Bindings =
 			{
 				(BindingBase)new Binding("CornerRadius")
 				{
@@ -322,7 +322,7 @@ public static class BackdropBlurHost
 		{
 			Converter = InnerCornerRadiusConverter.Instance,
 			ConverterParameter = parameter,
-			Bindings = 
+			Bindings =
 			{
 				(BindingBase)new Binding("CornerRadius")
 				{
@@ -353,24 +353,7 @@ public static class BackdropBlurHost
 
 	static BackdropBlurHost()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_0059: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0063: Expected O, but got Unknown
-		//IL_0090: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009a: Expected O, but got Unknown
-		//IL_00be: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c8: Expected O, but got Unknown
-		//IL_00ee: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f8: Expected O, but got Unknown
-		//IL_00f3: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fd: Expected O, but got Unknown
-		//IL_011c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0126: Expected O, but got Unknown
-		//IL_0145: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014f: Expected O, but got Unknown
+
 		IsAppliedProperty = DependencyProperty.RegisterAttached("IsApplied", typeof(bool), typeof(BackdropBlurHost), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsAppliedChanged)));
 		IsBlurEnabledProperty = DependencyProperty.RegisterAttached("IsBlurEnabled", typeof(bool), typeof(BackdropBlurHost), new PropertyMetadata((object)false));
 		IsBlurSuppressedProperty = DependencyProperty.RegisterAttached("IsBlurSuppressed", typeof(bool), typeof(BackdropBlurHost), (PropertyMetadata)(object)new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits, new PropertyChangedCallback(OnIsBlurSuppressedChanged)));

@@ -80,10 +80,7 @@ internal static class UiPerformanceLog
 
 	internal static void LogRenderEnvironment(SystemMemorySnapshot? memorySnapshot, Visual? dpiSource)
 	{
-		//IL_0058: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0073: Unknown result type (might be due to invalid IL or missing references)
+
 		if (Log.IsEnabled(LogEventLevel.Debug) && Interlocked.Exchange(ref hasLoggedRenderEnvironment, 1) == 0)
 		{
 			double? num = TryGetDpiScale(dpiSource);

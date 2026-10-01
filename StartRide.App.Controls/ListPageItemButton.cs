@@ -89,8 +89,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 
 	public static readonly DependencyProperty TrailingForegroundProperty;
 
-	// StartRide：图标底板。原版图标是"浮"在行里的，视觉上很单薄；
-	// 加上一层圆角底板 + 一像素内描边之后，列表才有真正的"控件感"。
 	public static readonly DependencyProperty IconTileBackgroundProperty;
 
 	public static readonly DependencyProperty IconTileBorderBrushProperty;
@@ -537,7 +535,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		}
 	}
 
-	/// <summary>图标底板填充（传 null 则是原来的"无底板"效果）。</summary>
 	public Brush IconTileBackground
 	{
 		get
@@ -550,7 +547,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		}
 	}
 
-	/// <summary>图标底板一像素内描边。</summary>
 	public Brush IconTileBorderBrush
 	{
 		get
@@ -563,7 +559,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		}
 	}
 
-	/// <summary>图标底板圆角。</summary>
 	public CornerRadius IconTileCornerRadius
 	{
 		get
@@ -576,7 +571,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		}
 	}
 
-	/// <summary>图标底板内边距（glyph 与底板之间的呼吸空间）。默认 0 = 不加底板。</summary>
 	public Thickness IconTilePadding
 	{
 		get
@@ -589,7 +583,6 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		}
 	}
 
-	/// <summary>图标底板描边粗细。默认 0 = 不描边（保持旧版观感）。</summary>
 	public Thickness IconTileBorderThickness
 	{
 		get
@@ -656,7 +649,7 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		AnimatedRoot.BeginAnimation(UIElement.OpacityProperty, null);
 		AnimatedRoot.RenderTransform = new TransformGroup
 		{
-			Children = 
+			Children =
 			{
 				(Transform)scaleTransform,
 				(Transform)translateTransform
@@ -776,82 +769,7 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 
 	static ListPageItemButton()
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0028: Expected O, but got Unknown
-		//IL_004b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0055: Expected O, but got Unknown
-		//IL_0078: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0082: Expected O, but got Unknown
-		//IL_00a1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ab: Expected O, but got Unknown
-		//IL_00ca: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00d4: Expected O, but got Unknown
-		//IL_00fa: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0104: Expected O, but got Unknown
-		//IL_00ff: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0109: Expected O, but got Unknown
-		//IL_0128: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0132: Expected O, but got Unknown
-		//IL_0160: Unknown result type (might be due to invalid IL or missing references)
-		//IL_016a: Expected O, but got Unknown
-		//IL_0189: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0193: Expected O, but got Unknown
-		//IL_01b2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01bc: Expected O, but got Unknown
-		//IL_01e0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01ea: Expected O, but got Unknown
-		//IL_020e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0218: Expected O, but got Unknown
-		//IL_023c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0246: Expected O, but got Unknown
-		//IL_026a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0274: Expected O, but got Unknown
-		//IL_0298: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02a2: Expected O, but got Unknown
-		//IL_02d2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02dc: Expected O, but got Unknown
-		//IL_030c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0316: Expected O, but got Unknown
-		//IL_0311: Unknown result type (might be due to invalid IL or missing references)
-		//IL_031b: Expected O, but got Unknown
-		//IL_033f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0349: Expected O, but got Unknown
-		//IL_0395: Unknown result type (might be due to invalid IL or missing references)
-		//IL_039f: Expected O, but got Unknown
-		//IL_03d0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03da: Expected O, but got Unknown
-		//IL_0406: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0410: Expected O, but got Unknown
-		//IL_043c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0446: Expected O, but got Unknown
-		//IL_0492: Unknown result type (might be due to invalid IL or missing references)
-		//IL_049c: Expected O, but got Unknown
-		//IL_04c0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_04ca: Expected O, but got Unknown
-		//IL_0516: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0520: Expected O, but got Unknown
-		//IL_056c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0576: Expected O, but got Unknown
-		//IL_05a2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_05ac: Expected O, but got Unknown
-		//IL_05d4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_05de: Expected O, but got Unknown
-		//IL_05fd: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0607: Expected O, but got Unknown
-		//IL_0633: Unknown result type (might be due to invalid IL or missing references)
-		//IL_063d: Expected O, but got Unknown
-		//IL_065c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0666: Expected O, but got Unknown
-		//IL_0692: Unknown result type (might be due to invalid IL or missing references)
-		//IL_069c: Expected O, but got Unknown
-		//IL_06bb: Unknown result type (might be due to invalid IL or missing references)
-		//IL_06c5: Expected O, but got Unknown
-		//IL_06e4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_06ee: Expected O, but got Unknown
-		//IL_071a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0724: Expected O, but got Unknown
-		//IL_0743: Unknown result type (might be due to invalid IL or missing references)
-		//IL_074d: Expected O, but got Unknown
+
 		TitleProperty = DependencyProperty.Register("Title", typeof(string), typeof(ListPageItemButton), new PropertyMetadata((object)string.Empty));
 		SubtitleProperty = DependencyProperty.Register("Subtitle", typeof(string), typeof(ListPageItemButton), new PropertyMetadata((object)string.Empty));
 		TrailingTextProperty = DependencyProperty.Register("TrailingText", typeof(string), typeof(ListPageItemButton), new PropertyMetadata((object)string.Empty));
@@ -876,9 +794,7 @@ public partial class ListPageItemButton : UserControl, IComponentConnector
 		IconWidthProperty = DependencyProperty.Register("IconWidth", typeof(double), typeof(ListPageItemButton), new PropertyMetadata((object)32.0));
 		IconHeightProperty = DependencyProperty.Register("IconHeight", typeof(double), typeof(ListPageItemButton), new PropertyMetadata((object)32.0));
 		IconMarginProperty = DependencyProperty.Register("IconMargin", typeof(Thickness), typeof(ListPageItemButton), new PropertyMetadata((object)new Thickness(10.0, 0.0, 0.0, 0.0)));
-		// StartRide：原版默认 NearestNeighbor 是为 Minecraft 像素风贴图准备的，
-		// 用在 BeamNG 车辆图 / 游戏图标这类平滑图像上会让边缘出现明显锯齿。
-		// 默认改为 HighQuality（真正需要像素风的调用方仍可显式传 NearestNeighbor）。
+
 		IconScalingModeProperty = DependencyProperty.Register("IconScalingMode", typeof(BitmapScalingMode), typeof(ListPageItemButton), new PropertyMetadata((object)BitmapScalingMode.HighQuality));
 		TextMarginProperty = DependencyProperty.Register("TextMargin", typeof(Thickness), typeof(ListPageItemButton), new PropertyMetadata((object)new Thickness(5.0, 0.0, 0.0, 0.0)));
 		TrailingMarginProperty = DependencyProperty.Register("TrailingMargin", typeof(Thickness), typeof(ListPageItemButton), new PropertyMetadata((object)new Thickness(12.0, 0.0, 24.0, 0.0)));

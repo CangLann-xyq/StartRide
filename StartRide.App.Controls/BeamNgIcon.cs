@@ -8,11 +8,6 @@ using StartRide.Core;
 
 namespace StartRide.App.Controls;
 
-/// <summary>
-/// 运行时从本机检测到的 BeamNG.drive 安装目录加载真实图标
-/// （{GameDirectory}\icon-beamng.ico），替代上游打包的 Minecraft SVG 图标。
-/// 若未检测到 BeamNG 或图标文件缺失，则回退为不显示（不报错、不崩）。
-/// </summary>
 public sealed class BeamNgIcon : Control
 {
 	public static readonly DependencyProperty IconSourceProperty;
@@ -26,7 +21,6 @@ public sealed class BeamNgIcon : Control
 			new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 	}
 
-	/// <summary>已解析的真实图标（可为 null，此时控件不渲染内容）。</summary>
 	public ImageSource? IconSource
 	{
 		get => (ImageSource?)GetValue(IconSourceProperty);
@@ -66,7 +60,6 @@ public sealed class BeamNgIcon : Control
 				new Uri(ico, UriKind.Absolute),
 				BitmapCreateOptions.PreservePixelFormat,
 				BitmapCacheOption.OnLoad);
-			// 取最高分辨率那一帧
 			BitmapFrame best = decoder.Frames[0];
 			foreach (BitmapFrame frame in decoder.Frames)
 			{

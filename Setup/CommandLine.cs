@@ -3,22 +3,12 @@ using System.IO;
 
 namespace StartRide.Setup;
 
-/// <summary>
-/// 安装包的命令行参数。
-///
-/// 为什么一个"双击即用"的安装包还要有命令行：
-/// 1. 静默安装/卸载是回归验证的唯一可行手段 —— GUI 点不完，脚本才跑得动全套；
-/// 2. 批量部署、以及"卸载器被误删后用安装包收尾"都需要它。
-/// </summary>
 internal sealed class CommandLine
 {
-    /// <summary>静默安装：不显示任何窗口，装完退出。退出码 0 = 成功。</summary>
     public bool SilentInstall { get; private set; }
 
-    /// <summary>静默卸载。</summary>
     public bool SilentUninstall { get; private set; }
 
-    /// <summary>卸载时是否一并删除 %APPDATA%\StartRide。</summary>
     public bool PurgeData { get; private set; }
 
     public string? Dir { get; private set; }
@@ -27,10 +17,6 @@ internal sealed class CommandLine
     public bool NoDesktopShortcut { get; private set; }
     public bool NoStartMenuShortcut { get; private set; }
 
-    /// <summary>
-    /// 静默安装时**保留**目标目录里已有的文件（默认会先清空程序文件）。
-    /// 界面版由"是否覆盖"确认框决定，这里给脚本一个显式退路。
-    /// </summary>
     public bool KeepOldFiles { get; private set; }
 
     public static CommandLine Parse(string[] args)
@@ -54,7 +40,6 @@ internal sealed class CommandLine
             else if (TryValue(a, "--log", out string log)) cl.LogPath = log;
         }
 
-        // 卸载器的文件名本身就代表"卸载"（它被单独发布时不会带参数）。
         if (!uninstallRole && LooksLikeUninstaller()) uninstallRole = true;
 
         if (uninstallRole) cl.SilentUninstall = quiet;
@@ -94,7 +79,6 @@ internal sealed class CommandLine
         }
     }
 
-    /// <summary>静默模式下的进度输出。没传 --log 就什么都不写。</summary>
     public Action<string>? CreateLogger()
     {
         if (string.IsNullOrEmpty(LogPath)) return null;
@@ -107,7 +91,6 @@ internal sealed class CommandLine
             }
             catch
             {
-                // 日志写不了不影响安装
             }
         };
     }

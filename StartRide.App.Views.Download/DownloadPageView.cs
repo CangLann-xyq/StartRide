@@ -25,8 +25,7 @@ public partial class DownloadPageView : UserControl, IComponentConnector
 
 	public DownloadPageView()
 	{
-		//IL_008b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0095: Expected O, but got Unknown
+
 		InitializeComponent();
 		FrameworkElement frameworkElement = FindDownloadStepHost();
 		downloadVersionList = FindStepContent<DownloadVersionListView>((DependencyObject)(object)frameworkElement, "DownloadVersionList", "Download version list view was not found.");

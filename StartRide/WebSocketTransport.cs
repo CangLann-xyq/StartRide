@@ -8,15 +8,7 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 最小 WebSocket 客户端（RFC 6455 文本帧子集），对应原版 Electron 的 sr-ws-transport.js。
-    ///
-    /// 存在理由：中继的游戏数据端口 7777 被腾讯云安全组拦在公网之外，
-    /// 只有 80/443 可达；于是中继在 80 端口上开了 /relay-ws 隧道
-    /// （nginx 转发到 127.0.0.1:7788/ws）。本类就是走这条隧道的传输层。
-    ///
-    /// 不依赖 System.Net.WebSockets，避免额外的平台差异，行为与 Electron 版一致。
-    /// </summary>
+
     public sealed class WebSocketTransport : IDisposable
     {
         private const string WsGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -31,18 +23,12 @@ namespace StartRide.Core
 
         public bool IsOpen { get; private set; }
 
-        /// <summary>收到一条完整文本消息（已做分片重组）。</summary>
         public event Action<string>? MessageReceived;
-        /// <summary>发送日志。</summary>
         public event Action<string>? Log;
-        /// <summary>连接关闭（参数为原因）。</summary>
         public event Action<string>? Closed;
 
         public string RemoteDescription { get; private set; } = "";
 
-        /// <summary>
-        /// 建立 WebSocket 连接。失败会抛异常，由调用方决定是否回退到 TCP 直连。
-        /// </summary>
         public async Task ConnectAsync(string host, int port, string path, TimeSpan timeout)
         {
             _cts = new CancellationTokenSource();
@@ -56,7 +42,6 @@ namespace StartRide.Core
             _stream = _tcp.GetStream();
             RemoteDescription = $"ws://{host}:{port}{path}";
 
-            // ---- HTTP 升级握手 ----
             var keyBytes = new byte[16];
             RandomNumberGenerator.Fill(keyBytes);
             string key = Convert.ToBase64String(keyBytes);
@@ -120,8 +105,6 @@ namespace StartRide.Core
             throw new TimeoutException("等待 WebSocket 握手响应超时");
         }
 
-        // ================= 收 =================
-
         private async Task ReceiveLoopAsync(CancellationToken token)
         {
             var chunk = new byte[8192];
@@ -144,29 +127,22 @@ namespace StartRide.Core
 
                         lock (_recvBuf)
                         {
-                            // ⚠️ 这里**不能**用 ToArray()：它每帧把整个接收缓冲复制一份，
-                            //    而一次 ReadAsync 常带回几十帧 → O(帧数 × 缓冲) 的分配。
-                            //    中继默认就走 WS 这条路（PreferWebSocket），8 人房里这就是
-                            //    每秒几 MB 的无谓复制 + GC 压力 —— TCP 那条路早已修过同样的病
-                            //    （见 RelayClient.TcpReceiveLoopAsync 的注释），这里漏修了。
-                            //    GetBuffer() 取内部数组（不复制），解析后就地搬移剩余字节，
-                            //    每帧只搬一次、而且通常剩余为 0。语义与原来完全等价。
+
                             int avail = (int)_recvBuf.Length;
                             var data = _recvBuf.GetBuffer();
                             if (!TryParseFrame(data, avail, out fin, out opcode, out payload, out int consumed))
                                 break;
                             int restLen = avail - consumed;
                             if (restLen > 0) Buffer.BlockCopy(data, consumed, data, 0, restLen);
-                            // SetLength 会把 Position 一并收到 len（MSDN：位置大于新长度时后移），
-                            // 所以下一次 _recvBuf.Write 正好接在有效数据末尾。
+
                             _recvBuf.SetLength(restLen);
                         }
 
                         switch (opcode)
                         {
-                            case 0x1: // text
-                            case 0x2: // binary（中继只用文本，这里当文本处理）
-                            case 0x0: // continuation
+                            case 0x1:
+                            case 0x2:
+                            case 0x0:
                                 if (opcode != 0x0) fragOpcode = opcode;
                                 if (payload is { Length: > 0 }) fragments.Write(payload, 0, payload.Length);
                                 if (fin)
@@ -178,15 +154,15 @@ namespace StartRide.Core
                                 }
                                 break;
 
-                            case 0x8: // close
+                            case 0x8:
                                 CloseInternal("对端发起关闭");
                                 return;
 
-                            case 0x9: // ping -> pong
+                            case 0x9:
                                 SendFrame(0xA, payload ?? Array.Empty<byte>());
                                 break;
 
-                            case 0xA: // pong
+                            case 0xA:
                                 break;
                         }
                     }
@@ -199,12 +175,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>从缓冲区里尝试解析一帧；数据不足时返回 false。</summary>
-        /// <summary>
-        /// 从缓冲区里尝试解析一帧；数据不足时返回 false。
-        /// <paramref name="dataLen"/> 是**有效字节数**，不是数组长度 ——
-        /// MemoryStream.GetBuffer() 返回的内部数组可能比已有数据长。
-        /// </summary>
         private static bool TryParseFrame(byte[] d, int dataLen, out bool fin, out byte opcode,
                                           out byte[]? payload, out int consumed)
         {
@@ -252,9 +222,6 @@ namespace StartRide.Core
             return true;
         }
 
-        // ================= 发 =================
-
-        /// <summary>发送一条文本消息（分片由帧头长度字段自动处理）。</summary>
         public void SendText(string text)
         {
             if (!IsOpen) return;
@@ -273,10 +240,8 @@ namespace StartRide.Core
 
                     if (payload.Length > 0)
                     {
-                        // 客户端发往服务端的帧必须做掩码
                         var mask = new byte[4];
                         RandomNumberGenerator.Fill(mask);
-                        // 掩码键已写在 head 里，这里用同一把
                         Buffer.BlockCopy(head, head.Length - 4, mask, 0, 4);
                         var masked = new byte[payload.Length];
                         for (int i = 0; i < payload.Length; i++) masked[i] = (byte)(payload[i] ^ mask[i & 3]);
@@ -294,7 +259,7 @@ namespace StartRide.Core
         private static byte[] BuildHeader(byte opcode, int len, bool masked)
         {
             using var ms = new MemoryStream();
-            ms.WriteByte((byte)(0x80 | opcode)); // FIN + opcode
+            ms.WriteByte((byte)(0x80 | opcode));
 
             int maskBit = masked ? 0x80 : 0;
             if (len < 126)
@@ -335,8 +300,6 @@ namespace StartRide.Core
             }
             catch (OperationCanceledException) { }
         }
-
-        // ================= 关 =================
 
         private void CloseInternal(string reason)
         {

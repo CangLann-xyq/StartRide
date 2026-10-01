@@ -16,17 +16,13 @@ local socket = require('socket')
 
 local LAUNCHER_IP = '127.0.0.1'
 local LAUNCHER_PORT = 4444
-local SEND_RATE = 1 / 30        
-local PING_INTERVAL = 5         
-local VEHICLE_TIMEOUT = 8       
+local SEND_RATE = 1 / 30
+local PING_INTERVAL = 5
+local VEHICLE_TIMEOUT = 8
 local MAX_REMOTE = 16
 local CHAT_KEEP = 80
 local CHAT_COOLDOWN = 0.3
--- ⚠️ 这个串必须等于启动器版本号（与 Mods/startrideVE.lua 的日志串一致），
--- 它是「游戏里跑的到底是哪一版模组」的唯一指纹：游戏日志里搜
---   `[StartRide]  GE 扩展 v` 和 `[StartRide VE] v`
--- 两条都要出现且版本一致，才能确定包是启动器刚装的最新版。
--- 升版本号时由 _sr_shots/_bump_version.py 一起改（已登记）。
+
 local MOD_VERSION = '0.1.6'
 
 
@@ -34,10 +30,10 @@ local MOD_VERSION = '0.1.6'
 
 
 
-local MIN_SPAWN_GAP = 0.5       
-local MAX_SPAWN_BACKOFF = 8     
+local MIN_SPAWN_GAP = 0.5
+local MAX_SPAWN_BACKOFF = 8
 
-local MIN_CFG_RESPAWN_GAP = 3   
+local MIN_CFG_RESPAWN_GAP = 3
 
 local MAX_CONNECT_BACKOFF = 8
 
@@ -47,7 +43,7 @@ local connected = false
 local connecting = false
 local connectStartTime = 0
 local connectRetryCount = 0
-local connectBackoff = 1        
+local connectBackoff = 1
 local nextConnectTry = 0
 local recvBuffer = ''
 local outBuffer = ''
@@ -57,13 +53,12 @@ local lastSend = 0
 local lastPingSend = 0
 local frameCount = 0
 
-local remoteVehicles = {}       
-local mpPlayers = {}            
+local remoteVehicles = {}
+local mpPlayers = {}
 local roomInfo = { name = '', count = 0, capacity = 0, host = '', closed = false }
 local chat = {}
 local playerName = 'Player'
--- 启动器下发的稳定联机 ID（SR-XXXX-XXXX-XXXX）。车辆标识用它，不用昵称：
--- 昵称可以两个人一样，ID 不会。取不到时 myId() 自动回退成昵称（兼容旧启动器）。
+
 local playerId = nil
 local function myId()
   if playerId and playerId ~= '' then return playerId end
@@ -76,19 +71,19 @@ local initialized = false
 
 
 
-local relayState = 'unknown'    
+local relayState = 'unknown'
 local relayDetail = ''
 local relayRoomId = ''
 local statGameIn, statRelayOut, statRelayIn, statRelayVehicle = 0, 0, 0, 0
-local remotePacketCount = 0     
-local spawnFailCount = 0        
-local spawnOkCount = 0          
+local remotePacketCount = 0
+local spawnFailCount = 0
+local spawnOkCount = 0
 local lastSpawnError = ''
-local lastSpawnTryAt = 0        
-local badPacketCount = 0        
-local skipByCollision = 0       -- applyRemoteTransform 因"疑似碰撞"跳过的次数
-local pendingCleanup = {}       
-local lastStallLog = -100       
+local lastSpawnTryAt = 0
+local badPacketCount = 0
+local skipByCollision = 0
+local pendingCleanup = {}
+local lastStallLog = -100
 
 
 local localMap = ''
@@ -361,27 +356,16 @@ end
 local function validPos(p)
   if type(p) ~= 'table' then return false end
   if not (isNum(p[1]) and isNum(p[2]) and isNum(p[3])) then return false end
-  return (p[1] * p[1] + p[2] * p[2] + p[3] * p[3]) < 1e12   
+  return (p[1] * p[1] + p[2] * p[2] + p[3] * p[3]) < 1e12
 end
 
 local function validRot(r)
   if type(r) ~= 'table' then return false end
   if not (isNum(r[1]) and isNum(r[2]) and isNum(r[3]) and isNum(r[4])) then return false end
   local n = r[1] * r[1] + r[2] * r[2] + r[3] * r[3] + r[4] * r[4]
-  return n > 0.25 and n < 2.5    
+  return n > 0.25 and n < 2.5
 end
 
-
-
-
-
-
--- 把"这辆车是远程车 / 它的联机 ID 是多少"下发到车辆层（VE）。
--- ⚠️ 这是在 spawn 之后立刻排队的，那时 VE 模块（lua/vehicle/extensions/startride）
---    可能还没加载完 —— 命令会丢，于是 VE 里 v.mpVehicleType 一直是 'L'、
---    v.srServerID 一直是 ''，物理解算整段不跑 → 对方看我们的车停在原地（"看不见对方的车"）。
---    所以这一段要发三次：① spawn 后立刻；② VE 上报就绪（onVEReady）；③ VE 主动索要
---    （onVEAskID）。BeamMP 也是靠"VE 就绪后才下发"这一步（MPVehicleGE.onVehicleReady）。
 local function queueVETypeAndID(veh, id)
   if not veh then return end
   pcall(function() veh.mpVehicleType = 'R' end)
@@ -449,7 +433,6 @@ local function spawnRemote(rec, id, data)
 
   
   pcall(function() veh.mpVehicleType = 'R' end)
-  -- protected 是"配置保护"（禁止克隆/另存），BeamMP 默认给 '0'。之前写成 '1' 是笔误。
   pcall(function() veh:setField('protected', 0, '0') end)
   
   
@@ -478,8 +461,7 @@ end
 
 local function onRemoteVehiclePacket(data)
   local id = data.id
-  -- ⚠️ 这里以前比的是 playerName。两个都没配昵称的玩家在游戏里都是 'Player'，
-  -- 于是双方的包互相被当成"自己的"丢掉 —— 房间里人齐了却一辆车都看不见。
+
   if not id or id == myId() then return end
   
   
@@ -539,7 +521,7 @@ local function onRemoteVehiclePacket(data)
         end
       end
     end
-    if not rec.veh then return end   
+    if not rec.veh then return end
   end
 
   local ok, js = pcall(jsonEncode, {
@@ -573,8 +555,7 @@ function M.onVEReady(gameVehicleID)
   local found, frec = findRecByVehID(gameVehicleID)
   if found then
     frec.veReady = true
-    -- ⚠️ 这才是"设类型/设联机 ID"的正确时机：此刻 VE 模块一定已经加载完，命令不会丢。
-    -- （BeamMP 的 MPVehicleGE.onVehicleReady 就是在这里做同样的事）
+
     queueVETypeAndID(frec.veh, found)
     logMsg('远程车 VE 就绪:', tostring(found))
   else
@@ -582,9 +563,6 @@ function M.onVEReady(gameVehicleID)
   end
 end
 
-
--- VE 主动来要联机 ID（它发现自己 v.srServerID 是空的）→ 立刻补发。
--- 这是加载竞态的最后一道自愈：spawn 时那次下发丢了也能救回来。
 function M.onVEAskID(gameVehicleID)
   local id, rec = findRecByVehID(gameVehicleID)
   if not id then return end
@@ -612,10 +590,6 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
   local vv = d.vehVel
   local noCounter = (d.noCounter == 1)
 
-  -- ⚠️ 碰撞保护（BeamMP positionGE.setPositionRotationVelocity 的做法）：
-  --    远程车"实际速度"远大于它"自己上报的速度" → 说明刚刚发生了碰撞/爆炸/落地冲击。
-  --    这时候再硬传送 + 覆盖速度，等于把这次碰撞的结果直接抹掉 —— 用户看到的就是
-  --    "两台车撞不到 / 互相穿模"。这一跳只是"这一帧不修"，下一帧会重新判断。
   if type(vv) == 'table' then
     local lv = veh:getVelocity()
     local cur = math.abs(lv.x) + math.abs(lv.y) + math.abs(lv.z)
@@ -637,9 +611,6 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
     local localVel = veh:getVelocity()
     veh:setClusterPosRelRot(refNode, p[1], p[2], p[3], delta.x, delta.y, delta.z, delta.w)
 
-    -- setClusterPosRelRot 会把速度一起旋转，所以要把转过的分量扣掉。
-    -- 但"刚生成那一跳"（noCounter=1）要跳过：那时车身上的松散件（原木/挂车）本来就快，
-    -- 扣一次会让它们朝反方向飞出去（BeamMP 的原话：logs on the T-series would fly backwards）。
     local rx, ry, rz = v[1] or 0, v[2] or 0, v[3] or 0
     if not noCounter then
       local rotVel = localVel:rotated(delta)
@@ -647,9 +618,6 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
     end
     veh:applyClusterVelocityScaleAdd(refNode, 1, rx, ry, rz)
 
-    -- 角速度只能回 VE 做（GE 没有角速度接口）。
-    -- ⚠️ 只动角速度、不动线速度：线速度上面已经设好了，VE 再动一次就是互相打架
-    --    （BeamMP positionGE 传的 onlyAngularVelocity=1 就是这个意思）。
     veh:queueLuaCommand('startrideVE.setAngularVelocityOnly(' ..
       tostring(rv[1] or 0) .. ', ' .. tostring(rv[2] or 0) .. ', ' .. tostring(rv[3] or 0) .. ')')
   end)
@@ -812,9 +780,7 @@ local function onPacket(data)
     relayState = data.state or 'unknown'
     relayDetail = data.detail or ''
     if data.roomId then relayRoomId = data.roomId end
-    -- 启动器是身份的权威来源：它下发的 ID 与昵称直接采信。
-    -- 昵称只在"游戏里没自己配过"（还是默认的 'Player'）时才跟随启动器，
-    -- 免得把用户手写进 multiplayer.json 的名字盖掉。
+
     if data.playerId and data.playerId ~= '' and data.playerId ~= playerId then
       playerId = data.playerId
       logMsg('联机 ID:', playerId)
@@ -917,34 +883,6 @@ local function kvRow(label, value, valCol)
   im.TextColored(valCol or C.text, value)
 end
 
-
-
-
-
-
--- ═══════════════════════════════════════════════════════════════════════════
--- 高光时刻（GE 侧）
---
--- 车辆层（startrideHL.lua）认出"值得回看的瞬间"后，用
---   obj:queueGameEngineLua("startride.onHighlight(type, value, extra, speed)")
--- 把事件扔上来。这里负责：汇总 → 截图 → 落盘 → HUD 提示 → 并入游戏自身统计。
---
--- 顺手还管一件事：**联机期间自动开回放录制**。没有录像，高光就只是一行文字；
--- 有了录像 + 时间码，才能在游戏里跳回去看。录制分段（默认每段 SEGMENT 秒），
--- 这样单个文件不会无限大，且"跳到那一刻"不用等一个几小时的录像加载完。
---
--- ⚠️ 绝不动用户手动开的录制：只有自己调 startRecording() 成功的才会去 stopRecording()
---    （HL.ownRecording 记账）。用户自己按了录制键 / 开着任务自动回放时，我们只借它
---    当前的文件名与时间码来打点。
---
--- ⚠️ 落盘目录 = <userpath>/replays/startride/，与 .rpl 同根。选这里的唯一原因是
---    启动器已经知道怎么解析回放目录（ResolveReplaysDirectory），两边不用再约定别的东西。
---    配置也放同一个目录：<replays>/startride/config.json，由启动器写、模组读。
---
--- ⚠️ 截图走引擎自带的 screenshot.doScreenshot(nil, nil, path, 'jpg')：
---    传的是**不含扩展名**的路径（引擎自己补 .jpg，见 timeslip.lua 的用法）。
---    截图是 GPU 回读 + JPEG 编码，有开销 → 用 HL.shotBusy 串行化，不并发发起。
--- ═══════════════════════════════════════════════════════════════════════════
 local HL = {
   active = false,
   sessionId = '',
@@ -954,46 +892,30 @@ local HL = {
   shots = 0,
   shotBusy = false,
   shotBusyUntil = 0,
-  replays = {},          -- { {file=, from=, to=} }
+  replays = {},
   curReplay = '',
   curReplayFrom = 0,
   ownRecording = false,
-  --- 本段录制已进行的秒数。**必须自己计时**：core_replay.getState() 的
-  --- positionSeconds 在录制态下恒为 0（那是"回放进度"，录制时没有进度可言），
-  --- 依赖它会让时间码全 0、分段录制永不触发。
+
   recElapsed = 0,
   lastLine = '',
   toastUntil = 0,
   lastTick = 0,
   lastPos = 0,
-  -- 配置（启动器写 config.json；读不到就用下面的默认值）
   enabled = true,
   autoRecord = true,
-  segmentSeconds = 300,   -- 实测录制约 1~2 MB/s，15 分钟一段会到 1 GB 以上
+  segmentSeconds = 300,
   maxShots = 40,
   onlyInSession = true,
   dir = '',
   dirReady = false,
-  cfgLoaded = false,     -- 配置是否已读（首帧读，不能等开会话时才读）
-  sessionMap = '',       -- 本局所在地图，换图即分局
-  savedAt = 0,           -- 距上次落盘秒数（定时落盘用）
+  cfgLoaded = false,
+  sessionMap = '',
+  savedAt = 0,
 }
 
---- 会话进行中每隔这么久落一次盘。联机一局可能几十分钟，
---- 中途崩溃/断电不能把整局高光带走（实测游戏崩过一次，日志还没 flush）。
 local AUTOSAVE_INTERVAL = 30
 
---- <userpath> 归一成斜杠，**并吃掉末尾斜杠**。
---- ⚠️ FS:getUserPath() 实测返回 "…\current\"（带尾斜杠），不处理就会拼出
----    "…/current//replays/startride" —— 实测在这个双斜杠路径下
----    jsonReadFile 读不回、screenshot.doScreenshot 连文件都不生成（返回不报错但静默失败）。
---- 高光目录，**相对 userpath 的路径**。
---- ⚠️ 绝不能拼 FS:getUserPath() 出来的绝对 Windows 路径（"D:/…/current/replays/startride"）：
----    BeamNG 的 FS 是虚拟文件系统，**路径基准就是 userpath**，绝对路径一律找不到。
----    而且失败方式极度迷惑 —— directoryCreate 照样返回 true、jsonWriteFile 不抛错、
----    截图调用也不抛错，但文件一个都没落地（实测白排查两轮，最后靠对照引擎自身写法定位）。
----    引擎代码用的就是这种相对写法：replay.lua 的 FS:directoryCreate("/replays/")、
----    timeslip.lua 的 screenshot.doScreenshot(nil, nil, "screenshots/timeslips/<时间>", 'jpg')。
 local function hlDir()
   if HL.dirReady then return HL.dir ~= '' and HL.dir or nil end
   HL.dirReady = true
@@ -1005,7 +927,6 @@ local function hlDir()
   return dir
 end
 
---- 读启动器写下来的配置。读不到/坏掉都不能让功能整体挂掉 —— 用默认值继续。
 local function hlLoadConfig()
   local dir = hlDir()
   if not dir then return end
@@ -1035,7 +956,6 @@ local function hlLabel(typ)
   return typ
 end
 
---- 数值 + 单位，给 HUD 和列表共用。
 local function hlValueText(typ, value, extra)
   if typ == 'jump' then
     if extra and extra >= 1 then
@@ -1065,7 +985,6 @@ local function hlMapName()
   return name
 end
 
--- ── 录制 ───────────────────────────────────────────────────────────────────
 local function hlReplayState()
   local st = nil
   pcall(function() st = core_replay.getState() end)
@@ -1073,11 +992,9 @@ local function hlReplayState()
   return st
 end
 
---- 开录。返回 true 表示**是我们**开的（会话结束时要负责停）。
 local function hlStartRecording()
   local st = hlReplayState()
   if st and st.state == 'recording' then
-    -- 已经在录（用户手动 / 任务自动回放）→ 借用，不接管
     HL.curReplay = tostring(st.loadedFile or '')
     HL.ownRecording = false
     logMsg('高光：检测到已有录制，借用不接管 →', HL.curReplay)
@@ -1105,7 +1022,6 @@ local function hlStopRecording()
     HL.ownRecording = false
     return
   end
-  -- 段尾用自己计的时长（positionSeconds 在录制态下恒为 0，见 HL.recElapsed 注释）
   local pos = HL.recElapsed or 0
   local seg = HL.replays[#HL.replays]
   if seg then seg.to = HL.curReplayFrom + pos end
@@ -1114,14 +1030,11 @@ local function hlStopRecording()
   logMsg('高光：录制已停止并保存', HL.curReplay, '时长', string.format('%.1fs', pos))
 end
 
---- 录制分段：一段录满 segmentSeconds 就停掉再开一段。
---- 不分段的话，两小时的联机会得到一个几百 MB、加载半天的文件。
 local function hlRotateIfNeeded()
   if not HL.ownRecording then return end
   local st = hlReplayState()
   if not st or st.state ~= 'recording' then return end
-  -- ⚠️ 用 recElapsed 而不是 st.positionSeconds：后者在录制态下恒为 0，
-  --    拿它判分段会让 `pos < segmentSeconds` 永远成立 —— 分段从不触发。
+
   local pos = HL.recElapsed or 0
   HL.lastPos = pos
   if pos < HL.segmentSeconds then return end
@@ -1131,11 +1044,10 @@ local function hlRotateIfNeeded()
   HL.curReplayFrom = HL.curReplayFrom + pos
   pcall(function() core_replay.stopRecording() end)
   HL.ownRecording = false
-  hlStartRecording()          -- 内部会把 recElapsed 清零
+  hlStartRecording()
   logMsg('高光：录制已分段，本段', string.format('%.0fs', pos))
 end
 
--- ── 截图 ───────────────────────────────────────────────────────────────────
 local function hlTakeShot(typ)
   if HL.shots >= HL.maxShots then return nil end
   if HL.shotBusy and os.clock() < HL.shotBusyUntil then return nil end
@@ -1145,7 +1057,7 @@ local function hlTakeShot(typ)
   HL.shots = HL.shots + 1
   local base = string.format('%s/hl-%s-%02d', dir, HL.sessionId, HL.shots)
   HL.shotBusy = true
-  HL.shotBusyUntil = os.clock() + 2.0   -- 2 秒内不再发起（截图是异步的，没有可靠的回调时序）
+  HL.shotBusyUntil = os.clock() + 2.0
   local ok = pcall(function() screenshot.doScreenshot(nil, nil, base, 'jpg') end)
   if not ok then
     HL.shotBusy = false
@@ -1155,15 +1067,10 @@ local function hlTakeShot(typ)
   return 'hl-' .. HL.sessionId .. string.format('-%02d', HL.shots) .. '.jpg'
 end
 
--- ── 落盘 ───────────────────────────────────────────────────────────────────
 local function hlSave(reason)
   local dir = hlDir()
   if not dir or HL.sessionId == '' then return end
 
-  -- 段尾兜底。正常退出时 hlStopRecording 已经记过 to；但**游戏被强杀**、
-  -- 或退出时扩展在卸载阶段拿不到 core_replay 状态（实测这条路径会走提前 return），
-  -- to 就会一直是 0 —— 界面上看到的就是"0 秒的录像段"。
-  -- 这里用我们自己的计时补上，宁可粗一点也不能是 0。
   local tail = HL.curReplayFrom + (HL.recElapsed or 0)
   for _, seg in ipairs(HL.replays) do
     if (tonumber(seg.to) or 0) <= 0 then seg.to = tail end
@@ -1194,7 +1101,6 @@ local function hlSave(reason)
   logMsg('高光：已落盘', path, '共', tostring(#HL.events), '条', ok and 'ok' or 'FAILED')
 end
 
--- ── 会话 ───────────────────────────────────────────────────────────────────
 local function hlStartSession()
   if HL.active then return end
   HL.active = true
@@ -1236,10 +1142,6 @@ local function hlEndSession(reason)
   HL.replays = {}
 end
 
---- 车辆层报上来的高光事件入口。
---- ⚠️ 签名必须与 startrideHL.lua 里 string.format 的那串严格一致。
---- ⚠️ 只有**联机中**（或配置里 onlyInSession=false）才落盘：单人开车也检测，
----    但不往磁盘写 —— 否则随便开一圈就多一个 JSON 文件。
 function M.onHighlight(typ, value, extra, speed)
   pcall(function()
     if type(typ) ~= 'string' then return end
@@ -1247,7 +1149,6 @@ function M.onHighlight(typ, value, extra, speed)
     extra = tonumber(extra) or 0
     speed = tonumber(speed) or 0
 
-    -- 并入游戏自带的玩法统计（F1 统计面板 / 生涯里程碑都能读到）
     pcall(function()
       if gameplay_statistic and gameplay_statistic.metricAdd then
         gameplay_statistic.metricAdd('startride/highlight/' .. typ, 1)
@@ -1257,19 +1158,15 @@ function M.onHighlight(typ, value, extra, speed)
     local capturing = HL.active or not HL.onlyInSession
     local line = hlLabel(typ) .. ' ' .. hlValueText(typ, value, extra)
 
-    -- HUD 上的"最近一条"始终更新，哪怕没在联机也让人看得见检测在工作
     HL.lastLine = line
     HL.toastUntil = os.clock() + 5
 
     if not capturing then
-      -- 没在记录也留一行日志（单人开车同样检测，只是不落盘）。
-      -- 这一行也是实机验证的唯一判据 —— 见 _sr_shots/_hl_ingame.py。
+
       logMsg('高光(未记录)：' .. line)
       return
     end
 
-    -- 时间码 = 本段之前各段的累计时长 + 本段已录时长。
-    -- 借用的录制没有我们的起点，只能退回 positionSeconds（可能为 0）。
     local offset = HL.curReplayFrom + (HL.recElapsed or 0)
     local st = hlReplayState()
     if st and st.state == 'recording' then
@@ -1297,32 +1194,24 @@ function M.onHighlight(typ, value, extra, speed)
   end)
 end
 
---- 每帧调用。做三件事：会话边界检测（中继连上/断开）、录制分段、截图串行化超时复位。
 local function hlTick(dtSim, dtReal)
   if HL.duration then HL.duration = HL.duration + (dtSim or 0) end
-  -- 自己给录制计时（见 HL.recElapsed 注释）。只在本模组开的录制期间计，
-  -- 借用的录制没有起点，计了反而错。
+
   if HL.ownRecording then HL.recElapsed = (HL.recElapsed or 0) + (dtSim or 0) end
   if HL.shotBusy and os.clock() > HL.shotBusyUntil then HL.shotBusy = false end
 
-  -- 配置必须首帧就读：onlyInSession 参与下面「要不要开会话」的判断，
-  -- 放在 hlStartSession 里读会变成先有鸡还是先有蛋（永远读不到 false）。
   if not HL.cfgLoaded then
     HL.cfgLoaded = true
     pcall(hlLoadConfig)
   end
 
-  -- 会话边界：中继连上（且房间没关）算一局；
-  -- 关掉「仅联机」后，只要进了地图也算一局（单人开车同样留档）。
-  -- 放在每帧轮询而不是改写 relayState 的赋值点，是因为那个状态有两条写入路径
-  -- （relay-state 消息、stats 消息），改两处容易漏一处。
   local live = (relayState == 'connected') and not roomInfo.closed
   local always = (HL.onlyInSession == false) and (localMap ~= '')
   local want = live or always
 
   if want and HL.active and HL.sessionMap ~= '' and localMap ~= ''
      and localMap ~= HL.sessionMap then
-    pcall(hlEndSession, 'map-change')          -- 换图 = 上一局结束
+    pcall(hlEndSession, 'map-change')
   end
   if want and not HL.active then
     pcall(hlStartSession)
@@ -1330,14 +1219,12 @@ local function hlTick(dtSim, dtReal)
     pcall(hlEndSession, live and 'disconnect' or 'left-level')
   end
 
-  -- 以下不必每帧做，1 秒一次足够（getState 是跨 VM 调用）
   HL.lastTick = HL.lastTick + (dtReal or 0)
   if HL.lastTick < 1.0 then return end
   HL.lastTick = 0
   if not HL.active then return end
   if HL.ownRecording then pcall(hlRotateIfNeeded) end
 
-  -- 定时落盘（同一文件覆盖写）
   HL.savedAt = (HL.savedAt or 0) + 1
   if HL.savedAt >= AUTOSAVE_INTERVAL then
     HL.savedAt = 0
@@ -1354,22 +1241,6 @@ local function relayStateText()
   return '未知', C.dim
 end
 
--- ==================== 第三方联机模组检测 ====================
---
--- 玩家如果在 mods/ 里同时装了 BeamLink / BeamMP 这类第三方联机模组，会出现两种
--- 在界面上完全看不出来的怪现象：
---   ① 我们生成的远程车被它接管 —— 它只认自己记录的车辆，我们的远程车不在它表里，
---      于是被当成「它自己的本地玩家车」挂上它的车辆扩展（setOwned(true)），
---      同一辆车跑两套物理 → 抖动、瞬移；
---   ② 它的官方模式下会直接 veh:delete() 掉非锁定车 → 我们的远程车反复生成 / 删除
---      → 生成风暴，帧率暴跌。
--- 所以必须主动查 + 明确告诉用户，而不是让玩家自己猜。
---
--- 只读取证，两个来源：
---   ① 运行时 GE 扩展表里有没有已加载的联机类扩展（BeamLink 的 modScript 是无条件
---      load 的，游戏一开就加载，这条路最直接）；
---   ② mods/db.json 里已启用的联机类模组（有些模组不暴露成扩展名；
---      这条路和 BeamLink 自己读 db.json 的做法一致，更贴近实际状态）。
 local CONFLICT_PATTERNS = { 'beamlink', 'beammp', 'carpool', 'beamng-mp' }
 local conflictList = {}
 local conflictKey = ''
@@ -1380,7 +1251,7 @@ local function conflictScan()
 
   local function hit(text)
     local lk = string.lower(tostring(text))
-    if string.find(lk, 'startride', 1, true) then return nil end  -- 我们自己不算
+    if string.find(lk, 'startride', 1, true) then return nil end
     for _, pat in ipairs(CONFLICT_PATTERNS) do
       if string.find(lk, pat, 1, true) then return pat end
     end
@@ -1395,15 +1266,12 @@ local function conflictScan()
     found[#found + 1] = s
   end
 
-  -- ① 已加载的扩展
   pcall(function()
     for key in pairs(extensions) do
       if hit(key) then push('扩展 ' .. tostring(key)) end
     end
   end)
 
-  -- ② 已启用的模组（db.json 的 schema 各版本不一致，浅层遍历名字字段；
-  --    拿不到结构化数据就找不到，属正常，不强求）
   pcall(function()
     local function walk(t, depth)
       if type(t) ~= 'table' or depth > 2 then return end
@@ -1432,7 +1300,7 @@ local function conflictTick()
 
   local list = conflictScan()
   local key = table.concat(list, '|')
-  if key == conflictKey then return end   -- 结果没变就闭嘴，别每 10 秒刷一遍
+  if key == conflictKey then return end
   conflictKey = key
   conflictList = list
 
@@ -1452,7 +1320,6 @@ local function conflictTick()
 end
 
 local function drawHUD()
-  -- 有冲突时多两行：H 走的是 Cond_Always 固定高度，不同步调大就会被裁掉
   local conflict = #conflictList > 0
   local W, H = 268, conflict and 168 or 126
   local opened = false
@@ -1523,7 +1390,6 @@ local function drawHUD()
     im.SameLine()
     im.TextColored(remotePacketCount > 0 and C.ok or C.dim, tostring(remotePacketCount))
 
-    -- 高光：本场次数 + 最近一条。刚触发 5 秒内用亮色，之后转暗，一眼看得出"刚发生"。
     im.Dummy(im.ImVec2(10, 4))
     im.SameLine()
     im.TextColored(C.dim, '高光')
@@ -2030,7 +1896,6 @@ function M.onExtensionLoaded()
     end
   end)
   logMsg('玩家昵称:', playerName)
-  -- 先扫一次冲突模组：进游戏就能在 HUD / 聊天里看到，不用等 10 秒
   safeCall('conflictTick', conflictTick)
   connectTCP()
 end
@@ -2044,7 +1909,6 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 end
 
 function M.onExtensionUnloaded()
-  -- 卸载前把当前高光会话存档，否则这一场就白录了
   pcall(hlEndSession, 'unload')
   for _, rec in pairs(remoteVehicles) do despawnRemote(rec) end
   remoteVehicles = {}

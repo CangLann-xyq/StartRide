@@ -9,21 +9,14 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>某个必需配置文件的检查结果。</summary>
     public enum ConfigFileState
     {
         Unknown = 0,
-        /// <summary>存在且能正常解析</summary>
         Ok,
-        /// <summary>文件不存在</summary>
         Missing,
-        /// <summary>存在但内容坏了（空文件 / JSON 解析不过）</summary>
         Broken,
-        /// <summary>本次已从云端补全</summary>
         Repaired,
-        /// <summary>云端没有这个模板，补不了</summary>
         TemplateMissing,
-        /// <summary>补全过程出错</summary>
         Failed,
     }
 
@@ -34,7 +27,6 @@ namespace StartRide.Core
         public string RelativePath { get; set; } = "";
         public string FullPath { get; set; } = "";
         public ConfigFileState State { get; set; } = ConfigFileState.Unknown;
-        /// <summary>给界面看的一句话说明</summary>
         public string Detail { get; set; } = "";
         public bool NeedsRepair => State == ConfigFileState.Missing || State == ConfigFileState.Broken;
     }
@@ -44,21 +36,11 @@ namespace StartRide.Core
         public int Checked { get; set; }
         public int Repaired { get; set; }
         public int Failed { get; set; }
-        /// <summary>云端模板清单是否取到（false = 离线/服务器不可用）</summary>
         public bool ServerReachable { get; set; }
         public string? Error { get; set; }
         public List<ConfigFileStatus> Files { get; } = new List<ConfigFileStatus>();
     }
 
-    /// <summary>
-    /// 游戏必需配置文件的检查与自动补全。
-    ///
-    /// 背景：BeamNG.drive 的 settings.json / game-settings.json / cloud/settings.json /
-    /// 键位文件一旦损坏或丢失，轻则键位错乱，重则游戏起不来。启动器在这里：
-    ///   1. 逐个检查必需文件是否存在、能否解析
-    ///   2. 缺失/损坏的从云端模板库（/config/template/:key）下载写回
-    ///   3. 写回前把坏文件改名备份成 *.broken-时间戳，不直接销毁用户数据
-    /// </summary>
     public sealed class ConfigRepairService
     {
         public sealed class EssentialFile
@@ -66,7 +48,6 @@ namespace StartRide.Core
             public string Key { get; }
             public string RelativePath { get; }
             public string DisplayName { get; }
-            /// <summary>true = 必须是合法 JSON；false = 只要求存在且非空</summary>
             public bool StrictJson { get; }
 
             public EssentialFile(string key, string relativePath, string displayName, bool strictJson)
@@ -78,10 +59,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>
-        /// 必需配置文件清单。与 storm-server/upload_startride_configs.py 里的 ESSENTIAL 一一对应，
-        /// 改一处必须同时改另一处（key 就是服务器上的模板主键）。
-        /// </summary>
         public static readonly EssentialFile[] EssentialFiles =
         {
             new EssentialFile("settings.json", "settings.json", "游戏主设置", true),
@@ -101,16 +78,12 @@ namespace StartRide.Core
             this.settingsDirectoryOverride = settingsDirectoryOverride;
         }
 
-        /// <summary>本机配置目录（&lt;userpath&gt;/settings）。</summary>
         public string SettingsDirectory => string.IsNullOrWhiteSpace(settingsDirectoryOverride)
             ? settings.ResolveSettingsDirectory()
             : settingsDirectoryOverride!;
 
         public string GetFullPath(EssentialFile file) => Path.Combine(SettingsDirectory, file.RelativePath);
 
-        // ---------------- 检查 ----------------
-
-        /// <summary>只做本地检查，不联网。</summary>
         public List<ConfigFileStatus> Inspect()
         {
             var list = new List<ConfigFileStatus>();
@@ -145,7 +118,6 @@ namespace StartRide.Core
             return list;
         }
 
-        /// <summary>文件是否可用：非空 + （严格 JSON 时能解析）。</summary>
         public static bool IsUsable(string path, bool strictJson, out string reason)
         {
             reason = "正常";
@@ -160,9 +132,7 @@ namespace StartRide.Core
 
                 if (!strictJson)
                 {
-                    // 键位文件是 .diff，BeamNG 有时会在字符串里写入控制字符，
-                    // 所以先把控制字符换成空格再解析：既能容忍它自己的怪癖，
-                    // 又能发现真的被截断/写坏的文件。
+
                     if (text.IndexOf("bindings", StringComparison.OrdinalIgnoreCase) < 0)
                     {
                         reason = "缺少 bindings 段";
@@ -195,7 +165,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>去掉 JSON 里不该出现的控制字符（BeamNG 自己偶尔会写坏）。</summary>
         public static string StripControlChars(string text)
         {
             var sb = new StringBuilder(text.Length);
@@ -206,12 +175,6 @@ namespace StartRide.Core
             return sb.ToString();
         }
 
-        // ---------------- 检查 + 补全 ----------------
-
-        /// <summary>
-        /// 检查并按需从云端补全。返回结果里带每个文件的最终状态。
-        /// 网络不可用时不会抛异常，只在 Error/ServerReachable 上体现。
-        /// </summary>
         public async Task<ConfigRepairResult> RepairAsync(
             ApiService api, Action<string>? log = null, CancellationToken cancellationToken = default)
         {
@@ -223,7 +186,6 @@ namespace StartRide.Core
             var damaged = statuses.Where(s => s.NeedsRepair).ToList();
             if (damaged.Count == 0) return result;
 
-            // 只有真需要补的时候才联网
             var templates = await api.GetConfigTemplatesAsync().ConfigureAwait(false);
             if (templates.Count == 0)
             {
@@ -268,7 +230,6 @@ namespace StartRide.Core
                     string dir = Path.GetDirectoryName(status.FullPath)!;
                     Directory.CreateDirectory(dir);
 
-                    // 坏文件先留档，别让用户自己修好的东西被静默覆盖
                     if (File.Exists(status.FullPath))
                     {
                         string backup = status.FullPath + ".broken-" + DateTime.Now.ToString("yyyyMMddHHmmss");

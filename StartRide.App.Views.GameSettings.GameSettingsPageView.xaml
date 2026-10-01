@@ -317,7 +317,6 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ListBox>
-            <!-- StartRide 不是 Minecraft：没有快照版/测试版/各类加载器，只有官方正式版 -->
             <TextBlock Margin="12,0,0,14" VerticalAlignment="Bottom" HorizontalAlignment="Left" MaxWidth="620" TextWrapping="Wrap" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" Text="{x:Static res:Strings.GameSettings_SpecialVersionUnsupportedNotice}" />
           </Grid>
           <Grid Tag="InstanceDetailsStep" Opacity="0" Visibility="Collapsed">

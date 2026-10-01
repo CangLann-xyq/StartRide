@@ -1,18 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl x:Class="StartRide.App.Views.Home.HomeLaunchPanelView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:res="clr-namespace:StartRide.App.Resources" Focusable="False" xmlns:home="clr-namespace:StartRide.App.Views.Home">
-  <!-- StartRide 主页：左右对称边距保证真居中；垂直节奏全部用正边距，不再用负边距互相拉扯 -->
   <Grid Margin="24,0,24,0">
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 
-      <!-- 品牌标识：直接用作者提供的完整 logo（上方车图形 + **下方自带的 StartRide 字样**）。
-           ⚠️ 不要再拆成「小图标 + 旁边写一个 TextBlock」拼——那就等于把这张图
-           下方自带的文字去掉了（用户明确要求保留）。这张图是唯一品牌展示源。
-           ⚠️ 必须用 _dark 版：原图前景是近黑色（车身线条 + 文字），启动器是深色主题，
-           直接铺上去只剩蓝色那几笔看得见，车和文字会全糊进背景。
-           ⚠️ 只给 Height 不给 Width：原图 769×380，定宽会被横向拉变形。 -->
       <Image Height="64" Margin="0,0,0,10" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/startride_logo_full_dark.png" />
 
-      <!-- 账户名（无账户时显示引导提示） -->
       <TextBlock Style="{StaticResource HomeAccountNameTextStyle}" Text="{Binding HomeAccountDisplayName}" />
       <TextBlock Text="{x:Static res:Strings.Home_ChooseOrCreateAccount}">
         <FrameworkElement.Style>
@@ -27,16 +19,13 @@
         </FrameworkElement.Style>
       </TextBlock>
 
-      <!-- 启动按钮 -->
       <Button Content="{x:Static res:Strings.Launch_Button}" Style="{StaticResource HomeLaunchButtonStyle}" Command="{Binding LaunchCommand}" />
 
-      <!-- 游戏版本：版本号前加 BeamNG 官方 logo，让人一眼看出这是 BeamNG 的版本 -->
       <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,12,0,0">
         <controls:SvgIcon Width="17" Height="17" Margin="0,0,8,0" VerticalAlignment="Center" IconKey="beamng/beamng" Foreground="{DynamicResource Brush.Home.Name.Foreground}" />
         <TextBlock Margin="0" VerticalAlignment="Center" Style="{StaticResource HomeVersionNameTextStyle}" Text="{Binding HomeVersionDisplayName}" />
       </StackPanel>
 
-      <!-- StartRide 运行状态：游戏在跑 → "已运行 X" + 结束按钮；没在跑 → 累计游玩统计 -->
       <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,10,0,0">
         <StackPanel.Style>
           <Style TargetType="{x:Type StackPanel}">
@@ -89,7 +78,6 @@
         </Button>
       </StackPanel>
 
-      <!-- 游戏设置链接；启动时同位切换为进度信息（无位移） -->
       <Grid HorizontalAlignment="Center" Margin="0,6,0,0">
         <Button Content="{x:Static res:Strings.Home_GameSettingsButton}" Command="{Binding OpenSelectedInstanceSettingsCommand}">
           <FrameworkElement.Style>

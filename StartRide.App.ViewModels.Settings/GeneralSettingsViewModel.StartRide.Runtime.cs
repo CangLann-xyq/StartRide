@@ -9,13 +9,6 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Settings;
 
-/// <summary>
-/// 通用设置页里 StartRide 的「运行状态」与「诊断包」两块（partial 扩展）。
-///
-/// 运行状态：游戏在不在跑、跑了多久、一共玩了多少；残留进程可以一键结束
-/// （游戏崩溃后常见"已经在运行"假象，用不着去任务管理器找进程）。
-/// 诊断包：日志 + 设置 + 体检结果 + 环境信息打成 zip，出问题直接发出去。
-/// </summary>
 public sealed partial class GeneralSettingsViewModel
 {
 	private bool isGameRunning;
@@ -40,7 +33,6 @@ public sealed partial class GeneralSettingsViewModel
 
 	private AsyncRelayCommand? exportDiagnosticsCommand;
 
-	/// <summary>BeamNG.drive 是否在运行。</summary>
 	public bool IsGameRunning
 	{
 		get => isGameRunning;
@@ -54,7 +46,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>游戏进程状态文字。</summary>
 	public string GameRuntimeStatusText
 	{
 		get => gameRuntimeStatusText;
@@ -68,7 +59,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>游玩统计文字。</summary>
 	public string PlaytimeSummaryText
 	{
 		get => playtimeSummaryText;
@@ -82,7 +72,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>诊断包状态文字（最近导出路径 / 失败原因）。</summary>
 	public string DiagnosticsStatusText
 	{
 		get => diagnosticsStatusText;
@@ -96,7 +85,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>正在打包诊断包。</summary>
 	public bool IsDiagnosticsBusy
 	{
 		get => isDiagnosticsBusy;
@@ -110,7 +98,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>「结束游戏进程」按钮文字：游戏在跑时第一下变成"再点一次确认结束"。</summary>
 	public string EndGameButtonText =>
 		endGameArmed ? Strings.Settings_RuntimeEndGameConfirmButton : Strings.Settings_RuntimeEndGameButton;
 
@@ -130,14 +117,12 @@ public sealed partial class GeneralSettingsViewModel
 	public IAsyncRelayCommand ExportDiagnosticsCommand =>
 		exportDiagnosticsCommand ?? (exportDiagnosticsCommand = new AsyncRelayCommand(ExportDiagnosticsAsync));
 
-	/// <summary>设置页 Load 时调用：初始化一次 + 每次进页面刷新状态。</summary>
 	private void InitializeRuntimeSection()
 	{
 		runtimeInitialized = true;
 		RefreshGameRuntimeState();
 	}
 
-	/// <summary>刷新运行状态与游玩统计（进设置页、点刷新、结束游戏后都会走这里）。</summary>
 	public void RefreshGameRuntimeState()
 	{
 		try
@@ -180,7 +165,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>结束游戏进程：在跑则要求再点一次确认；没在跑就直接清残留。</summary>
 	private void EndGame()
 	{
 		bool running;
@@ -195,7 +179,6 @@ public sealed partial class GeneralSettingsViewModel
 
 		if (running && !endGameArmed)
 		{
-			// 真的在跑且还没确认过：先拦一下，防误点丢进度
 			endGameArmed = true;
 			OnPropertyChanged("EndGameButtonText");
 			statusService.Report(Strings.Settings_RuntimeEndGameWarning);
@@ -258,14 +241,12 @@ public sealed partial class GeneralSettingsViewModel
 				Strings.Settings_DiagnosticsExportedFormat,
 				FileSizeFormatter.Format(new FileInfo(path).Length));			statusService.Report(DiagnosticsStatusText);
 
-			// 打完包直接把目录打开，用户拖出去就能发
 			try
 			{
 				instanceFolderService.TryOpen(Path.GetDirectoryName(path) ?? DiagnosticsBundleService.DiagnosticsDirectory);
 			}
 			catch
 			{
-				// 打开目录失败不影响导出结果
 			}
 		}
 		catch (Exception ex)

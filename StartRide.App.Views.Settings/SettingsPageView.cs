@@ -28,11 +28,7 @@ public partial class SettingsPageView : UserControl, IComponentConnector
 
 	public SettingsPageView()
 	{
-		//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0006: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001f: Expected O, but got Unknown
-		//IL_0096: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a0: Expected O, but got Unknown
+
 		memoryRefreshTimer = new DispatcherTimer
 		{
 			Interval = TimeSpan.FromSeconds(1.0)

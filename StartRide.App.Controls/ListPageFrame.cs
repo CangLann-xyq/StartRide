@@ -412,56 +412,7 @@ public partial class ListPageFrame : UserControl, IComponentConnector
 
 	static ListPageFrame()
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0028: Expected O, but got Unknown
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0058: Expected O, but got Unknown
-		//IL_0053: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005d: Expected O, but got Unknown
-		//IL_007c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0086: Expected O, but got Unknown
-		//IL_00b9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c3: Expected O, but got Unknown
-		//IL_00e2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ec: Expected O, but got Unknown
-		//IL_0142: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014c: Expected O, but got Unknown
-		//IL_016b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0175: Expected O, but got Unknown
-		//IL_0194: Unknown result type (might be due to invalid IL or missing references)
-		//IL_019e: Expected O, but got Unknown
-		//IL_01c2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01cc: Expected O, but got Unknown
-		//IL_01eb: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01f5: Expected O, but got Unknown
-		//IL_0214: Unknown result type (might be due to invalid IL or missing references)
-		//IL_021e: Expected O, but got Unknown
-		//IL_0242: Unknown result type (might be due to invalid IL or missing references)
-		//IL_024c: Expected O, but got Unknown
-		//IL_026b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0275: Expected O, but got Unknown
-		//IL_0294: Unknown result type (might be due to invalid IL or missing references)
-		//IL_029e: Expected O, but got Unknown
-		//IL_02c2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02cc: Expected O, but got Unknown
-		//IL_02eb: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02f5: Expected O, but got Unknown
-		//IL_0320: Unknown result type (might be due to invalid IL or missing references)
-		//IL_032a: Expected O, but got Unknown
-		//IL_0325: Unknown result type (might be due to invalid IL or missing references)
-		//IL_032f: Expected O, but got Unknown
-		//IL_035a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0364: Expected O, but got Unknown
-		//IL_035f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0369: Expected O, but got Unknown
-		//IL_038d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0397: Expected O, but got Unknown
-		//IL_03b6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03c0: Expected O, but got Unknown
-		//IL_03df: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03e9: Expected O, but got Unknown
-		//IL_0408: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0412: Expected O, but got Unknown
+
 		TitleProperty = DependencyProperty.Register("Title", typeof(string), typeof(ListPageFrame), new PropertyMetadata((object)string.Empty));
 		TitleIconSourceProperty = DependencyProperty.Register("TitleIconSource", typeof(object), typeof(ListPageFrame), new PropertyMetadata((object)null, new PropertyChangedCallback(OnTitleIconSourceChanged)));
 		ResolvedTitleIconSourcePropertyKey = DependencyProperty.RegisterReadOnly("ResolvedTitleIconSource", typeof(ImageSource), typeof(ListPageFrame), new PropertyMetadata((PropertyChangedCallback)null));

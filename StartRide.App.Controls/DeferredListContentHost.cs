@@ -60,14 +60,7 @@ public sealed class DeferredListContentHost : ContentControl
 
 	static DeferredListContentHost()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Expected O, but got Unknown
-		//IL_0060: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006a: Expected O, but got Unknown
+
 		ListContentProperty = DependencyProperty.Register("ListContent", typeof(object), typeof(DeferredListContentHost), new PropertyMetadata((object)null, new PropertyChangedCallback(OnPresentationChanged)));
 		IsListVisibleProperty = DependencyProperty.Register("IsListVisible", typeof(bool), typeof(DeferredListContentHost), new PropertyMetadata((object)false, new PropertyChangedCallback(OnPresentationChanged)));
 	}

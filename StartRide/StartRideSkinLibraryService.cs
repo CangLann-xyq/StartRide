@@ -7,16 +7,7 @@ using Launcher.Domain.Models;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 自有「皮肤库」实现：StartRide 只做 BeamNG 联机，账户只有 Steam 一种，
-    /// 不存在 Minecraft 皮肤/披风这一套。
-    ///
-    /// 为什么必须顶掉框架实现：框架的 <c>AccountSkinLibraryService</c> 只吃
-    /// <c>LauncherPathProvider</c>，目录是它按 <c>ApplicationId</c> + 账户数据目录现拼的
-    /// （会拼出带框架命名的 &lt;根&gt;\&lt;框架名&gt;\accounts\microsoft\{avatars,skins,capes} 之类），
-    /// 那些目录我们根本不用，却会在磁盘上留下框架命名。这里全部返回空集合，
-    /// 于是那套目录再也不会被创建。
-    /// </summary>
+
     public sealed class StartRideSkinLibraryService : IAccountSkinLibraryService
     {
         private static readonly IReadOnlyList<LauncherSkinRecord> Empty = Array.Empty<LauncherSkinRecord>();

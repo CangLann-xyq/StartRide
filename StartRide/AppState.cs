@@ -5,9 +5,7 @@ using System.Windows.Media;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 全局单例：设置、各项服务与页面导航都从这里取，避免各页面自己 new 一遍。
-    /// </summary>
+
     public sealed class AppState
     {
         public static AppState Current { get; } = new();
@@ -21,16 +19,10 @@ namespace StartRide.Core
         public InstanceStore Instances { get; }
         public DownloadManager Downloads { get; }
 
-        /// <summary>状态栏 / 日志回调，由 MainWindow 挂上。</summary>
         public event Action<string>? LogEmitted;
 
         private readonly object _logLock = new();
 
-        /// <summary>
-        /// 记一条日志。除了抛给界面，还会落到
-        /// %AppData%\StartRide\Log\launcher-yyyyMMdd.log —— 出问题时让用户把这个文件发过来
-        /// 就能还原现场（联机不通基本都靠它定位）。
-        /// </summary>
         public void Log(string message)
         {
             try
@@ -48,24 +40,16 @@ namespace StartRide.Core
             }
             catch
             {
-                // 写日志失败绝不能影响主流程
             }
 
             LogEmitted?.Invoke(message);
         }
 
-        /// <summary>请求跳转到某个页面（例如"游戏设置 &gt;"链接）。</summary>
         public event Action<string>? NavigateRequested;
         public void Navigate(string page) => NavigateRequested?.Invoke(page);
 
-        /// <summary>
-        /// 全局浮动提示。这些 StartRide 页面是 View 里直接 new VM 的（不走 DI），
-        /// 拿不到 IFloatingMessageService；所以在 App 建好容器后把 Show 挂进来，
-        /// 让它们也能弹"已复制"这类即时反馈，而不是默默无反应。
-        /// </summary>
         public Action<string>? Toast { get; set; }
 
-        /// <summary>弹一条浮动提示（没挂上就退化成写日志，绝不抛）。</summary>
         public void Notify(string message)
         {
             if (string.IsNullOrWhiteSpace(message)) return;
@@ -79,7 +63,6 @@ namespace StartRide.Core
             }
             catch
             {
-                // 提示失败不能影响主流程
             }
             Log(message);
         }
@@ -101,9 +84,6 @@ namespace StartRide.Core
             Instances.Log += Log;
             Downloads.Log += Log;
 
-            // 按需装卸的收尾：
-            //   ① 上次退出联机时游戏还在跑 → 标记没兑现，启动时补删；
-            //   ② 挂到游戏退出事件上，用户退出游戏的那一刻才真正清理干净。
             Launcher.RunningChanged += running =>
             {
                 if (!running)
@@ -113,15 +93,9 @@ namespace StartRide.Core
             };
             try { ModInstaller.ApplyPendingRemoval(); } catch { }
 
-            // ③ 语义闭环：RemoveModOnLeave 为真时，模组只该在联机期间存在。
-            //    以前版本装的 / 联机异常中断留下的那份，启动时（没有会话）就该收掉，
-            //    否则"不联机时 mods 目录干净"只在正常退出路径成立。
             try { ModInstaller.RemoveStaleOnStartup(); } catch { }
         }
 
-        // ================= 强调色 =================
-
-        /// <summary>八种可选强调色，键与主题资源里的 Color.AccentOption.* 对应。</summary>
         public static readonly IReadOnlyList<(string Key, Color Color, string Display)> AccentOptions =
             new List<(string, Color, string)>
             {
@@ -135,7 +109,6 @@ namespace StartRide.Core
                 ("Amber",   Color.FromRgb(0xF5, 0x9E, 0x0B), "琥珀"),
             };
 
-        /// <summary>把强调色写回应用资源（界面用 DynamicResource 引用，立即生效）。</summary>
         public void ApplyAccent(string key)
         {
             Color c = Color.FromRgb(0x08, 0x91, 0xFE);

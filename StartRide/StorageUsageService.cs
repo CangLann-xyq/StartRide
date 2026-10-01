@@ -5,7 +5,6 @@ using System.Linq;
 
 namespace StartRide.Core
 {
-    /// <summary>某一块数据占了多少磁盘。</summary>
     public sealed class StorageItem
     {
         public string Key { get; init; } = "";
@@ -20,7 +19,6 @@ namespace StartRide.Core
         public bool Exists => FileCount > 0 || SizeBytes > 0;
     }
 
-    /// <summary>清理结果。</summary>
     public sealed class StorageCleanupResult
     {
         public int DeletedFiles { get; init; }
@@ -30,24 +28,12 @@ namespace StartRide.Core
         public string FreedText => FileSizeFormatter.Format(FreedBytes);
     }
 
-    /// <summary>
-    /// 统计游戏数据占用，并清理可以安全删掉的东西。
-    ///
-    /// BeamNG 的缓存和回放非常能吃盘（实测一台机器：mods 19 GB、replays 13 GB、
-    /// temp 1.9 GB），但游戏自身没有"清缓存"入口，只能手动翻目录。
-    ///
-    /// 安全边界（硬约束）：
-    ///   · 所有删除都只在 &lt;userpath&gt; 之内，且只针对下面这份白名单目录/文件；
-    ///   · 只删文件，不删用户自己创建的其它文件夹；
-    ///   · 永远不动 mods（用户的模组）、settings（配置）与 vehicles（车辆存档）。
-    /// </summary>
     public sealed class StorageUsageService
     {
         private readonly AppSettings _settings;
 
         public StorageUsageService(AppSettings settings) => _settings = settings;
 
-        /// <summary>可清理项：key → (显示名, 相对 userpath 的子目录)。</summary>
         private static readonly (string Key, string Name, string Relative)[] CleanableTargets =
         {
             ("temp", "临时文件 (temp)", "temp"),
@@ -55,7 +41,6 @@ namespace StartRide.Core
             ("screenshots", "截图 (screenshots)", "screenshots"),
         };
 
-        /// <summary>游戏目录里可以清的大块头（缓存/日志），相对游戏安装目录。</summary>
         private static readonly string[] GameInstallCleanTargets =
         {
             Path.Combine("Bin64", "temp"),
@@ -63,7 +48,6 @@ namespace StartRide.Core
             "temp",
         };
 
-        /// <summary>扫描所有统计项（异步安全，纯本地 IO）。</summary>
         public List<StorageItem> Scan()
         {
             var items = new List<StorageItem>();
@@ -90,7 +74,6 @@ namespace StartRide.Core
             Add("screenshots", "截图 (screenshots)", Path.Combine(userPath, "screenshots"), true);
             Add("temp", "临时文件 (temp)", Path.Combine(userPath, "temp"), true);
 
-            // 游戏本体安装目录（只算总数 + 缓存目录，不做全盘递归以外的动作）
             string gameDir = _settings.GameDirectory ?? "";
             if (AppSettings.IsBeamNgInstall(gameDir))
             {
@@ -111,7 +94,6 @@ namespace StartRide.Core
                 }
             }
 
-            // 游戏日志备份（*.log.bak 这些）
             var (logSize, logCount) = MeasureLogBackups(userPath);
             items.Add(new StorageItem
             {
@@ -173,9 +155,6 @@ namespace StartRide.Core
             return (size, count);
         }
 
-        /// <summary>
-        /// 清理指定项。key 必须先出现在 Scan() 的结果里，防止前端传来任意路径。
-        /// </summary>
         public StorageCleanupResult Clean(string key)
         {
             string userPath = SafeUserPath();
@@ -192,7 +171,6 @@ namespace StartRide.Core
                 return new StorageCleanupResult { Message = "目录不存在，无需清理" };
             }
 
-            // 白名单：必须落在 userpath 内，或者是游戏安装目录里的缓存子目录
             if (!IsInsideAllowedRoot(dir, userPath))
             {
                 return new StorageCleanupResult { Message = "该目录不在允许清理的范围内，已阻止" };
@@ -212,11 +190,9 @@ namespace StartRide.Core
                 }
                 catch
                 {
-                    // 被游戏占用的文件跳过
                 }
             }
 
-            // 清完把空目录收拾掉（只删空目录，不动还有东西的）
             try
             {
                 foreach (var sub in Directory.GetDirectories(dir, "*", SearchOption.AllDirectories)
@@ -241,7 +217,6 @@ namespace StartRide.Core
             };
         }
 
-        /// <summary>删掉历史日志备份（*.log.bak）。</summary>
         public StorageCleanupResult CleanLogBackups()
         {
             string userPath = SafeUserPath();
@@ -273,9 +248,6 @@ namespace StartRide.Core
             };
         }
 
-        /// <summary>
-        /// 目录必须落在 userpath 内、或落在游戏安装目录的缓存子目录内，才允许清理。
-        /// </summary>
         private bool IsInsideAllowedRoot(string dir, string userPath)
         {
             string full;
@@ -298,7 +270,6 @@ namespace StartRide.Core
             string gameDir = _settings.GameDirectory ?? "";
             if (AppSettings.IsBeamNgInstall(gameDir) && Under(gameDir))
             {
-                // 游戏安装目录里只放行缓存类子目录，绝不碰游戏本体
                 foreach (var rel in GameInstallCleanTargets)
                 {
                     if (Under(Path.Combine(gameDir, rel))) return true;

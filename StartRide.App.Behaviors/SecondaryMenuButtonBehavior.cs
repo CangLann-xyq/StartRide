@@ -30,10 +30,7 @@ public static class SecondaryMenuButtonBehavior
 
 	static SecondaryMenuButtonBehavior()
 	{
-		//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Expected O, but got Unknown
-		//IL_004d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0057: Expected O, but got Unknown
+
 		IsSelectedProperty = DependencyProperty.RegisterAttached("IsSelected", typeof(bool), typeof(SecondaryMenuButtonBehavior), new PropertyMetadata((object)false));
 		SuppressSelectedBackgroundProperty = DependencyProperty.RegisterAttached("SuppressSelectedBackground", typeof(bool), typeof(SecondaryMenuButtonBehavior), new PropertyMetadata((object)false));
 	}

@@ -62,8 +62,7 @@ public partial class AccountDetailsView : UserControl, IComponentConnector
 
 	public AccountDetailsView()
 	{
-		//IL_00bc: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c6: Expected O, but got Unknown
+
 		InitializeComponent();
 		progressiveBlurController = new ProgressiveBlurBandController(new ProgressiveBlurVisualParts(this, PART_ProgressiveBlurLayer, PART_ProgressiveBlurVisualSource, PART_ProgressiveBlurDirectHost, PART_ProgressiveBlurViewport, PART_ProgressiveBlurUpscaleHost, PART_ProgressiveBlurUpscaleTransform, PART_ProgressiveBlurHorizontalHost, PART_ProgressiveBlurVerticalHost, PART_ProgressiveBlurBrush), () => base.IsVisible && IsProgressiveBlurEnabled);
 		accountTransitionService = PageTransitionService.CreateWithDynamicOrder(((DispatcherObject)this).Dispatcher, (string _) => DetailsContentRoot, GetCurrentAccountToken(), GetAccountOrder);
@@ -191,10 +190,7 @@ public partial class AccountDetailsView : UserControl, IComponentConnector
 
 	static AccountDetailsView()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
+
 		IsProgressiveBlurEnabledProperty = DependencyProperty.Register("IsProgressiveBlurEnabled", typeof(bool), typeof(AccountDetailsView), new PropertyMetadata((object)false, new PropertyChangedCallback(OnProgressiveBlurEnabledChanged)));
 	}
 }

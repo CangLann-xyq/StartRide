@@ -164,9 +164,7 @@ public static class AnimatedCollapse
 
 	private static double MeasureExpandedHeight(FrameworkElement element)
 	{
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0061: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0066: Unknown result type (might be due to invalid IL or missing references)
+
 		double num = (double)((DependencyObject)element).GetValue(OriginalHeightProperty);
 		if (!double.IsNaN(num))
 		{
@@ -225,18 +223,7 @@ public static class AnimatedCollapse
 
 	static AnimatedCollapse()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_006b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0075: Expected O, but got Unknown
-		//IL_00a1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ab: Expected O, but got Unknown
-		//IL_00d7: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00e1: Expected O, but got Unknown
-		//IL_0105: Unknown result type (might be due to invalid IL or missing references)
-		//IL_010f: Expected O, but got Unknown
+
 		IsExpandedProperty = DependencyProperty.RegisterAttached("IsExpanded", typeof(bool), typeof(AnimatedCollapse), new PropertyMetadata((object)true, new PropertyChangedCallback(OnIsExpandedChanged)));
 		DurationProperty = DependencyProperty.RegisterAttached("Duration", typeof(Duration), typeof(AnimatedCollapse), new PropertyMetadata((object)new Duration(TimeSpan.FromMilliseconds(180.0))));
 		OriginalHeightProperty = DependencyProperty.RegisterAttached("OriginalHeight", typeof(double), typeof(AnimatedCollapse), new PropertyMetadata((object)double.NaN));

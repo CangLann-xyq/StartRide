@@ -32,16 +32,7 @@ public static class CapePreviewModelBuilder
 
 	public static Model3DGroup BuildCapeModel(AccountCapeOption cape, double brightness = 1.0, BitmapSource? texture = null)
 	{
-		//IL_00ae: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0119: Unknown result type (might be due to invalid IL or missing references)
-		//IL_018d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01dd: Unknown result type (might be due to invalid IL or missing references)
-		//IL_022b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_027a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_02c8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0317: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03b3: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03b8: Unknown result type (might be due to invalid IL or missing references)
+
 		ArgumentNullException.ThrowIfNull(cape, "cape");
 		if (cape.IsNone)
 		{
@@ -68,7 +59,6 @@ public static class CapePreviewModelBuilder
 				};
 				PreviewTextureAtlas previewTextureAtlas = PreviewTextureAtlasBuilder.Build(texture, array.Select(delegate(BatchedCapeFace item)
 				{
-					//IL_0001: Unknown result type (might be due to invalid IL or missing references)
 					return item.TextureRect;
 				}), 8, brightness, 64);
 				ImageBrush obj = new ImageBrush(previewTextureAtlas.Bitmap)
@@ -98,7 +88,6 @@ public static class CapePreviewModelBuilder
 
 	private static void AddBatchedCapeFace(PreviewMeshBuilder mesh, Rect3D bounds, Rect textureCoordinates, bool reverseWinding = false)
 	{
-		//IL_0099: Unknown result type (might be due to invalid IL or missing references)
 		mesh.AddQuad(new Point3D(bounds.X, bounds.Y + bounds.SizeY, bounds.Z), new Point3D(bounds.X + bounds.SizeX, bounds.Y + bounds.SizeY, bounds.Z + bounds.SizeZ), new Point3D(bounds.X + bounds.SizeX, bounds.Y, bounds.Z + bounds.SizeZ), new Point3D(bounds.X, bounds.Y, bounds.Z), textureCoordinates, reverseWinding);
 	}
 
@@ -144,7 +133,6 @@ public static class CapePreviewModelBuilder
 
 	private static void AddFace(Model3DGroup group, BitmapSource texture, Rect3D bounds, Int32Rect textureRect, double brightness)
 	{
-		//IL_0001: Unknown result type (might be due to invalid IL or missing references)
 		Material material = CreateImageMaterial(texture, textureRect, brightness);
 		group.Children.Add(new GeometryModel3D
 		{
@@ -171,7 +159,6 @@ public static class CapePreviewModelBuilder
 
 	private static Material CreateImageMaterial(BitmapSource texture, Int32Rect textureRect, double brightness)
 	{
-		//IL_0001: Unknown result type (might be due to invalid IL or missing references)
 		ImageBrush obj = new ImageBrush(CreatePixelSharpFaceBitmap(texture, textureRect, brightness))
 		{
 			Stretch = Stretch.Fill,
@@ -216,8 +203,7 @@ public static class CapePreviewModelBuilder
 
 	private static BitmapSource RenderSvgIconBitmap(string resourcePath, double brightness)
 	{
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
+
 		using Stream stream = (System.Windows.Application.GetResourceStream(new Uri(resourcePath, UriKind.Relative)) ?? throw new InvalidOperationException("SVG resource was not found.")).Stream;
 		XElement? obj = XDocument.Load(stream).Root ?? throw new InvalidOperationException("SVG root was not found.");
 		Rect val = ParseViewBox(obj.Attribute("viewBox")?.Value);
@@ -257,9 +243,7 @@ public static class CapePreviewModelBuilder
 
 	private static Rect ParseViewBox(string? value)
 	{
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00af: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009d: Unknown result type (might be due to invalid IL or missing references)
+
 		if (string.IsNullOrWhiteSpace(value))
 		{
 			return new Rect(0.0, 0.0, 48.0, 48.0);
@@ -284,10 +268,7 @@ public static class CapePreviewModelBuilder
 
 	private static MeshGeometry3D CreateFaceMesh(Rect3D b)
 	{
-		//IL_00e5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0102: Unknown result type (might be due to invalid IL or missing references)
-		//IL_011f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_013c: Unknown result type (might be due to invalid IL or missing references)
+
 		Point3D value = new Point3D(b.X, b.Y + b.SizeY, b.Z);
 		Point3D value2 = new Point3D(b.X + b.SizeX, b.Y + b.SizeY, b.Z + b.SizeZ);
 		Point3D value3 = new Point3D(b.X + b.SizeX, b.Y, b.Z + b.SizeZ);
@@ -310,7 +291,6 @@ public static class CapePreviewModelBuilder
 
 	public static BitmapSource CreatePixelSharpFaceBitmap(BitmapSource texture, Int32Rect textureRect, double brightness)
 	{
-		//IL_00a7: Unknown result type (might be due to invalid IL or missing references)
 		brightness = Math.Clamp(brightness, 0.0, 1.0);
 		BitmapSource bitmapSource = EnsureBgra32(texture);
 		int num = Math.Clamp(textureRect.X, 0, bitmapSource.PixelWidth - 1);

@@ -13,17 +13,13 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Vehicles;
 
-/// <summary>车辆来源。</summary>
 public enum VehicleSource
 {
-	/// <summary>游戏自带（content/vehicles/*.zip）。</summary>
 	BuiltIn,
 
-	/// <summary>模组带的（mods/*.zip 里的 vehicles/&lt;id&gt;/）。</summary>
 	Mod,
 }
 
-/// <summary>一辆车（内置或模组）。</summary>
 public sealed class VehicleItem : ObservableObject
 {
 	private bool isSelected;
@@ -33,19 +29,14 @@ public sealed class VehicleItem : ObservableObject
 	public string DisplayName { get; }
 	public string FileSizeText { get; }
 
-	/// <summary>原始字节数，排序/统计用（显示走 FileSizeText）。</summary>
 	public long Bytes { get; }
 
-	/// <summary>所在目录（详情面板显示）。</summary>
 	public string DirectoryPath { get; }
 
-	/// <summary>承载它的包文件名（含扩展名）——内置车是车辆包，模组车是那个模组包。</summary>
 	public string FileName { get; }
 
-	/// <summary>来源（内置 / 模组）。</summary>
 	public VehicleSource Source { get; }
 
-	/// <summary>车辆 ID（BeamNG 的 vehicles/&lt;id&gt; 目录名）。</summary>
 	public string VehicleId { get; }
 
 	public bool IsBuiltIn => Source == VehicleSource.BuiltIn;
@@ -72,21 +63,6 @@ public sealed class VehicleItem : ObservableObject
 	}
 }
 
-/// <summary>
-/// 车辆管理页：把**能开的车**完整列出来。
-///
-/// 两处来源都要扫（只扫第一处曾是"好多车没展示出来"的根因）：
-///   ① 游戏自带：content/vehicles/*.zip
-///   ② 模组带的：mods/*.zip 内部的 vehicles/&lt;id&gt;/
-///      —— 实测本机自带 123 辆、116 个模组里 95 个带车辆，全都没进过这个列表。
-///
-/// 判据（实测得出，避免把共享目录和"配件包"算成车）：
-///   vehicles/&lt;id&gt;/ 下**至少有一个 *.pc 文件**才算一辆车。
-///   vehicles/common 只有贴图/材质（无 .pc）→ 排除；
-///   CHNLicensePlates 这类只给已有车加车牌的包，里面只有 .jbeam 没有 .pc → 排除。
-///
-/// 扫描放后台线程：要读 200+ 个 zip 的中央目录，别卡在启动路径上。
-/// </summary>
 public sealed class VehiclesPageViewModel : ObservableObject
 {
 	private string statusMessage = "";
@@ -122,13 +98,11 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		{
 			if (SetProperty(ref isScanning, value))
 			{
-				// 统计条右侧那行小字要跟着变（扫描中 / 显示 N / 共 M）
 				OnPropertyChanged(nameof(StatBandText));
 			}
 		}
 	}
 
-	/// <summary>顶部统计条的四格数字。</summary>
 	public string StatCountText => summary.CountText;
 
 	public string StatTotalText => summary.TotalText;
@@ -137,13 +111,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 
 	public string StatMaxText => summary.MaxText;
 
-	/// <summary>
-	/// 统计条最右侧那行小字，三种状态：
-	///   · 扫描中 —— "正在扫描…"（列表里已有内容时，这是唯一的进度反馈）
-	///   · 有搜索/筛选 —— "显示 N / 共 M"（N = 当前视图，M = 全量）
-	///   · 否则 —— "内置 X · 模组 Y"
-	/// 长度刻意控制在 10 字上下：统计条是 DockPanel，这行字太宽会把左边四个胶囊挤扁。
-	/// </summary>
 	public string StatBandText
 	{
 		get
@@ -166,7 +133,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>当前视图是否被搜索词或来源筛选收窄过。</summary>
 	private bool IsViewFiltered => !string.IsNullOrWhiteSpace(searchText) || SelectedSource != "全部";
 
 	public string StatusMessage
@@ -183,7 +149,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 
 	public string ModsDirectory { get; }
 
-	/// <summary>来源筛选（全部 / 内置 / 模组）。</summary>
 	public string SelectedSource
 	{
 		get => selectedSource;
@@ -196,11 +161,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>
-	/// 搜索框内容。按 车辆名 / 车辆ID / 承载它的包文件名 匹配，
-	/// 空格分隔的多个关键词要**全部**命中才留下（跟主流文件管理器一致）。
-	/// 每敲一个字就重新过滤一遍：324 辆车 Clear + Add 实测不卡，所以不做防抖。
-	/// </summary>
 	public string SearchText
 	{
 		get => searchText;
@@ -213,7 +173,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>当前选中的车辆，右侧详情面板绑它。</summary>
 	public VehicleItem? SelectedVehicle
 	{
 		get => selectedVehicle;
@@ -247,7 +206,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 
 	public string SelectedVehicleId => selectedVehicle?.VehicleId ?? "";
 
-	/// <summary>这一辆占车辆总体积的百分比——一眼看出是不是"重点包"。</summary>
 	public string SelectedPercentText
 	{
 		get
@@ -277,12 +235,11 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		_ = RescanAsync();
 	}
 
-	/// <summary>重新扫描（工具条上的「刷新」）。装完新模组不用重启启动器。</summary>
 	private void Refresh()
 	{
 		if (IsScanning)
 		{
-			return; // 已经在扫了，再点没有意义
+			return;
 		}
 		IsScanning = true;
 		StatusMessage = "正在重新扫描内置车辆与模组车辆…";
@@ -290,10 +247,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		_ = RescanAsync(announce: true);
 	}
 
-	/// <summary>
-	/// 扫描 → 应用视图 → 云同步。首次进页面与手动「刷新」共用这一条路径
-	/// （首次进页面静默，手动刷新完给一句 toast —— 列表非空时状态文案是看不见的）。
-	/// </summary>
 	private async Task RescanAsync(bool announce = false)
 	{
 		List<VehicleItem> found = await Task.Run(ScanAll).ConfigureAwait(true);
@@ -306,14 +259,12 @@ public sealed class VehiclesPageViewModel : ObservableObject
 			AppState.Current.Notify($"已重新扫描：{allVehicles.Count} 辆车");
 		}
 
-		// 云同步：车辆库列表上报云端
 		try
 		{
 			AppState.Current.CloudSync.PushVehicles(found.Select(v => new { name = v.Name, size = v.FileSizeText, source = v.SourceText }));
 		}
 		catch
 		{
-			// 云同步失败不影响本地列表
 		}
 	}
 
@@ -328,7 +279,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		string vehiclesDir = Path.Combine(GameDirectory, "content", "vehicles");
 		var builtInIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-		// ① 游戏自带
 		if (Directory.Exists(vehiclesDir))
 		{
 			foreach (string file in Directory.GetFiles(vehiclesDir, "*.zip"))
@@ -336,13 +286,12 @@ public sealed class VehiclesPageViewModel : ObservableObject
 				string name = Path.GetFileNameWithoutExtension(file);
 				if (name.StartsWith("___", StringComparison.Ordinal))
 				{
-					continue; // 跳过 README 类占位文件
+					continue;
 				}
 				builtInIds.Add(name);
 				long bytes = SafeLength(file);
 				result.Add(new VehicleItem(name, file, FileSizeHelper.Format(bytes), VehicleSource.BuiltIn, name, bytes));
 
-				// 有的内置包内还带别的车（如 BSC 那类）——一并列出，避免漏
 				foreach (string extra in VehicleIdsInZip(file))
 				{
 					builtInIds.Add(extra);
@@ -351,7 +300,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 			}
 		}
 
-		// ② 模组带的车辆
 		if (!string.IsNullOrWhiteSpace(ModsDirectory) && Directory.Exists(ModsDirectory))
 		{
 			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -362,13 +310,12 @@ public sealed class VehiclesPageViewModel : ObservableObject
 				{
 					if (builtInIds.Contains(id) || !seen.Add(id))
 					{
-						continue; // 内置已有 / 已被别的模组提供 → 不重复列
+						continue;
 					}
 					string size = VehicleContentSizeInZip(file, id);
 					result.Add(new VehicleItem(id, file, size, VehicleSource.Mod, id, bytes));
 				}
 			}
-			// 解压形态的模组（mods/<名字>/vehicles/<id>/）
 			foreach (string dir in SafeDirs(ModsDirectory))
 			{
 				string vroot = Path.Combine(dir, "vehicles");
@@ -396,7 +343,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		return result;
 	}
 
-	/// <summary>单个关键词命中判定：车辆名 / 车辆ID / 包文件名，忽略大小写。</summary>
 	private static bool MatchesToken(VehicleItem v, string token)
 	{
 		return v.Name.Contains(token, StringComparison.OrdinalIgnoreCase)
@@ -452,11 +398,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>
-	/// 从 zip 中央目录里挑出真正的车辆 ID。
-	/// 判据：vehicles/&lt;id&gt;/ 下存在 *.pc（车体部件配置）。
-	/// 只读中央目录，不解压 —— 实测 116 个模组包（19GB）扫完 0.19s。
-	/// </summary>
 	private static List<string> VehicleIdsInZip(string zipPath)
 	{
 		var ids = new List<string>();
@@ -471,7 +412,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 				{
 					continue;
 				}
-				// 只认根级 vehicles/<id>/<file>.pc，不认 vehicles/<id>/<子目录>/...
 				if (!full.StartsWith("vehicles/", StringComparison.OrdinalIgnoreCase))
 				{
 					continue;
@@ -491,12 +431,10 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 		catch
 		{
-			// 损坏 / 加密 / 非 zip → 当作没有车辆
 		}
 		return ids;
 	}
 
-	/// <summary>该车辆在这个 zip 里的解压后体积（各条目 Length 求和，走中央目录，不解压）。</summary>
 	private static string VehicleContentSizeInZip(string zipPath, string vehicleId)
 	{
 		string prefix = "vehicles/" + vehicleId + "/";
@@ -519,34 +457,27 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>重新扫描（装完模组不用重启启动器）。</summary>
 	public IRelayCommand RefreshCommand =>
 		refreshCommand ?? (refreshCommand = new RelayCommand(Refresh));
 
-	/// <summary>在资源管理器中打开游戏车辆目录（content/vehicles）。</summary>
 	public IRelayCommand OpenVehiclesFolderCommand =>
 		openVehiclesFolderCommand ?? (openVehiclesFolderCommand = new RelayCommand(OpenVehiclesFolder));
 
-	/// <summary>在资源管理器中定位承载这辆车的包文件。</summary>
 	public IRelayCommand<VehicleItem> OpenVehicleLocationCommand =>
 		openVehicleLocationCommand ?? (openVehicleLocationCommand = new RelayCommand<VehicleItem>(OpenVehicleLocation));
 
-	/// <summary>点行 = 选中（右侧详情面板跟着换）。</summary>
 	public IRelayCommand<VehicleItem> SelectVehicleCommand =>
 		selectVehicleCommand ?? (selectVehicleCommand = new RelayCommand<VehicleItem>(SelectVehicle));
 
 	public IRelayCommand<VehicleItem> CopyVehiclePathCommand =>
 		copyVehiclePathCommand ?? (copyVehiclePathCommand = new RelayCommand<VehicleItem>(CopyVehiclePath));
 
-	/// <summary>右侧面板的「在资源管理器中定位」。</summary>
 	public IRelayCommand RevealSelectedCommand =>
 		revealSelectedCommand ?? (revealSelectedCommand = new RelayCommand(() => OpenVehicleLocation(selectedVehicle)));
 
-	/// <summary>右侧面板的「复制车辆ID」。</summary>
 	public IRelayCommand<VehicleItem> CopyVehicleIdCommand =>
 		copyVehicleIdCommand ?? (copyVehicleIdCommand = new RelayCommand<VehicleItem>(CopyVehicleId));
 
-	/// <summary>打开 mods 目录（手动装模组的入口）。</summary>
 	public IRelayCommand OpenModsFolderCommand =>
 		openModsFolderCommand ?? (openModsFolderCommand = new RelayCommand(OpenModsFolder));
 
@@ -591,7 +522,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>复制车辆ID（= vehicles/&lt;id&gt; 的目录名，改 jbeam 时用得上）。</summary>
 	private void CopyVehicleId(VehicleItem? item)
 	{
 		string id = item?.VehicleId ?? "";
@@ -622,7 +552,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		ApplyView();
 	}
 
-	/// <summary>把 allVehicles 按当前筛选 + 排序灌进可见集合。</summary>
 	private void ApplyView()
 	{
 		string previousSelection = selectedVehicle?.Name + "|" + selectedVehicle?.VehicleId;
@@ -637,7 +566,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 			query = query.Where(v => !v.IsBuiltIn);
 		}
 
-		// 搜索：空格分隔的每个关键词都要命中（车辆名 / 车辆ID / 包文件名 任一含它就算命中）
 		string[] tokens = (searchText ?? "").Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 		if (tokens.Length > 0)
 		{
@@ -657,7 +585,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 
 		if (IsScanning)
 		{
-			// 扫描中，状态文案由扫描结束统一给
 		}
 		else if (allVehicles.Count == 0)
 		{
@@ -681,7 +608,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		OnPropertyChanged(nameof(StatBandText));
 		RefreshStats(entries);
 
-		// 保持上一次选中，避免改排序/筛选后详情面板突然空掉
 		if (!string.IsNullOrEmpty(previousSelection))
 		{
 			VehicleItem? again = Vehicles.FirstOrDefault(v => v.Name + "|" + v.VehicleId == previousSelection);
@@ -700,7 +626,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 		try
 		{
-			// 模组车定位到承载它的模组包（目录形态就打开那个目录）
 			if (Directory.Exists(item.FilePath))
 			{
 				Process.Start(new ProcessStartInfo { FileName = item.FilePath, UseShellExecute = true });
@@ -716,7 +641,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		}
 	}
 
-	/// <summary>打开 mods 目录（解压目录形的模组、zip 形模组都放在这儿）。</summary>
 	private void OpenModsFolder()
 	{
 		try
@@ -777,7 +701,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 	}
 }
 
-/// <summary>体积格式化（与 FileSizeFormatter 同口径，扫描期在后台线程用，避免依赖 UI 绑定）。</summary>
 internal static class FileSizeHelper
 {
 	public static string Format(long bytes)

@@ -14,8 +14,7 @@ public sealed class BackdropBlurBorder : ContentControl
 	{
 		internal static BackdropGeometrySnapshot Inactive(FrameworkElement source, bool hasRecursiveSource = false)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
+
 			return new BackdropGeometrySnapshot(source, Rect.Empty, Rect.Empty, IsActive: false, hasRecursiveSource);
 		}
 	}
@@ -255,12 +254,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	public BackdropBlurBorder()
 	{
-		//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0006: Unknown result type (might be due to invalid IL or missing references)
-		//IL_000c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0011: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
+
 		lastViewbox = Rect.Empty;
 		lastViewport = Rect.Empty;
 		base.Focusable = false;
@@ -273,10 +267,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	public override void OnApplyTemplate()
 	{
-		//IL_0106: Unknown result type (might be due to invalid IL or missing references)
-		//IL_010b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0111: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0116: Unknown result type (might be due to invalid IL or missing references)
+
 		ClearBackdropSource();
 		base.OnApplyTemplate();
 		blurLayer = GetTemplateChild("PART_BlurLayer") as Border;
@@ -320,16 +311,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	internal bool RefreshBackdrop()
 	{
-		//IL_0072: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0079: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a7: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ae: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cf: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00d4: Unknown result type (might be due to invalid IL or missing references)
+
 		if (blurLayer == null || backdropBrush == null)
 		{
 			return false;
@@ -388,10 +370,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private static void OnBackdropSourceChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
 	{
-		//IL_0013: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0018: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
+
 		if (dependencyObject is BackdropBlurBorder backdropBlurBorder)
 		{
 			backdropBlurBorder.recursiveSourceWarningLogged = false;
@@ -416,10 +395,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private static void OnBlurRadiusChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
 	{
-		//IL_0012: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0017: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0022: Unknown result type (might be due to invalid IL or missing references)
+
 		if (dependencyObject is BackdropBlurBorder backdropBlurBorder)
 		{
 			backdropBlurBorder.UpdateBlurLayerOverscan();
@@ -433,10 +409,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private static void OnIsSourcePreblurredChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
 	{
-		//IL_0012: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0017: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0022: Unknown result type (might be due to invalid IL or missing references)
+
 		if (dependencyObject is BackdropBlurBorder backdropBlurBorder)
 		{
 			backdropBlurBorder.UpdateBlurLayerOverscan();
@@ -525,25 +498,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private BackdropGeometrySnapshot BuildGeometrySnapshot()
 	{
-		//IL_00ca: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cf: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00d4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00e6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0115: Unknown result type (might be due to invalid IL or missing references)
-		//IL_011a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_011f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0121: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0123: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0128: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0129: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_015c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0161: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0163: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0175: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0176: Unknown result type (might be due to invalid IL or missing references)
+
 		if (blurLayer != null && backdropBrush != null && IsBlurEnabled && base.IsVisible && !(base.ActualWidth <= 0.0) && !(base.ActualHeight <= 0.0))
 		{
 			FrameworkElement sourceElement = SourceElement;
@@ -587,17 +542,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private Rect ClipToScrollViewport(Rect viewbox, FrameworkElement source)
 	{
-		//IL_006a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0072: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0054: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0059: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0061: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0066: Unknown result type (might be due to invalid IL or missing references)
+
 		ScrollViewer scrollViewer = trackedScrollViewer;
 		if (scrollViewer == null || scrollViewer.ActualWidth <= 0.0 || scrollViewer.ActualHeight <= 0.0)
 		{
@@ -655,10 +600,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private void ReplaceBackdropBrush(TileBrush replacement)
 	{
-		//IL_0022: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0027: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
+
 		ClearBackdropSource();
 		backdropBrush = replacement;
 		if (blurLayer != null)
@@ -704,10 +646,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private void DeactivateBackdrop(BackdropGeometrySnapshot geometry = default(BackdropGeometrySnapshot))
 	{
-		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0019: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0024: Unknown result type (might be due to invalid IL or missing references)
+
 		ClearBackdropSource();
 		InvalidatePreparedGeometry();
 		lastAppliedGeometry = geometry;
@@ -739,7 +678,6 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	private static Rect CalculateMirroredViewport(Rect desiredViewbox, Rect clippedViewbox, double destinationWidth, double destinationHeight)
 	{
-		//IL_0070: Unknown result type (might be due to invalid IL or missing references)
 		double num = destinationWidth / desiredViewbox.Width;
 		double num2 = destinationHeight / desiredViewbox.Height;
 		return new Rect(Math.Max(0.0, (clippedViewbox.Left - desiredViewbox.Left) * num), Math.Max(0.0, (clippedViewbox.Top - desiredViewbox.Top) * num2), Math.Min(destinationWidth, clippedViewbox.Width * num), Math.Min(destinationHeight, clippedViewbox.Height * num2));
@@ -790,20 +728,7 @@ public sealed class BackdropBlurBorder : ContentControl
 
 	static BackdropBlurBorder()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0065: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006f: Expected O, but got Unknown
-		//IL_0076: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0080: Expected O, but got Unknown
-		//IL_00ab: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b5: Expected O, but got Unknown
-		//IL_00e5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ef: Expected O, but got Unknown
-		//IL_01d5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01df: Expected O, but got Unknown
-		//IL_0219: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0223: Expected O, but got Unknown
+
 		SourceElementProperty = DependencyProperty.Register("SourceElement", typeof(FrameworkElement), typeof(BackdropBlurBorder), (PropertyMetadata)(object)new FrameworkPropertyMetadata((object)null, new PropertyChangedCallback(OnBackdropSourceChanged)));
 		BlurRadiusProperty = DependencyProperty.Register("BlurRadius", typeof(double), typeof(BackdropBlurBorder), (PropertyMetadata)(object)new FrameworkPropertyMetadata(42.0, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnBlurRadiusChanged)), new ValidateValueCallback(IsNonNegativeFiniteDouble));
 		IsBlurEnabledProperty = DependencyProperty.Register("IsBlurEnabled", typeof(bool), typeof(BackdropBlurBorder), (PropertyMetadata)(object)new FrameworkPropertyMetadata((object)true, new PropertyChangedCallback(OnBackdropPresentationChanged)));

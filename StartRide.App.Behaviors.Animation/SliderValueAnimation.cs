@@ -257,20 +257,7 @@ public static class SliderValueAnimation
 
 	static SliderValueAnimation()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_006d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0077: Expected O, but got Unknown
-		//IL_00b2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00bc: Expected O, but got Unknown
-		//IL_00e0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ea: Expected O, but got Unknown
-		//IL_010e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0118: Expected O, but got Unknown
-		//IL_013c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0146: Expected O, but got Unknown
+
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(SliderValueAnimation), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 		TargetValueProperty = DependencyProperty.RegisterAttached("TargetValue", typeof(double), typeof(SliderValueAnimation), (PropertyMetadata)(object)new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, new PropertyChangedCallback(OnTargetValueChanged)));
 		DurationProperty = DependencyProperty.RegisterAttached("Duration", typeof(Duration), typeof(SliderValueAnimation), new PropertyMetadata((object)new Duration(TimeSpan.FromMilliseconds(220.0))));

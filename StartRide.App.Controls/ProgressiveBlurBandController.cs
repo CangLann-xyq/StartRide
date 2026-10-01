@@ -106,8 +106,7 @@ internal sealed class ProgressiveBlurBandController
 
 	private void AttachSubscriptions()
 	{
-		//IL_0037: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0041: Expected O, but got Unknown
+
 		if (!subscriptionsAttached)
 		{
 			parts.ListLayer.SizeChanged += ListLayer_SizeChanged;
@@ -120,8 +119,7 @@ internal sealed class ProgressiveBlurBandController
 
 	private void DetachSubscriptions()
 	{
-		//IL_0037: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0041: Expected O, but got Unknown
+
 		if (subscriptionsAttached)
 		{
 			parts.ListLayer.SizeChanged -= ListLayer_SizeChanged;
@@ -227,8 +225,7 @@ internal sealed class ProgressiveBlurBandController
 
 	private void UpdateBandLayout(double width, double height, ProgressiveBlurRenderLayout renderLayout)
 	{
-		//IL_00f4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_012c: Unknown result type (might be due to invalid IL or missing references)
+
 		parts.BlurBandViewport.Height = renderLayout.PresentationHeight;
 		parts.BlurBandUpscaleHost.Width = renderLayout.LowResolutionWidth;
 		parts.BlurBandUpscaleHost.Height = renderLayout.LowResolutionHeight;

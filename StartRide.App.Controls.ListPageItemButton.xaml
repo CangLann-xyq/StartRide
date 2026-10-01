@@ -16,9 +16,7 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <!-- 图标底板：默认 Padding=0 / 描边=0 / 背景=null，观感与旧版完全一致；
-             需要"控件感"的页面传 IconTileBackground + IconTilePadding=9 + IconTileBorderThickness=1 即可。
-             底板自动贴合 glyph 尺寸，所以不用额外给宽高。 -->
+
         <Border HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" SnapsToDevicePixels="True" Margin="{Binding IconMargin, ElementName=Root}" Padding="{Binding IconTilePadding, ElementName=Root}" BorderThickness="{Binding IconTileBorderThickness, ElementName=Root}" Background="{Binding IconTileBackground, ElementName=Root}" BorderBrush="{Binding IconTileBorderBrush, ElementName=Root}" CornerRadius="{Binding IconTileCornerRadius, ElementName=Root}">
           <Grid Width="{Binding IconWidth, ElementName=Root}" Height="{Binding IconHeight, ElementName=Root}">
             <Border Background="#00FFFFFF" CornerRadius="{StaticResource LauncherCornerRadiusSmall}" ClipToBounds="True" behaviors:RoundedClip.Radius="6" Opacity="{Binding IconOpacity, ElementName=Root}">

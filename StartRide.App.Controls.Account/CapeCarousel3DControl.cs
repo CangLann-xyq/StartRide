@@ -282,7 +282,7 @@ public sealed class CapeCarousel3DControl : Grid
 			UpdateHoverHint(null);
 			Model3DGroup model3DGroup = new Model3DGroup
 			{
-				Children = 
+				Children =
 				{
 					(Model3D)CapePreviewModelBuilder.CreateAmbientLight(),
 					(Model3D)CapePreviewModelBuilder.CreateDirectionalLight()
@@ -525,17 +525,15 @@ public sealed class CapeCarousel3DControl : Grid
 		}
 		return (CapeCarouselSlotPlacement)(oldSlotVisuals.FirstOrDefault((SlotVisual visual) => CapesMatch(visual.Cape, cape))?.GetCurrentPlacement() ?? (direction switch
 		{
-			CapeCarouselDirection.Next => CapeCarousel3DLayout.GetEntryPlacement(CapeCarouselDirection.Next), 
-			CapeCarouselDirection.Previous => CapeCarousel3DLayout.GetEntryPlacement(CapeCarouselDirection.Previous), 
-			_ => CapeCarousel3DLayout.GetPlacement(targetSlot), 
+			CapeCarouselDirection.Next => CapeCarousel3DLayout.GetEntryPlacement(CapeCarouselDirection.Next),
+			CapeCarouselDirection.Previous => CapeCarousel3DLayout.GetEntryPlacement(CapeCarouselDirection.Previous),
+			_ => CapeCarousel3DLayout.GetPlacement(targetSlot),
 		}));
 	}
 
 	private void AnimateSlots()
 	{
-		//IL_012f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0134: Unknown result type (might be due to invalid IL or missing references)
-		//IL_014d: Expected O, but got Unknown
+
 		viewportRenderCache.Disable("CarouselAnimation");
 		PowerEase easing = new PowerEase
 		{
@@ -632,7 +630,6 @@ public sealed class CapeCarousel3DControl : Grid
 
 	private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
 	{
-		//IL_0003: Unknown result type (might be due to invalid IL or missing references)
 		CapeCarouselSlot? capeCarouselSlot = HitTestSlot(e.GetPosition(this));
 		if (capeCarouselSlot.HasValue && capeCarouselSlot.GetValueOrDefault() == CapeCarouselSlot.Left)
 		{
@@ -646,7 +643,6 @@ public sealed class CapeCarousel3DControl : Grid
 
 	private void OnMouseMove(object sender, MouseEventArgs e)
 	{
-		//IL_0003: Unknown result type (might be due to invalid IL or missing references)
 		CapeCarouselSlot? capeCarouselSlot = HitTestSlot(e.GetPosition(this));
 		bool flag = CanClickSlot(capeCarouselSlot);
 		base.Cursor = (flag ? Cursors.Hand : Cursors.Arrow);
@@ -655,8 +651,7 @@ public sealed class CapeCarousel3DControl : Grid
 
 	private CapeCarouselSlot? HitTestSlot(Point point)
 	{
-		//IL_002d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
+
 		CapeCarouselSlot? slot = null;
 		VisualTreeHelper.HitTest(viewport, null, delegate(HitTestResult result)
 		{
@@ -678,9 +673,9 @@ public sealed class CapeCarousel3DControl : Grid
 		}
 		return slot switch
 		{
-			CapeCarouselSlot.Left => PreviousCommand?.CanExecute(null) ?? false, 
-			CapeCarouselSlot.Right => NextCommand?.CanExecute(null) ?? false, 
-			_ => false, 
+			CapeCarouselSlot.Left => PreviousCommand?.CanExecute(null) ?? false,
+			CapeCarouselSlot.Right => NextCommand?.CanExecute(null) ?? false,
+			_ => false,
 		};
 	}
 
@@ -746,22 +741,7 @@ public sealed class CapeCarousel3DControl : Grid
 
 	static CapeCarousel3DControl()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Expected O, but got Unknown
-		//IL_008b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0095: Expected O, but got Unknown
-		//IL_0090: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009a: Expected O, but got Unknown
-		//IL_00b9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c3: Expected O, but got Unknown
-		//IL_00e2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ec: Expected O, but got Unknown
+
 		PreviousCapeProperty = DependencyProperty.Register("PreviousCape", typeof(AccountCapeOption), typeof(CapeCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnCapePropertyChanged)));
 		SelectedCapeProperty = DependencyProperty.Register("SelectedCape", typeof(AccountCapeOption), typeof(CapeCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnSelectedCapeChanged)));
 		NextCapeProperty = DependencyProperty.Register("NextCape", typeof(AccountCapeOption), typeof(CapeCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnCapePropertyChanged)));

@@ -11,8 +11,7 @@
     <GroupBox Header="{x:Static res:Strings.Settings_DownloadSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
-          <!-- StartRide：BeamNG 只有一个官方下载源（BMCLAPI 是 Minecraft 专用镜像已移除），
-               只剩一个选项时不再显示无意义的下拉框。 -->
+
           <Grid Visibility="Collapsed">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

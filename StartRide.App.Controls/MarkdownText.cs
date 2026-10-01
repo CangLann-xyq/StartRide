@@ -8,16 +8,6 @@ using System.Windows.Media;
 
 namespace StartRide.App.Controls;
 
-/// <summary>
-/// 往 <see cref="TextBlock"/> 的 <c>Inlines</c> 里填**行内 Markdown**。
-///
-/// WPF 的 <c>Inlines</c> 不是依赖属性、没法直接绑定，所以走附加属性：
-/// XAML 里写 <c>controls:MarkdownText.Text="{Binding Text}"</c>，赋值时把文本切成
-/// Run / Bold / Italic / Hyperlink 塞进 <c>Inlines</c>。
-///
-/// 支持：**加粗** · *斜体* / _斜体_ · `行内代码` · [文字](链接)
-/// 其余字符原样输出 —— 法律文书里出现的反斜杠、引号等不需要转义处理。
-/// </summary>
 public static class MarkdownText
 {
 	private static readonly Regex TokenPattern = new(
@@ -134,7 +124,6 @@ public static class MarkdownText
 		}
 		catch (Exception)
 		{
-			// 打不开浏览器不该把阅读器带崩；链接本来只是正文里的补充信息。
 		}
 		e.Handled = true;
 	}

@@ -5,10 +5,7 @@ using System.Linq;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// 详情页顶部统计条的算数。三个页面（车辆管理 / 模组仓库 / 回放）共用，
-    /// 免得每处各写一遍"合计多少 GB、平均多少 MB"。
-    /// </summary>
+
     public sealed class FileSetSummary
     {
         public int Count { get; private init; }
@@ -21,7 +18,6 @@ namespace StartRide.Core
 
         public long MinBytes { get; private init; }
 
-        /// <summary>最大的那一项的名字（没有则为空）。</summary>
         public string MaxName { get; private init; } = "";
 
         public string CountText => Count.ToString("N0", CultureInfo.CurrentCulture);
@@ -36,10 +32,6 @@ namespace StartRide.Core
 
         public bool IsEmpty => Count == 0;
 
-        /// <summary>
-        /// 按体积分档计数。BeamNG 的车辆/模组 zip 体积跨 4 个数量级，
-        /// 分档比只给一个总数更能看出"哪几个是大头"。
-        /// </summary>
         public int LargeCount { get; private init; }
 
         public int MediumCount { get; private init; }
@@ -89,7 +81,6 @@ namespace StartRide.Core
         }
     }
 
-    /// <summary>体积分档的中文说法，界面直接绑。</summary>
     public static class SizeBands
     {
         public const string Large = "大型包 ≥ 200 MB";

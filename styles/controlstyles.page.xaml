@@ -315,13 +315,6 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- ==================================================================
-       StartRide 自有详情页版式（车辆管理 / 模组仓库 / 回放 共用）
-       原版这三个页面是"一条窄列表 + 右侧一大片空白"，一眼就能看出是套模板。
-       这里换成：标题行 → 统计胶囊条 → 左列表 + 右详情面板。
-       ================================================================== -->
-
-  <!-- 页面大标题（前面配一枚品牌小图标） -->
   <Style x:Key="RidePageTitleTextStyle" TargetType="{x:Type TextBlock}">
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="Bold" />
@@ -329,7 +322,6 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- 标题右侧的次要说明（数量 / 目录 …） -->
   <Style x:Key="RidePageSubtitleTextStyle" TargetType="{x:Type TextBlock}">
     <Setter Property="FontSize" Value="12.5" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
@@ -338,7 +330,6 @@
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
 
-  <!-- 统计条外框：把若干胶囊横向排开，右侧留出总计 -->
   <Style x:Key="RideStatStripStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#0DFFFFFF" />
     <Setter Property="BorderBrush" Value="#17FFFFFF" />
@@ -372,7 +363,6 @@
     <Setter Property="Margin" Value="7,0,0,0" />
   </Style>
 
-  <!-- 列表容器：一层很淡的卡片面，让列表"有边界"，不再浮在空白里 -->
   <Style x:Key="RideListSurfaceStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#08FFFFFF" />
     <Setter Property="BorderBrush" Value="#15FFFFFF" />
@@ -382,15 +372,6 @@
     <Setter Property="SnapsToDevicePixels" Value="True" />
   </Style>
 
-  <!-- 列表侧栏：主从布局里"贴边铺满"的那半边。
-
-       与上面 RideListSurfaceStyle 的区别就是用户提的那一点：四边内缩 + 大圆角的
-       "悬浮卡片"改成传统侧栏 —— 左/上/下都贴到窗口边，只有右侧一条 1px 竖线
-       当作与详情区的分隔。卡片感来自内缩与圆角，"浮"的观感就没有了。
-
-       2026-09-26 再调：用户要"侧边栏的角圆润一些" —— 右侧两个角给 18px 圆角
-       （与 `SecondaryMenuSidebarBackdropStyle` 同一口径），左边两角保持 0（贴窗口左缘）。
-       列表条目自带 8px 横向 / 12px 纵向内边距（ItemsPanel 的 Margin），不会画进圆角区。 -->
   <Style x:Key="RideSidebarSurfaceStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#08FFFFFF" />
     <Setter Property="BorderBrush" Value="#15FFFFFF" />
@@ -407,7 +388,6 @@
     </Setter>
   </Style>
 
-  <!-- 右详情面板 -->
   <Style x:Key="RideDetailSurfaceStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource SectionFieldSurfaceStyle}">
     <Setter Property="Border.CornerRadius" Value="16" />
     <Setter Property="Border.Padding" Value="20,18" />
@@ -438,16 +418,12 @@
     <Setter Property="VerticalAlignment" Value="Top" />
   </Style>
 
-  <!-- 章节正文：外层 RideSectionStyle 卡片已经提供了边框，正文不再叠一层卡片。
-       原版是「裸标题 + 内嵌一张带描边的卡片」，一层套一层，正是模板感的来源。 -->
   <Style x:Key="RideSectionBodyStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#00FFFFFF" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Border.Padding" Value="0" />
   </Style>
 
-  <!-- 只读字段（路径 / UUID / 命令行…）：区块里的一条淡色内嵌条，
-       不描边、不投影，读起来是「一条数据」而不是「又一个盒子」 -->
   <Style x:Key="RideFieldSurfaceStyle" TargetType="{x:Type Border}">
     <Setter Property="Background" Value="#0AFFFFFF" />
     <Setter Property="BorderThickness" Value="0" />
@@ -457,7 +433,6 @@
     <Setter Property="SnapsToDevicePixels" Value="True" />
   </Style>
 
-  <!-- 面板里的一像素分隔线，比整块变色更克制 -->
   <Style x:Key="RideHairlineStyle" TargetType="{x:Type Border}">
     <Setter Property="Height" Value="1" />
     <Setter Property="Background" Value="#16FFFFFF" />
@@ -465,8 +440,4 @@
     <Setter Property="Margin" Value="0,14,0,14" />
   </Style>
 
-  <!-- 注意：原本这里放过 RideWideListBoxStyle（BasedOn ListPageVirtualizedListBoxStyle）。
-       它属于「跨文件前向 StaticResource 引用」——本文件先于 ControlStyles.Lists.xaml 合并，
-       BasedOn 在合并期解析 → 找不到 → MainWindow 加载即抛 XamlParseException，启动器 rc=-1。
-       已挪到 ControlStyles.Lists.xaml 末尾。新增跨文件 BasedOn 前先跑 `tools/check-style-refs.py`。 -->
 </ResourceDictionary>

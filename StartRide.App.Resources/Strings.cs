@@ -2745,13 +2745,6 @@ public static class Strings
 
 	public static string Dialog_LaunchAnalysisOutOfMemoryRecommendation => Get("Dialog_LaunchAnalysisOutOfMemoryRecommendation");
 
-	/// <summary>
-	/// 取文案，**键缺失时返回空串**（而 <see cref="Get(string)"/> 会退回键名本身）。
-	///
-	/// 需要它的场景：界面上会遍历一份"数据驱动"的清单（例如法律文件列表），
-	/// 键名是运行时才知道的字符串。这种情况下把 "Legal_Doc_Xxx_Title" 这种内部键名
-	/// 摊到用户面前，比少显示一行糟糕得多。
-	/// </summary>
 	public static string GetOrDefault(string name)
 	{
 		if (string.IsNullOrWhiteSpace(name))

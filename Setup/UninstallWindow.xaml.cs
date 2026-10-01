@@ -54,7 +54,6 @@ public partial class UninstallWindow : Window
         }
         catch
         {
-            // 图丢了不影响卸载
         }
     }
 

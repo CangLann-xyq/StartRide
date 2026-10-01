@@ -43,12 +43,7 @@ internal sealed class DispatcherBusyProbe : IDisposable
 
 	private DispatcherBusyProbe(DispatcherHooks hooks)
 	{
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_003d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0047: Expected O, but got Unknown
-		//IL_004f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0059: Expected O, but got Unknown
+
 		FrameLongestOperationDetail = "none";
 		WorstOperationDetail = "none";
 		this.hooks = hooks;
@@ -83,12 +78,7 @@ internal sealed class DispatcherBusyProbe : IDisposable
 
 	public void Dispose()
 	{
-		//IL_001d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0027: Expected O, but got Unknown
-		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
-		//IL_003e: Expected O, but got Unknown
-		//IL_004b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0055: Expected O, but got Unknown
+
 		if (!isDisposed)
 		{
 			isDisposed = true;
@@ -156,13 +146,12 @@ internal sealed class DispatcherBusyProbe : IDisposable
 
 	private static string Describe(DispatcherOperation? operation)
 	{
-		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_000f: Unknown result type (might be due to invalid IL or missing references)
+
 		if (operation == null)
 		{
 			return "none";
 		}
-		string text = ((object)operation.Priority/*cast due to constrained. prefix*/).ToString();
+		string text = ((object)operation.Priority                                   ).ToString();
 		string text2 = TryGetMethodName(operation);
 		if (text2 != null)
 		{

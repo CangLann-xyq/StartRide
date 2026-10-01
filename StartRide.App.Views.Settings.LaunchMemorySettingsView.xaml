@@ -10,7 +10,6 @@
   <StackPanel Margin="0,0,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
     <controls:LaunchSettingsEditor ShowModeSelector="False" AreLaunchSettingsOverridesEnabled="True" ShowMemorySettings="True" MemorySettingsModeOptions="{Binding MemoryModeOptions}" SelectedMemorySettingsModeOption="{Binding SelectedMemoryModeOption, Mode=TwoWay}" MemoryMb="{Binding DefaultMemoryMb, Mode=TwoWay}" MemoryMinimumMb="{Binding MemorySliderMinimumMb}" MemoryMaximumMb="{Binding MemorySliderMaximumMb}" IsMemorySliderEnabled="{Binding IsMemorySliderEnabled}" IsMemorySliderVisible="{Binding IsMemorySliderVisible}" IsAutomaticMemorySummaryVisible="{Binding IsAutomaticMemorySummaryVisible}" AutomaticMemoryText="{Binding AutomaticMemoryText}" MemoryValueText="{Binding DefaultMemoryText}" SystemMemorySummaryText="{Binding SystemMemorySummaryText}" CanEditAutoRepairMissingFiles="True" LaunchCheckFilesBeforeLaunchEnabled="{Binding DefaultCheckFilesBeforeLaunch, Mode=TwoWay}" LaunchAutoRepairMissingFilesEnabled="{Binding DefaultAutoRepairMissingFiles, Mode=TwoWay}" LaunchMinimizeLauncherAfterLaunchEnabled="{Binding DefaultMinimizeLauncherAfterLaunch, Mode=TwoWay}" LaunchFullScreenEnabled="{Binding DefaultLaunchFullScreen, Mode=TwoWay}" LaunchAutoJoinServerAddress="{Binding DefaultAutoJoinServerAddress, Mode=TwoWay}" LaunchPreLaunchCommand="{Binding DefaultPreLaunchCommand, Mode=TwoWay}" LaunchWaitForPreLaunchCommand="{Binding DefaultWaitForPreLaunchCommand, Mode=TwoWay}" LaunchPostExitCommand="{Binding DefaultPostExitCommand, Mode=TwoWay}" LaunchJvmArguments="{Binding DefaultJvmArguments, Mode=TwoWay}" LaunchGameArguments="{Binding DefaultGameArguments, Mode=TwoWay}" />
 
-    <!-- 本机内存条：原来只有「总内存/可用」，看不到插了几根、什么频率 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_MemoryHardwareSection}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
@@ -39,12 +38,10 @@
       </Border>
     </GroupBox>
 
-    <!-- 真实内存上限：作业对象施加到游戏进程，不是只记个数字 -->
     <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_MemoryLimitLabel}" Style="{StaticResource RideSectionStyle}">
       <Border Style="{StaticResource RideSectionBodyStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Settings_MemoryLimitDescription}" Style="{StaticResource SettingsDescriptionTextStyle}" />
-          <!-- 章节标题已经说明了这一项，行内不再重复同名字标签 -->
           <CheckBox Margin="0,14,0,0" HorizontalAlignment="Right" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LimitGameMemory, Mode=TwoWay}" />
         </StackPanel>
       </Border>

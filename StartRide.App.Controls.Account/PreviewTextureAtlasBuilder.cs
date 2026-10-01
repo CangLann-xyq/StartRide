@@ -15,22 +15,7 @@ internal static class PreviewTextureAtlasBuilder
 
 	internal static PreviewTextureAtlas Build(BitmapSource source, IEnumerable<Int32Rect> requestedRegions, int pixelScale, double brightness, int maximumSourceRowWidth, bool opaqueUnusedPixels = false)
 	{
-		//IL_025d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0262: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0153: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0158: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0168: Unknown result type (might be due to invalid IL or missing references)
-		//IL_016d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0240: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0245: Unknown result type (might be due to invalid IL or missing references)
-		//IL_018a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_018f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_019f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01a4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01c4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01c9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01da: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01df: Unknown result type (might be due to invalid IL or missing references)
+
 		ArgumentNullException.ThrowIfNull(source, "source");
 		if (pixelScale <= 0)
 		{
@@ -46,10 +31,7 @@ internal static class PreviewTextureAtlasBuilder
 		IReadOnlyList<Placement> readOnlyList = Pack(array, bitmapSource.PixelWidth, bitmapSource.PixelHeight, maximumSourceRowWidth);
 		int sourceWidth = Math.Max(1, readOnlyList.Max(delegate(Placement item)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
-			//IL_000f: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0014: Unknown result type (might be due to invalid IL or missing references)
+
 			Int32Rect outerRect = item.OuterRect;
 			int x2 = outerRect.X;
 			outerRect = item.OuterRect;
@@ -57,10 +39,7 @@ internal static class PreviewTextureAtlasBuilder
 		}));
 		int sourceHeight = Math.Max(1, readOnlyList.Max(delegate(Placement item)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
-			//IL_000f: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0014: Unknown result type (might be due to invalid IL or missing references)
+
 			Int32Rect outerRect = item.OuterRect;
 			int y2 = outerRect.Y;
 			outerRect = item.OuterRect;
@@ -143,19 +122,10 @@ internal static class PreviewTextureAtlasBuilder
 		((Freezable)bitmapSource2).Freeze();
 		Dictionary<Int32Rect, Rect> textureCoordinates = ((IEnumerable<Placement>)readOnlyList).ToDictionary((Func<Placement, Int32Rect>)delegate(Placement item)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
 			return item.RequestedRegion;
 		}, (Func<Placement, Rect>)delegate(Placement item)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
-			//IL_001a: Unknown result type (might be due to invalid IL or missing references)
-			//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0033: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0038: Unknown result type (might be due to invalid IL or missing references)
-			//IL_004a: Unknown result type (might be due to invalid IL or missing references)
-			//IL_004f: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0060: Unknown result type (might be due to invalid IL or missing references)
+
 			Int32Rect val2 = item.OuterRect;
 			double num21 = (double)(val2.X + 1) / (double)sourceWidth;
 			val2 = item.OuterRect;
@@ -170,14 +140,7 @@ internal static class PreviewTextureAtlasBuilder
 
 	private static IReadOnlyList<Placement> Pack(IReadOnlyList<Int32Rect> requestedRegions, int sourceWidth, int sourceHeight, int maximumSourceRowWidth)
 	{
-		//IL_0027: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0037: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0072: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0074: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0076: Unknown result type (might be due to invalid IL or missing references)
+
 		int num = Math.Max(8, maximumSourceRowWidth);
 		List<Placement> list = new List<Placement>(requestedRegions.Count);
 		int num2 = 0;
@@ -205,7 +168,6 @@ internal static class PreviewTextureAtlasBuilder
 
 	private static Int32Rect ClampRegion(Int32Rect region, int width, int height)
 	{
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
 		int num = Math.Clamp(region.X, 0, width - 1);
 		int num2 = Math.Clamp(region.Y, 0, height - 1);
 		return new Int32Rect(num, num2, Math.Max(1, Math.Min(region.Width, width - num)), Math.Max(1, Math.Min(region.Height, height - num2)));

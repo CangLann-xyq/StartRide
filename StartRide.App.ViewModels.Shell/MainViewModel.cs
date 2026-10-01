@@ -139,7 +139,6 @@ public sealed class MainViewModel : ObservableObject
 
 	public UserAgreementDialogViewModel UserAgreementDialog { get; }
 
-	/// <summary>内置条款阅读器：首次运行弹窗与设置页的「查看」共用这一个实例。</summary>
 	public LegalReaderViewModel LegalReader { get; }
 
 	public GameDirectoryStartupRecoveryDialogViewModel MinecraftDirectoryStartupRecoveryDialog { get; }
@@ -729,7 +728,6 @@ public sealed class MainViewModel : ObservableObject
 		NavigationItem navigationItem = NavigationItems.FirstOrDefault((NavigationItem item) => item.Page == "Account");
 		if (navigationItem != null)
 		{
-			// StartRide：不再用 MC 皮肤头像（AvatarUrl），置空后导航项回退显示 IconKey="general/person" 人形 SVG。
 			navigationItem.AvatarUrl = null;
 		}
 	}

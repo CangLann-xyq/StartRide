@@ -4,20 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace StartRide.App.Markdown;
 
-/// <summary>
-/// 把法律文书用的那部分 Markdown 切成块。
-///
-/// 只实现条款正文真正用到的语法，刻意不做通用实现：
-///   标题（# ~ ######）· 段落（含折行续写）· 有序/无序列表（一层嵌套）·
-///   引用（&gt;）· 代码块（```）· 表格（| … |）· 分隔线（---）
-/// 行内记号（**加粗** / *斜体* / `行内代码`）原样保留在 <see cref="MarkdownBlock.Text"/> 里，
-/// 由渲染层的 <c>MarkdownText</c> 附加属性处理。
-/// </summary>
 public static class MarkdownParser
 {
 	private static readonly Regex HeadingPattern = new(@"^(#{1,6})\s+(.*)$", RegexOptions.Compiled);
 
-	// 无序：- * + ；有序：1. / 1)
 	private static readonly Regex ListPattern = new(@"^(\s*)([-*+]|\d{1,3}[.)])\s+(.*)$", RegexOptions.Compiled);
 
 	private static readonly Regex DividerPattern = new(@"^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$", RegexOptions.Compiled);
@@ -161,7 +151,6 @@ public static class MarkdownParser
 			{
 				FlushParagraph();
 				int indent = list.Groups[1].Value.Length;
-				// 正文里每层缩进 3 个空格；这里向上取整，容忍 1~2 空格的手写缩进。
 				int level = Math.Min(3, (indent + 2) / 3);
 				string marker = list.Groups[2].Value;
 				string content = list.Groups[3].Value.Trim();
@@ -174,7 +163,6 @@ public static class MarkdownParser
 				continue;
 			}
 
-			// 列表项的折行续写：缩进开头、又不带标记 → 并回上一项。
 			if (inList && lastWasListItem && raw.Length > 0 && char.IsWhiteSpace(raw[0]) && blocks.Count > 0)
 			{
 				MarkdownBlock last = blocks[blocks.Count - 1];
@@ -217,7 +205,6 @@ public static class MarkdownParser
 		return cells;
 	}
 
-	/// <summary>表格的第二行是 <c>|---|---|</c> 这样的分隔行，不当作数据。</summary>
 	private static bool IsSeparatorRow(string[] cells)
 	{
 		if (cells.Length == 0)

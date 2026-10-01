@@ -9,13 +9,11 @@
   </FrameworkElement.Resources>
   <Grid Name="CreateLobbyStepHost" ClipToBounds="True">
 
-    <!-- ============ 开房前：页头 → 步骤卡面 → 主操作 ============ -->
     <StackPanel Name="CreateLobbySetupLayer" Margin="12,62,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
       <UIElement.RenderTransform>
         <TranslateTransform />
       </UIElement.RenderTransform>
 
-      <!-- ① 页头 -->
       <DockPanel LastChildFill="False" Margin="0,0,0,14">
         <StackPanel Orientation="Horizontal">
           <controls:SvgIcon Width="22" Height="22" Margin="0,0,11,0" VerticalAlignment="Center" IconKey="main_menu_multiplayer" Foreground="{DynamicResource Brush.Text.Strong}" />
@@ -24,7 +22,6 @@
         </StackPanel>
       </DockPanel>
 
-      <!-- ② 说明 + 步骤：换成带序号的规整步骤，不再是一段流水文字 -->
       <Border Style="{StaticResource RideDetailSurfaceStyle}">
         <StackPanel>
           <TextBlock Text="{x:Static res:Strings.Multiplayer_Create_OneClickHint}" Foreground="{DynamicResource Brush.Text.Primary}" FontSize="13" LineHeight="21" TextWrapping="Wrap" />
@@ -50,18 +47,15 @@
         </StackPanel>
       </Border>
 
-      <!-- ③ 主操作 -->
       <Button Margin="0,18,0,0" HorizontalAlignment="Left" MinWidth="168" Content="{x:Static res:Strings.Multiplayer_Create_OneClickButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding CreateLobbyCommand}" />
     </StackPanel>
 
-    <!-- ============ 开房后：页头 → 房间码卡 → 成员列表 ============ -->
     <Grid Name="CreatedLobbyLayer" MinHeight="360" Opacity="0" Visibility="Collapsed">
       <UIElement.RenderTransform>
         <TranslateTransform />
       </UIElement.RenderTransform>
       <StackPanel Margin="12,62,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
 
-        <!-- ① 页头（图标按实际资源名小写，原版写成 main_menu_Multiplayer 是取不到图的） -->
         <DockPanel LastChildFill="False" Margin="0,0,0,14">
           <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource LauncherDangerDialogButtonStyle}" Content="{Binding LeaveLobbyButtonText}" Command="{Binding RequestLeaveLobbyCommand}" />
           <StackPanel Orientation="Horizontal">
@@ -70,7 +64,6 @@
           </StackPanel>
         </DockPanel>
 
-        <!-- ② 房间码：这是本页最该被一眼看到的信息，单独做成大号卡片 -->
         <Border Style="{StaticResource RideDetailSurfaceStyle}" Margin="0,0,0,14">
           <DockPanel LastChildFill="False">
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Lobby_CopyCodeButton}" Command="{Binding CopyRoomCodeCommand}" />
@@ -81,7 +74,6 @@
           </DockPanel>
         </Border>
 
-        <!-- ③ 成员列表 -->
         <Border Style="{StaticResource RideListSurfaceStyle}" MinHeight="160">
           <Grid>
             <Grid.RowDefinitions>

@@ -45,12 +45,7 @@ public static class SkinFrontPreviewRenderer
 
 	private static void DrawPart(BitmapSource source, byte[] output, int outputWidth, SkinPart part, int destinationX, int destinationY, int armWidth)
 	{
-		//IL_000c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0011: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0013: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0019: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
+
 		Int32Rect front = SkinPreviewGeometry.GetFaces(part, armWidth).Front;
 		Int32Rect sourceRect = ClampRect(source, front);
 		int num = sourceRect.Width * 4;
@@ -74,7 +69,6 @@ public static class SkinFrontPreviewRenderer
 
 	private static Int32Rect ClampRect(BitmapSource source, Int32Rect rect)
 	{
-		//IL_0062: Unknown result type (might be due to invalid IL or missing references)
 		int num = Math.Clamp(rect.X, 0, source.PixelWidth - 1);
 		int num2 = Math.Clamp(rect.Y, 0, source.PixelHeight - 1);
 		return new Int32Rect(num, num2, Math.Max(1, Math.Min(rect.Width, source.PixelWidth - num)), Math.Max(1, Math.Min(rect.Height, source.PixelHeight - num2)));

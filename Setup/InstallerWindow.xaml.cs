@@ -44,14 +44,12 @@ public partial class InstallerWindow : Window
         }
         catch
         {
-            // 图丢了不影响安装，只是不好看
         }
 
         VersionLabel.Text = "版本 " + ProductInfo.Version;
         FooterHint.Text = Payload.DescribeSelf();
     }
 
-    /// <summary>按"当前程序集"解析 pack URI。不写程序集名 —— 安装包与卸载器是两个不同的 AssemblyName，写死就有一个会找不到图。</summary>
     private static BitmapImage LoadPng(string relative)
     {
         var uri = new Uri("pack://application:,,,/" + relative, UriKind.Absolute);
@@ -64,7 +62,6 @@ public partial class InstallerWindow : Window
         return image;
     }
 
-    /// <summary>标题、说明、按钮**一律用「安装」的说法**，整个向导不出现「升级」字样。</summary>
     private void ResolveMode()
     {
         string? installedVersion = ProductInfo.InstalledVersion();
@@ -78,10 +75,7 @@ public partial class InstallerWindow : Window
 
         if (!string.IsNullOrEmpty(installedVersion) && installedVersion != ProductInfo.Version)
         {
-            // ⚠️⚠️ 整个向导**不出现「升级」字样**（2026-09-30 用户明确要求）。
-            //    标题固定写「安装 StartRide」，是升级这件事只由下面这行说明来交代。
-            //    用户双击这个包时心里预期的那件事就是「安装」；满屏「升级」反而让人
-            //    怀疑"我是不是点错东西了"。
+
             WelcomeLead.Text = $"检测到已安装 {installedVersion}，本次将安装 {ProductInfo.Version}，" +
                                "替换现有版本。安装位置与快捷方式沿用现有设置，你的账户、设置与存档不会被改动。";
             UpgradeHint.Text = $"将安装 {ProductInfo.Version}（当前 {installedVersion}）";
@@ -89,15 +83,11 @@ public partial class InstallerWindow : Window
         }
         else if (!string.IsNullOrEmpty(installedVersion))
         {
-            // 标题与按钮一律用「安装」—— 同版本再次安装就是覆盖安装，
-            // 写成「重装」会让刚要装的人以为哪里出了错。（2026-09-27 用户要求）
-            // 这里只补一句说明，告知它会覆盖安装、可用于修复缺失或损坏的文件。
+
             WelcomeLead.Text = $"当前已经是 {ProductInfo.Version}。继续将用同一版本的文件覆盖安装，" +
                                "可用于修复缺失或损坏的文件。";
         }
     }
-
-    // ══════════════ 交互 ══════════════
 
     private void TitleBar_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -174,24 +164,13 @@ public partial class InstallerWindow : Window
         _options.StartMenuShortcut = StartMenuCheck.IsChecked == true;
         _options.LaunchAfterwards = LaunchCheck.IsChecked == true;
 
-        // 目标位置已经有 StartRide（或已有别的文件）时先问一句，见 ConfirmOverwrite
         if (!ConfirmOverwrite(target)) return;
 
         await RunInstallAsync();
     }
 
-    /// <summary>
-    /// 目标位置已经有 StartRide 时问一句"是否覆盖"。
-    ///
-    /// 为什么非要问：覆盖安装一直是"点完就没了"的重灾区，用户不知道自己要付出什么。
-    /// 这里把两件事摊开讲清楚 ——
-    ///   ① 会先**删掉**该目录下的程序文件（不清的话旧版本多出来的文件会永远留着）；
-    ///   ② 用户自己的东西（Mods、账户、设置）不在这个目录里，不受影响。
-    /// 返回 false = 用户点了"否"，整个安装中止，停在欢迎页。
-    /// </summary>
     private bool ConfirmOverwrite(string target)
     {
-        // 只有"看起来确实是 StartRide 安装目录"才允许清空；否则只做普通覆盖（绝不清空别人的目录）
         bool installDir = InstallEngine.LooksLikeInstallDirectory(target);
 
         bool nonEmpty;
@@ -204,7 +183,7 @@ public partial class InstallerWindow : Window
             nonEmpty = false;
         }
 
-        if (!installDir && !nonEmpty) return true;      // 空目录 / 新目录：直接装，不打扰
+        if (!installDir && !nonEmpty) return true;
 
         string title;
         string body;
@@ -317,7 +296,6 @@ public partial class InstallerWindow : Window
         ProgressFill.Width = Math.Max(0, width * percent / 100.0);
     }
 
-    /// <summary>左侧步骤条的高亮切换。</summary>
     private void GoToStep(int step)
     {
         var active = (Border)FindName("Step" + step + "Mark");
@@ -329,7 +307,6 @@ public partial class InstallerWindow : Window
         activeNum.Foreground = Brushes.White;
         activeText.Foreground = (Brush)FindResource("Brush.Text");
 
-        // 已走过的步骤打勾，没走到的保持灰。
         for (int i = 1; i <= 3; i++)
         {
             if (i == step) continue;
@@ -371,7 +348,6 @@ public partial class InstallerWindow : Window
             }
             catch
             {
-                // 启动失败就只提示一次，不阻塞关闭
                 MessageBox.Show(this, "没能自动启动，请手动打开 StartRide。",
                     "StartRide 安装程序", MessageBoxButton.OK, MessageBoxImage.Information);
             }

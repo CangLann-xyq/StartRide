@@ -296,7 +296,6 @@ public sealed class SlidingContentTransitionCoordinator
 
 	private LayerTransforms EnsureLayerTransforms(FrameworkElement layer)
 	{
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
 		if (useScaleTransition && object.Equals(((DependencyObject)layer).ReadLocalValue(UIElement.RenderTransformOriginProperty), DependencyProperty.UnsetValue))
 		{
 			layer.RenderTransformOrigin = new Point(0.5, 0.5);

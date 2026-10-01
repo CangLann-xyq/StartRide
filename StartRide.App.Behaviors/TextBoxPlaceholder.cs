@@ -18,8 +18,7 @@ public static class TextBoxPlaceholder
 
 	static TextBoxPlaceholder()
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0028: Expected O, but got Unknown
+
 		TextProperty = DependencyProperty.RegisterAttached("Text", typeof(string), typeof(TextBoxPlaceholder), new PropertyMetadata((object)string.Empty));
 	}
 }

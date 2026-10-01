@@ -176,7 +176,6 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Margin="0,18,0,8" VerticalAlignment="Top">
-                  <!-- 菜单头也带上 BeamNG 官方 logo，一眼看出这是"启动哪个游戏"的菜单 -->
                   <Image Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Source="/StartRide;component/Assets/Branding/beamng_logo_256.png" />
                   <TextBlock Margin="0" VerticalAlignment="Center" Text="{x:Static res:Strings.Home_LaunchInstanceMenuTitle}" Style="{StaticResource SecondaryMenuHeaderTextStyle}" />
                 </StackPanel>

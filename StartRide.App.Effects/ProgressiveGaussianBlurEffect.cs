@@ -164,18 +164,7 @@ internal sealed class ProgressiveGaussianBlurEffect : ShaderEffect
 
 	static ProgressiveGaussianBlurEffect()
 	{
-		//IL_0031: Unknown result type (might be due to invalid IL or missing references)
-		//IL_003b: Expected O, but got Unknown
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
-		//IL_007b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0085: Expected O, but got Unknown
-		//IL_00a0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00aa: Expected O, but got Unknown
-		//IL_00c5: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cf: Expected O, but got Unknown
-		//IL_00ea: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f4: Expected O, but got Unknown
+
 		InputProperty = ShaderEffect.RegisterPixelShaderSamplerProperty("Input", typeof(ProgressiveGaussianBlurEffect), 0, SamplingMode.Bilinear);
 		InputWidthProperty = RegisterConstantProperty("InputWidth", 1.0, 0, new ValidateValueCallback(IsPositiveFinite));
 		InputHeightProperty = RegisterConstantProperty("InputHeight", 1.0, 1, new ValidateValueCallback(IsPositiveFinite));

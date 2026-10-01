@@ -267,7 +267,7 @@ public sealed class SkinCarousel3DControl : Grid
 			UpdateHoverHint(null);
 			Model3DGroup model3DGroup = new Model3DGroup
 			{
-				Children = 
+				Children =
 				{
 					(Model3D)SkinPreviewModelBuilder.CreateAmbientLight(),
 					(Model3D)SkinPreviewModelBuilder.CreateDirectionalLight()
@@ -373,17 +373,15 @@ public sealed class SkinCarousel3DControl : Grid
 		}
 		return (SkinCarouselSlotPlacement)(oldSlotVisuals.FirstOrDefault((SlotVisual visual) => SkinsMatch(visual.Skin, skin))?.GetCurrentPlacement() ?? (direction switch
 		{
-			SkinCarouselDirection.Next => SkinCarousel3DLayout.GetEntryPlacement(SkinCarouselDirection.Next), 
-			SkinCarouselDirection.Previous => SkinCarousel3DLayout.GetEntryPlacement(SkinCarouselDirection.Previous), 
-			_ => SkinCarousel3DLayout.GetPlacement(targetSlot), 
+			SkinCarouselDirection.Next => SkinCarousel3DLayout.GetEntryPlacement(SkinCarouselDirection.Next),
+			SkinCarouselDirection.Previous => SkinCarousel3DLayout.GetEntryPlacement(SkinCarouselDirection.Previous),
+			_ => SkinCarousel3DLayout.GetPlacement(targetSlot),
 		}));
 	}
 
 	private void AnimateSlots()
 	{
-		//IL_0133: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0138: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0151: Expected O, but got Unknown
+
 		viewportRenderCache.Disable("CarouselAnimation");
 		isAnimating = true;
 		PowerEase easing = new PowerEase
@@ -470,7 +468,6 @@ public sealed class SkinCarousel3DControl : Grid
 
 	private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
 	{
-		//IL_0003: Unknown result type (might be due to invalid IL or missing references)
 		SkinCarouselSlot? skinCarouselSlot = HitTestSlot(e.GetPosition(this));
 		if (skinCarouselSlot.HasValue && skinCarouselSlot.GetValueOrDefault() == SkinCarouselSlot.Left)
 		{
@@ -484,7 +481,6 @@ public sealed class SkinCarousel3DControl : Grid
 
 	private void OnMouseMove(object sender, MouseEventArgs e)
 	{
-		//IL_0003: Unknown result type (might be due to invalid IL or missing references)
 		SkinCarouselSlot? skinCarouselSlot = HitTestSlot(e.GetPosition(this));
 		bool flag = CanClickSlot(skinCarouselSlot);
 		base.Cursor = (flag ? Cursors.Hand : Cursors.Arrow);
@@ -493,8 +489,7 @@ public sealed class SkinCarousel3DControl : Grid
 
 	private SkinCarouselSlot? HitTestSlot(Point point)
 	{
-		//IL_002d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
+
 		SkinCarouselSlot? slot = null;
 		VisualTreeHelper.HitTest(viewport, null, delegate(HitTestResult result)
 		{
@@ -512,9 +507,9 @@ public sealed class SkinCarousel3DControl : Grid
 	{
 		return slot switch
 		{
-			SkinCarouselSlot.Left => PreviousCommand?.CanExecute(null) ?? false, 
-			SkinCarouselSlot.Right => NextCommand?.CanExecute(null) ?? false, 
-			_ => false, 
+			SkinCarouselSlot.Left => PreviousCommand?.CanExecute(null) ?? false,
+			SkinCarouselSlot.Right => NextCommand?.CanExecute(null) ?? false,
+			_ => false,
 		};
 	}
 
@@ -580,22 +575,7 @@ public sealed class SkinCarousel3DControl : Grid
 
 	static SkinCarousel3DControl()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_0056: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0060: Expected O, but got Unknown
-		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0065: Expected O, but got Unknown
-		//IL_008b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0095: Expected O, but got Unknown
-		//IL_0090: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009a: Expected O, but got Unknown
-		//IL_00b9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c3: Expected O, but got Unknown
-		//IL_00e2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00ec: Expected O, but got Unknown
+
 		PreviousSkinProperty = DependencyProperty.Register("PreviousSkin", typeof(LauncherSkinRecord), typeof(SkinCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnSkinPropertyChanged)));
 		SelectedSkinProperty = DependencyProperty.Register("SelectedSkin", typeof(LauncherSkinRecord), typeof(SkinCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnSelectedSkinChanged)));
 		NextSkinProperty = DependencyProperty.Register("NextSkin", typeof(LauncherSkinRecord), typeof(SkinCarousel3DControl), new PropertyMetadata((object)null, new PropertyChangedCallback(OnSkinPropertyChanged)));

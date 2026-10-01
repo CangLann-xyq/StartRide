@@ -74,14 +74,7 @@ public sealed class AdaptiveTagList : Panel
 
 	protected override Size MeasureOverride(Size availableSize)
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
-		//IL_003f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_016e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_018f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0194: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01aa: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00eb: Unknown result type (might be due to invalid IL or missing references)
+
 		Size infinite = new Size(double.PositiveInfinity, availableSize.Height);
 		foreach (Border itemTag in itemTags)
 		{
@@ -90,8 +83,7 @@ public sealed class AdaptiveTagList : Panel
 		double num = (double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0.0, availableSize.Width));
 		List<double> list = itemTags.Select(delegate(Border tag)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
+
 			Size desiredSize2 = tag.DesiredSize;
 			return desiredSize2.Width;
 		}).ToList();
@@ -104,9 +96,7 @@ public sealed class AdaptiveTagList : Panel
 		}
 		visibleItemCount = CalculateVisibleItemCount(list, num, delegate(int hiddenCount)
 		{
-			//IL_0040: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0055: Unknown result type (might be due to invalid IL or missing references)
-			//IL_005a: Unknown result type (might be due to invalid IL or missing references)
+
 			overflowText.Text = $"+{hiddenCount}";
 			overflowTag.Measure(infinite);
 			Size desiredSize2 = overflowTag.DesiredSize;
@@ -140,17 +130,7 @@ public sealed class AdaptiveTagList : Panel
 
 	protected override Size ArrangeOverride(Size finalSize)
 	{
-		//IL_003d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0042: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0051: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0062: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0025: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_009c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b0: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cc: Unknown result type (might be due to invalid IL or missing references)
+
 		double num = 0.0;
 		Size desiredSize;
 		for (int i = 0; i < itemTags.Count; i++)
@@ -275,8 +255,7 @@ public sealed class AdaptiveTagList : Panel
 	{
 		return base.Children.Cast<UIElement>().Select(delegate(UIElement child)
 		{
-			//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-			//IL_0006: Unknown result type (might be due to invalid IL or missing references)
+
 			Size desiredSize = child.DesiredSize;
 			return desiredSize.Height;
 		}).DefaultIfEmpty(0.0)
@@ -285,14 +264,7 @@ public sealed class AdaptiveTagList : Panel
 
 	static AdaptiveTagList()
 	{
-		//IL_0024: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0050: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005a: Expected O, but got Unknown
-		//IL_0087: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0091: Expected O, but got Unknown
-		//IL_00be: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c8: Expected O, but got Unknown
+
 		HiddenArrangeRect = new Rect(0.0, 0.0, 0.0, 0.0);
 		ItemsSourceProperty = DependencyProperty.Register("ItemsSource", typeof(IEnumerable), typeof(AdaptiveTagList), (PropertyMetadata)(object)new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure, new PropertyChangedCallback(OnItemsSourceChanged)));
 		TagBackgroundProperty = DependencyProperty.Register("TagBackground", typeof(Brush), typeof(AdaptiveTagList), (PropertyMetadata)(object)new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, new PropertyChangedCallback(OnTagAppearanceChanged)));

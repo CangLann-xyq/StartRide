@@ -5,7 +5,6 @@ using System.Windows.Data;
 
 namespace StartRide.App.Converters;
 
-/// <summary>字符串为 null/空白时折叠元素（用于可选的版本、评分等标签）。</summary>
 public sealed class StringBlankToCollapsedConverter : IValueConverter
 {
 	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

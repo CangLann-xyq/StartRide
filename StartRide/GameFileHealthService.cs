@@ -7,21 +7,14 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>单个游戏文件的体检状态。</summary>
     public enum GameFileState
     {
         Unknown = 0,
-        /// <summary>存在且可用</summary>
         Ok,
-        /// <summary>缺失</summary>
         Missing,
-        /// <summary>本次已由启动器补全</summary>
         Fixed,
-        /// <summary>缺失但启动器补不了（游戏本体文件，需要走 Steam 校验）</summary>
         NeedsSteam,
-        /// <summary>无法判断（游戏目录没设置/不存在）</summary>
         NotApplicable,
-        /// <summary>补全过程出错</summary>
         Failed,
     }
 
@@ -29,11 +22,9 @@ namespace StartRide.Core
     {
         public string Key { get; set; } = "";
         public string DisplayName { get; set; } = "";
-        /// <summary>相对路径或绝对路径，界面上作为副标题显示</summary>
         public string RelativePath { get; set; } = "";
         public string Detail { get; set; } = "";
         public GameFileState State { get; set; } = GameFileState.Unknown;
-        /// <summary>启动器是否能自动补全这一项</summary>
         public bool Fixable { get; set; }
         public bool IsProblem => State != GameFileState.Ok && State != GameFileState.Fixed;
     }
@@ -44,7 +35,6 @@ namespace StartRide.Core
         public int Fixed { get; set; }
         public int NeedsSteam { get; set; }
         public int Missing { get; set; }
-        /// <summary>配置文件的检查明细（复用 ConfigRepairService 的状态模型）</summary>
         public List<ConfigFileStatus> ConfigFiles { get; } = new List<ConfigFileStatus>();
         public int ConfigRepaired { get; set; }
         public int ConfigChecked { get; set; }
@@ -55,20 +45,8 @@ namespace StartRide.Core
         public bool HasProblem => Missing > 0 || NeedsSteam > 0;
     }
 
-    /// <summary>
-    /// 游戏文件体检与补全（"补全整个游戏文件"）。
-    ///
-    /// 与 ConfigRepairService 的分工：
-    ///   - ConfigRepairService 只管 &lt;userpath&gt;/settings 下的**必需配置文件**（能从云端模板补）
-    ///   - 本服务管**整个游戏**：游戏本体运行文件 + 用户数据目录 + 联机模组包 + 配置（委托给上面那个）
-    ///
-    /// 关键原则：**能补的补，补不了的别装能补**。
-    ///   游戏本体文件来自 Steam，启动器无法凭空造出来 —— 这类缺失只报"需要在 Steam 里验证完整性"，
-    ///   并且给出精确的缺失清单与操作路径，不做假动作。
-    /// </summary>
     public sealed class GameFileHealthService
     {
-        /// <summary>游戏安装目录下必须存在的运行文件/目录（缺失 = 装不完整，只能 Steam 校验）。</summary>
         private static readonly (string Relative, string DisplayName)[] GameCoreEntries =
         {
             ("BeamNG.drive.exe", "游戏主程序"),
@@ -85,22 +63,16 @@ namespace StartRide.Core
             this.settings = settings ?? AppSettings.Current;
         }
 
-        /// <summary>联机模组在启动器侧的源目录（随 EXE 一起分发）。</summary>
         public static string ModSourceDirectory => Path.Combine(AppContext.BaseDirectory, "Mods");
 
-        /// <summary>Steam 校验游戏完整性的操作指引（给用户看的原文）。</summary>
         public static string SteamVerifyHint =>
             "在 Steam 库中右键 BeamNG.drive → 属性 → 已安装文件 → 验证游戏文件的完整性";
 
-        // ------------------------------------------------------------ 检查
-
-        /// <summary>只做本地检查，不联网、不改动任何文件。</summary>
         public List<GameFileHealthItem> Inspect()
         {
             var items = new List<GameFileHealthItem>();
             string gameDir = settings.GameDirectory ?? string.Empty;
 
-            // 1) 游戏本体
             bool gameDirUsable = !string.IsNullOrWhiteSpace(gameDir) && Directory.Exists(gameDir);
             if (!gameDirUsable)
             {
@@ -119,7 +91,6 @@ namespace StartRide.Core
                 foreach (var (relative, displayName) in GameCoreEntries)
                 {
                     string full = Path.Combine(gameDir, relative);
-                    // 结尾是文件名的看文件，其余看目录
                     bool isFile = Path.GetFileName(relative).IndexOf('.') > 0;
                     bool exists = isFile ? File.Exists(full) : Directory.Exists(full);
                     items.Add(new GameFileHealthItem
@@ -134,7 +105,6 @@ namespace StartRide.Core
                 }
             }
 
-            // 2) 用户数据目录（存档/设置/模组都在这里）
             string? userRoot = null;
             try
             {
@@ -142,7 +112,6 @@ namespace StartRide.Core
             }
             catch
             {
-                // 解析失败按未就绪处理
             }
             items.Add(new GameFileHealthItem
             {
@@ -157,7 +126,6 @@ namespace StartRide.Core
                     : (Directory.Exists(userRoot!) ? "正常" : "缺失：启动一次游戏即可生成（或点「检查并补全」尝试创建）。"),
             });
 
-            // 3) 模组目录
             string modsDir = settings.ResolveModsDirectory();
             items.Add(new GameFileHealthItem
             {
@@ -169,7 +137,6 @@ namespace StartRide.Core
                 Detail = Directory.Exists(modsDir) ? "正常" : "缺失：可自动创建，联机模组需要装在这里。",
             });
 
-            // 4) 联机模组包（随启动器分发，可自动打包补装）
             items.AddRange(InspectModPackage());
 
             return items;
@@ -181,7 +148,6 @@ namespace StartRide.Core
             string sourceGe = Path.Combine(ModSourceDirectory, "startride_mod.lua");
             string sourceVe = Path.Combine(ModSourceDirectory, "startrideVE.lua");
 
-            // 源文件（启动器自带）
             bool sourceOk = File.Exists(sourceGe) && File.Exists(sourceVe);
             yield return new GameFileHealthItem
             {
@@ -195,13 +161,10 @@ namespace StartRide.Core
                     : "启动器缺少 Mods 目录下的模组源文件，请重新安装启动器（安装包不完整）。",
             };
 
-            // 已安装的包。判「过期」用内容指纹而不是时间戳 —— 源文件是
-            // CopyToOutputDirectory 复制过来的，时间戳会跟着安装包刷新，拿它比会误报。
             bool installed = installer.IsInstalled;
             bool onDemand = settings.RemoveModOnLeave;
             bool stale = installed && !installer.IsUpToDate;
 
-            // 按需模式下「没装」是正常状态（进联机时才会装上），不该报成缺失
             yield return new GameFileHealthItem
             {
                 Key = "mod.installed",
@@ -221,12 +184,6 @@ namespace StartRide.Core
             };
         }
 
-        // ------------------------------------------------------------ 检查 + 补全
-
-        /// <summary>
-        /// 检查并按需补全。能补的：必需配置（云端模板）、模组目录、联机模组包。
-        /// 游戏本体文件缺失只报需 Steam 校验，不做假动作。
-        /// </summary>
         public async Task<GameFileHealthResult> RepairAsync(
             ApiService api, Action<string>? log = null, CancellationToken cancellationToken = default)
         {
@@ -234,7 +191,6 @@ namespace StartRide.Core
             var items = Inspect();
             result.Checked = items.Count;
 
-            // 1) 模组目录：缺失就建（纯本地动作）
             foreach (var item in items.Where(i => i.Key == "user.mods" && i.State == GameFileState.Missing))
             {
                 try
@@ -252,7 +208,6 @@ namespace StartRide.Core
                 }
             }
 
-            // 2) 联机模组包：缺失/过期就重新打包安装
             foreach (var item in items.Where(i => i.Key == "mod.installed" && i.State == GameFileState.Missing))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -283,7 +238,6 @@ namespace StartRide.Core
                 }
             }
 
-            // 3) 必需配置文件：交给 ConfigRepairService（云端模板）
             try
             {
                 var configService = new ConfigRepairService(settings);

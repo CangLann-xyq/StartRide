@@ -9,20 +9,10 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>
-    /// StartRide 云后端 API 客户端
-    /// 生产走 HTTPS 域名 https://windseek.cloud/api/startride（nginx 反代到 :3002）
-    /// —— 登录 token / 用户数据全程加密，不再走明文 IP。
-    /// </summary>
+
     public class ApiService
     {
-        /// <summary>
-        /// 后端全部指向自有域名（windseek.cloud，国内机器），所以**强制直连**。
-        ///
-        /// 默认的 HttpClient 会吃系统代理：玩家开着加速器 / Clash 之类时，实测
-        /// 走代理 5.46s、直连 0.61s（差 9 倍），大厅房间列表和房间登记慢到像卡死。
-        /// 中继通道（自研 WS）与模组仓库下载客户端都各自处理过代理，这里保持一致。
-        /// </summary>
+
         private static readonly HttpClient _http = CreateHttpClient();
 
         private static HttpClient CreateHttpClient()
@@ -40,7 +30,6 @@ namespace StartRide.Core
         private const string SERVER = "https://windseek.cloud";
         private const string BASE = SERVER + "/api/startride";
 
-        /// <summary>当前登录 token（Steam 授权或用户名密码登录后写入）</summary>
         public string? Token { get; set; }
 
         private static readonly JsonSerializerOptions _jsonOpts = new()
@@ -56,8 +45,6 @@ namespace StartRide.Core
                 req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
             return req;
         }
-
-        // ===== 认证 =====
 
         public async Task<AuthResponse?> RegisterAsync(string username, string password)
         {
@@ -83,7 +70,6 @@ namespace StartRide.Core
             catch (Exception ex) { return new AuthResponse { Error = ex.Message }; }
         }
 
-        /// <summary>SteamID 直接登录（本地 vdf 兜底，不走 OpenID）</summary>
         public async Task<AuthResponse?> SteamLoginAsync(string steamId, string username, string avatar = "")
         {
             try
@@ -96,7 +82,6 @@ namespace StartRide.Core
             catch (Exception ex) { return new AuthResponse { Error = ex.Message }; }
         }
 
-        /// <summary>登出</summary>
         public async Task LogoutAsync()
         {
             try { if (Token != null) await _http.SendAsync(Authorized(HttpMethod.Post, $"{BASE}/auth/logout")); }
@@ -104,12 +89,8 @@ namespace StartRide.Core
             Token = null;
         }
 
-        /// <summary>Steam OpenID 授权跳转地址（真 OAuth）</summary>
         public static string SteamOpenIdLoginUrl => $"{BASE}/auth/steam/login";
 
-        // ===== 云同步 =====
-
-        /// <summary>拉取某个同步项（返回 JSON 字符串，无则 null）</summary>
         public async Task<string?> GetSyncAsync(string key)
         {
             if (string.IsNullOrEmpty(Token)) return null;
@@ -122,7 +103,6 @@ namespace StartRide.Core
             catch { return null; }
         }
 
-        /// <summary>写入某个同步项（实时增量）</summary>
         public async Task<bool> PutSyncAsync(string key, string value)
         {
             if (string.IsNullOrEmpty(Token)) return false;
@@ -138,7 +118,6 @@ namespace StartRide.Core
             catch { return false; }
         }
 
-        /// <summary>批量合并同步项（把本地状态一次性 push 到云）</summary>
         public async Task<bool> MergeSyncAsync(Dictionary<string, string> items)
         {
             if (string.IsNullOrEmpty(Token) || items == null || items.Count == 0) return false;
@@ -153,7 +132,6 @@ namespace StartRide.Core
             catch { return false; }
         }
 
-        /// <summary>拉取全部云同步项</summary>
         public async Task<Dictionary<string, SyncEntry>?> GetAllSyncAsync()
         {
             if (string.IsNullOrEmpty(Token)) return null;
@@ -166,9 +144,6 @@ namespace StartRide.Core
             catch { return null; }
         }
 
-        // ===== UGC =====
-
-        /// <summary>发布评分/评论/分享</summary>
         public async Task<bool> PostUgcAsync(string kind, string targetId, int rating, string content)
         {
             if (string.IsNullOrEmpty(Token)) return false;
@@ -183,7 +158,6 @@ namespace StartRide.Core
             catch { return false; }
         }
 
-        /// <summary>拉取某目标的 UGC（评分/评论）</summary>
         public async Task<UgcResult?> GetUgcAsync(string kind, string targetId)
         {
             try
@@ -195,9 +169,6 @@ namespace StartRide.Core
             catch { return null; }
         }
 
-        // ===== 游戏必需配置文件模板 =====
-
-        /// <summary>云端保存的配置文件模板清单（不含正文）。</summary>
         public async Task<List<ConfigTemplateInfo>> GetConfigTemplatesAsync()
         {
             try
@@ -209,7 +180,6 @@ namespace StartRide.Core
             catch { return new List<ConfigTemplateInfo>(); }
         }
 
-        /// <summary>取某个模板正文（配置损坏时用它补全）。</summary>
         public async Task<ConfigTemplateContent?> GetConfigTemplateAsync(string key)
         {
             try
@@ -220,8 +190,6 @@ namespace StartRide.Core
             }
             catch { return null; }
         }
-
-        // ===== 房间 =====
 
         public async Task<List<Room>> GetRoomsAsync()
         {
@@ -264,8 +232,6 @@ namespace StartRide.Core
             try { await _http.PostAsJsonAsync($"{BASE}/rooms/{roomId}/leave", new { player }, _jsonOpts); } catch { }
         }
 
-        // ===== 聊天 =====
-
         public async Task SendChatAsync(string roomId, string player, string text)
         {
             try { await _http.PostAsJsonAsync($"{BASE}/rooms/{roomId}/chat", new { player, text }, _jsonOpts); } catch { }
@@ -280,8 +246,6 @@ namespace StartRide.Core
             catch { return null; }
         }
     }
-
-    // ===== 数据模型 =====
 
     public class ApiResult<T>
     {
@@ -328,7 +292,6 @@ namespace StartRide.Core
         public string? Username { get; set; }
         public string? SteamId { get; set; }
         public string? Avatar { get; set; }
-        /// <summary>三态：true=确认拥有 BeamNG / false=确认没有 / null=无法判断（未配置 Key）</summary>
         public bool? OwnsBeamng { get; set; }
         public long BeamngPlaytimeMin { get; set; }
         public string? Token { get; set; }
@@ -357,7 +320,6 @@ namespace StartRide.Core
         public string? CreatedAt { get; set; }
     }
 
-    /// <summary>云端配置模板条目（清单用，不含正文）</summary>
     public class ConfigTemplateInfo
     {
         public string Key { get; set; } = "";
@@ -368,7 +330,6 @@ namespace StartRide.Core
         public string? UpdatedAt { get; set; }
     }
 
-    /// <summary>云端配置模板正文</summary>
     public class ConfigTemplateContent
     {
         public string Key { get; set; } = "";

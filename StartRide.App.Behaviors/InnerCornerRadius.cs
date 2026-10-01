@@ -46,10 +46,7 @@ public static class InnerCornerRadius
 
 	static InnerCornerRadius()
 	{
-		//IL_0021: Unknown result type (might be due to invalid IL or missing references)
-		//IL_002b: Expected O, but got Unknown
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
+
 		SourceProperty = DependencyProperty.RegisterAttached("Source", typeof(Border), typeof(InnerCornerRadius), new PropertyMetadata((object)null, new PropertyChangedCallback(OnSourceChanged)));
 	}
 }

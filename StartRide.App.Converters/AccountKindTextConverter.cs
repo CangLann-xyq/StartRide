@@ -12,7 +12,6 @@ public sealed class AccountKindTextConverter : IValueConverter
 	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 	{
 		LauncherAccount launcherAccount = value as LauncherAccount;
-		// StartRide：Steam 授权导入的账户 Kind 复用 Offline（Domain 枚举固定），以 Id 前缀 steam- 识别
 		if (launcherAccount != null && launcherAccount.Id.StartsWith("steam-", StringComparison.Ordinal))
 		{
 			return Strings.Account_TypeSteamTitle;
@@ -26,10 +25,10 @@ public sealed class AccountKindTextConverter : IValueConverter
 		{
 			return launcherAccountKind switch
 			{
-				LauncherAccountKind.Offline => Strings.Account_TypeOfflineTitle, 
-				LauncherAccountKind.Microsoft => Strings.Account_TypeMicrosoftTitle, 
-				LauncherAccountKind.ThirdParty => Strings.Account_TypeThirdPartyTitle, 
-				_ => string.Empty, 
+				LauncherAccountKind.Offline => Strings.Account_TypeOfflineTitle,
+				LauncherAccountKind.Microsoft => Strings.Account_TypeMicrosoftTitle,
+				LauncherAccountKind.ThirdParty => Strings.Account_TypeThirdPartyTitle,
+				_ => string.Empty,
 			};
 		}
 		return string.Empty;

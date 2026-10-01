@@ -5,10 +5,6 @@ using System.Reflection;
 
 namespace StartRide.Setup;
 
-/// <summary>
-/// payload 读取器。安装包把「整包 zip」和「卸载器 zip」当成嵌入资源带在身上，
-/// 所以用户拿到的是一个文件，不需要旁边的 data 目录。
-/// </summary>
 internal static class Payload
 {
     private const string AppResource = "StartRide.Setup.Payload.app.zip";
@@ -16,7 +12,6 @@ internal static class Payload
 
     private static Assembly Self => typeof(Payload).Assembly;
 
-    /// <summary>当前产物里有没有带 payload（卸载器产物没有）。</summary>
     public static bool HasPayload => Self.GetManifestResourceInfo(AppResource) != null;
 
     public static Stream OpenAppPackage()
@@ -30,19 +25,11 @@ internal static class Payload
         return s;
     }
 
-    /// <summary>
-    /// 把内置的卸载器解到**安装目录根**，返回 exe 路径。
-    ///
-    /// 为什么是 zip 而不是单个 exe：framework-dependent 的 WPF 程序少了
-    /// <c>.runtimeconfig.json</c> 就起不来（报"找不到 runtimeconfig"）。
-    /// 把 exe + runtimeconfig + deps 一起打进去才不会出现"卸载器点不开"。
-    /// </summary>
     public static string? TryExtractUninstaller(string installDir)
     {
         Stream? s = Self.GetManifestResourceStream(UninstallerResource);
         if (s == null) return null;
 
-        // ⚠️ 解到安装目录根（不是 Uninstall 子目录）—— 用户要在文件夹里一眼看到它。
         string dir = installDir;
         Directory.CreateDirectory(dir);
 
@@ -65,7 +52,6 @@ internal static class Payload
         return File.Exists(exe) ? exe : null;
     }
 
-    /// <summary>自检：安装包本身是否完整可用。</summary>
     public static string DescribeSelf()
     {
         Assembly self = Self;

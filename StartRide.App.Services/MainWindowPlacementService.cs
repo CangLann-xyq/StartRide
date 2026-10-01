@@ -11,7 +11,6 @@ public sealed class MainWindowPlacementService(ISettingsService settingsService)
 {
 	internal void Restore(Window window, LauncherSettings settings)
 	{
-		//IL_0018: Unknown result type (might be due to invalid IL or missing references)
 		ArgumentNullException.ThrowIfNull(window, "window");
 		ArgumentNullException.ThrowIfNull(settings, "settings");
 		Restore(window, settings, SystemParameters.WorkArea);
@@ -25,16 +24,6 @@ public sealed class MainWindowPlacementService(ISettingsService settingsService)
 		PlaceWithin(window, workArea);
 	}
 
-	/// <summary>
-	/// 把窗口摆进工作区（放不下时贴左上，尺寸那边已经夹过了）。
-	/// </summary>
-	/// <remarks>
-	/// 位置以前完全没管：MainWindow 的 WindowStartupLocation 是 Manual，又从来不写
-	/// Left/Top，于是交给系统按"层叠"规则摆 —— 每启动一次就往右下挪 26px（实测连开三次
-	/// 是 104,104 → 130,130 → 156,156）。而窗口默认高 900、工作区只有 1032，挪两轮底边
-	/// 就钻进任务栏底下了：底部整条状态看不到，也拖不出来。所以启动时必须显式摆一次：
-	/// 没摆过（NaN）就居中，摆过但探出工作区就夹回来。
-	/// </remarks>
 	private static void PlaceWithin(Window window, Rect workArea)
 	{
 		double width = (IsValidDimension(window.Width) ? window.Width : 0.0);
@@ -54,9 +43,7 @@ public sealed class MainWindowPlacementService(ISettingsService settingsService)
 
 	internal MainWindowPlacementSnapshot Capture(Window window)
 	{
-		//IL_001d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0034: Unknown result type (might be due to invalid IL or missing references)
+
 		ArgumentNullException.ThrowIfNull(window, "window");
 		return CreateSnapshot(window.WindowState, new Size(window.ActualWidth, window.ActualHeight), window.RestoreBounds, new Size(window.Width, window.Height));
 	}

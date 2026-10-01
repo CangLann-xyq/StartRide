@@ -14,22 +14,8 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Settings;
 
-/// <summary>
-/// 通用设置页的 StartRide 第二批内容（partial 扩展）：
-///   1. 启动行为   —— 启动参数 / 全屏 / 跳过菜单 / 渲染后端 / 物理帧率 / 启动前与退出后命令 /
-///                    启动后最小化 / 关窗进托盘 / 启动时自动探测与检查
-///   2. 游戏日志   —— 读 beamng.log，按 D/I/W/E 分级统计，直接看错误
-///   3. 配置备份   —— &lt;userpath&gt;\settings 打包成 zip，可还原（还原前自动留底）
-///   4. 磁盘占用   —— mods/replays/temp 各占多少，回放与缓存一键清理
-///   5. 联机延迟   —— 中继两条通道的连通性与延迟
-///
-/// 这些开关以前大部分只在「内存与启动」页里能填、且只写进 LauncherSettings，
-/// 而真正启动 BeamNG 的代码从来不读那份配置 —— 填了等于没填。
-/// 现在统一落到 AppSettings，并且每一项都有明确的消费者（见 LaunchArgsPreviewText 的实时预览）。
-/// </summary>
 public sealed partial class GeneralSettingsViewModel
 {
-	// ---------------- 启动行为 字段 ----------------
 
 	private bool launchCheckFilesBeforeLaunch = true;
 	private bool launchSkipMenu;
@@ -52,8 +38,6 @@ public sealed partial class GeneralSettingsViewModel
 
 	private RelayCommand? refreshLaunchArgsPreviewCommand;
 
-	// ---------------- 游戏日志 字段 ----------------
-
 	private string gameLogPathText = string.Empty;
 	private string gameLogSummaryText = string.Empty;
 	private bool isGameLogBusy;
@@ -64,8 +48,6 @@ public sealed partial class GeneralSettingsViewModel
 	private RelayCommand? copyGameLogErrorsCommand;
 	private RelayCommand? openGameLogFileCommand;
 
-	// ---------------- 配置备份 字段 ----------------
-
 	private string backupStatusText = string.Empty;
 	private bool isBackupBusy;
 
@@ -74,8 +56,6 @@ public sealed partial class GeneralSettingsViewModel
 	private AsyncRelayCommand<ConfigBackupEntry>? deleteBackupCommand;
 	private AsyncRelayCommand? refreshBackupsCommand;
 	private RelayCommand? openBackupFolderCommand;
-
-	// ---------------- 磁盘占用 字段 ----------------
 
 	private string storageSummaryText = string.Empty;
 	private bool isStorageBusy;
@@ -86,17 +66,10 @@ public sealed partial class GeneralSettingsViewModel
 	private AsyncRelayCommand? cleanLogBackupsCommand;
 	private RelayCommand<StorageItem>? openStorageItemFolderCommand;
 
-	// ---------------- 联机延迟 字段 ----------------
-
 	private string relayStatusText = string.Empty;
 	private bool isRelayProbing;
 	private AsyncRelayCommand? probeRelayCommand;
 
-	// ==================================================================
-	//                          启动行为
-	// ==================================================================
-
-	/// <summary>启动前做一次游戏文件体检（缺什么先提示，别等进游戏才发现）。</summary>
 	public bool LaunchCheckFilesBeforeLaunch
 	{
 		get => launchCheckFilesBeforeLaunch;
@@ -104,7 +77,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.CheckFilesBeforeLaunch = value);
 	}
 
-	/// <summary>跳过游戏启动菜单（-noninteractive）。</summary>
 	public bool LaunchSkipMenu
 	{
 		get => launchSkipMenu;
@@ -112,7 +84,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.SkipLaunchMenu = value);
 	}
 
-	/// <summary>全屏启动（-fullscreen）。</summary>
 	public bool LaunchFullScreen
 	{
 		get => launchFullScreen;
@@ -120,7 +91,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.LaunchFullScreen = value);
 	}
 
-	/// <summary>启动游戏后把启动器最小化到任务栏。</summary>
 	public bool LaunchMinimizeLauncher
 	{
 		get => launchMinimizeLauncher;
@@ -128,7 +98,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.MinimizeToTray = value);
 	}
 
-	/// <summary>点关闭按钮时收进托盘而不是退出（托盘菜单里可以真退出）。</summary>
 	public bool LaunchCloseToTray
 	{
 		get => launchCloseToTray;
@@ -136,7 +105,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.CloseToTray = value);
 	}
 
-	/// <summary>启动游戏时预装一次联机模组（按需模式关闭时才生效）。</summary>
 	public bool LaunchAutoInstallMod
 	{
 		get => launchAutoInstallMod;
@@ -144,7 +112,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.AutoInstallMod = value);
 	}
 
-	/// <summary>退出 / 解散房间后把联机模组从游戏 mods 目录移除。</summary>
 	public bool LaunchRemoveModOnLeave
 	{
 		get => launchRemoveModOnLeave;
@@ -152,7 +119,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.RemoveModOnLeave = value);
 	}
 
-	/// <summary>强制游戏走独显（-highperformancegpu）。</summary>
 	public bool LaunchForceHighPerformanceGpu
 	{
 		get => launchForceHighPerformanceGpu;
@@ -160,7 +126,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.ForceHighPerformanceGpu = value);
 	}
 
-	/// <summary>启动器启动时自动探测游戏安装目录。</summary>
 	public bool StartupAutoDetectGame
 	{
 		get => startupAutoDetectGame;
@@ -169,13 +134,11 @@ public sealed partial class GeneralSettingsViewModel
 			if (SetStartRideSetting(ref startupAutoDetectGame, value, "StartupAutoDetectGame",
 				    app => app.AutoDetectGame = value) && value)
 			{
-				// 打开就立刻跑一次，让用户马上看到效果，而不是"下次启动才生效"
 				AutoDetectBeamNgDirectory();
 			}
 		}
 	}
 
-	/// <summary>启动时检查启动器更新。</summary>
 	public bool StartupAutoUpdate
 	{
 		get => startupAutoUpdate;
@@ -183,7 +146,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.AutoUpdate = value);
 	}
 
-	/// <summary>启动时检查车辆模组是否完整。</summary>
 	public bool StartupAutoCheckVehicleMods
 	{
 		get => startupAutoCheckVehicleMods;
@@ -191,7 +153,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.AutoCheckVehicleMods = value);
 	}
 
-	/// <summary>额外启动参数（支持带引号的路径）。</summary>
 	public string LaunchExtraArgs
 	{
 		get => launchExtraArgs;
@@ -199,7 +160,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.ExtraLaunchArgs = (value ?? string.Empty).Trim());
 	}
 
-	/// <summary>物理步进频率（-physicsfps）；留空 = 游戏默认 2000。</summary>
 	public string LaunchPhysicsFpsText
 	{
 		get => launchPhysicsFpsText;
@@ -208,12 +168,10 @@ public sealed partial class GeneralSettingsViewModel
 			string text = (value ?? string.Empty).Trim();
 			if (launchPhysicsFpsText == text) return;
 
-			// 只接受 0/空 或 500..10000 的整数，其余当没填
 			int fps = 0;
 			if (text.Length > 0 && (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out fps)
 			                        || fps < 500 || fps > 10000))
 			{
-				// 仍在输入中的中间状态（比如只敲了个 "1"）不要回写，避免把用户的手打断
 				if (text.Length > 0 && text.All(char.IsDigit))
 				{
 					launchPhysicsFpsText = text;
@@ -235,7 +193,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>启动游戏前执行的命令。</summary>
 	public string LaunchPreLaunchCommand
 	{
 		get => launchPreLaunchCommand;
@@ -243,7 +200,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.PreLaunchCommand = (value ?? string.Empty).Trim());
 	}
 
-	/// <summary>是否等启动前命令跑完再拉起游戏。</summary>
 	public bool LaunchWaitForPreLaunchCommand
 	{
 		get => launchWaitForPreLaunchCommand;
@@ -251,7 +207,6 @@ public sealed partial class GeneralSettingsViewModel
 			app => app.WaitForPreLaunchCommand = value);
 	}
 
-	/// <summary>游戏退出后执行的命令。</summary>
 	public string LaunchPostExitCommand
 	{
 		get => launchPostExitCommand;
@@ -282,10 +237,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>
-	/// 最终会拼给 BeamNG.drive.exe 的参数预览。
-	/// 「设置到底有没有生效」在这里一眼可见，不用去猜。
-	/// </summary>
 	public string LaunchArgsPreviewText
 	{
 		get => launchArgsPreviewText;
@@ -303,7 +254,6 @@ public sealed partial class GeneralSettingsViewModel
 	public IRelayCommand RefreshLaunchArgsPreviewCommand =>
 		refreshLaunchArgsPreviewCommand ?? (refreshLaunchArgsPreviewCommand = new RelayCommand(RefreshLaunchArgsPreview));
 
-	/// <summary>构造 / 加载设置后初始化这一块。</summary>
 	private void InitializeStartRideLaunchSection()
 	{
 		GraphicsBackendOptions.Clear();
@@ -319,7 +269,6 @@ public sealed partial class GeneralSettingsViewModel
 		InitializeRelaySection();
 	}
 
-	/// <summary>从 AppSettings 读一遍（不进 setter，避免初始化期间到处写盘）。</summary>
 	private void ReloadStartRideLaunchSection()
 	{
 		var app = AppSettings.Current;
@@ -368,7 +317,6 @@ public sealed partial class GeneralSettingsViewModel
 		RefreshLaunchArgsPreview();
 	}
 
-	/// <summary>把当前设置真正拼一遍参数，展示给用户。</summary>
 	internal void RefreshLaunchArgsPreview()
 	{
 		try
@@ -388,7 +336,6 @@ public sealed partial class GeneralSettingsViewModel
 
 	private static string Quote(string arg) => arg.Contains(' ') ? "\"" + arg + "\"" : arg;
 
-	/// <summary>统一的"写 AppSettings + 通知界面 + 刷新参数预览"。</summary>
 	private bool SetStartRideSetting(ref bool field, bool value, string propertyName, Action<AppSettings> apply)
 	{
 		if (field == value) return false;
@@ -403,7 +350,6 @@ public sealed partial class GeneralSettingsViewModel
 		if (field == value) return false;
 		field = value;
 		OnPropertyChanged(propertyName);
-		// 文本类改动频繁（每敲一个字符），参数预览跟着刷
 		PersistStartRide(apply);
 		return true;
 	}
@@ -422,10 +368,6 @@ public sealed partial class GeneralSettingsViewModel
 			logger.LogWarning(ex, "Persist StartRide launch setting failed.");
 		}
 	}
-
-	// ==================================================================
-	//                          游戏日志
-	// ==================================================================
 
 	public ObservableCollection<GameLogItem> GameLogProblems { get; } = new ObservableCollection<GameLogItem>();
 
@@ -478,10 +420,6 @@ public sealed partial class GeneralSettingsViewModel
 		_ = RefreshGameLogAsync();
 	}
 
-	/// <summary>
-	/// 读游戏日志并统计。日志格式自带等级字段（时间|等级|模块|消息），
-	/// 所以这里不是"搜关键字猜错误"，而是按等级精确计数。
-	/// </summary>
 	private async Task RefreshGameLogAsync()
 	{
 		if (IsGameLogBusy) return;
@@ -571,7 +509,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	/// <summary>把错误行复制到剪贴板，方便贴给群里/论坛求助。</summary>
 	private void CopyGameLogErrors()
 	{
 		try
@@ -595,10 +532,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	// ==================================================================
-	//                          配置备份
-	// ==================================================================
-
 	public ObservableCollection<ConfigBackupEntry> Backups { get; } = new ObservableCollection<ConfigBackupEntry>();
 
 	public bool HasBackups => Backups.Count > 0;
@@ -619,7 +552,6 @@ public sealed partial class GeneralSettingsViewModel
 	public IAsyncRelayCommand CreateBackupCommand =>
 		createBackupCommand ?? (createBackupCommand = new AsyncRelayCommand(CreateBackupAsync));
 
-	/// <summary>整行按钮直接带条目进来，不依赖列表选中态（省掉一层样式坑）。</summary>
 	[GeneratedCode("HandWritten", "1.0.0.0")]
 	public IAsyncRelayCommand<ConfigBackupEntry> RestoreBackupCommand =>
 		restoreBackupCommand ?? (restoreBackupCommand = new AsyncRelayCommand<ConfigBackupEntry>(
@@ -775,10 +707,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	// ==================================================================
-	//                          磁盘占用
-	// ==================================================================
-
 	public ObservableCollection<StorageItem> StorageItems { get; } = new ObservableCollection<StorageItem>();
 
 	public string StorageSummaryText
@@ -919,10 +847,6 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	// ==================================================================
-	//                          联机延迟
-	// ==================================================================
-
 	public ObservableCollection<RelayProbeItem> RelayProbes { get; } = new ObservableCollection<RelayProbeItem>();
 
 	public string RelayStatusText
@@ -980,7 +904,6 @@ public sealed partial class GeneralSettingsViewModel
 	}
 }
 
-/// <summary>渲染后端下拉项。</summary>
 public sealed class SettingsGraphicsBackendOption
 {
 	public string Key { get; }
@@ -993,7 +916,6 @@ public sealed class SettingsGraphicsBackendOption
 	}
 }
 
-/// <summary>日志行界面项。</summary>
 public sealed class GameLogItem
 {
 	public string Raw { get; }
@@ -1016,7 +938,6 @@ public sealed class GameLogItem
 	}
 }
 
-/// <summary>中继探测结果界面项。</summary>
 public sealed class RelayProbeItem
 {
 	public string Name { get; }

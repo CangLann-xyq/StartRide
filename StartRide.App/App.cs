@@ -105,8 +105,7 @@ public partial class App : System.Windows.Application
 	public App()
 	{
 		bootstrapPreferences = new LauncherBootstrapPreferences("zh-Hans", EnableDiagnosticLogging: false);
-		// StartRide：先把老布局（%APPDATA%\StartRide\app 下的 settings.json / accounts）搬到自有布局，
-		// 再读引导设置——否则这一步仍会去碰框架的默认数据目录（<EXE>\BHL）。
+
 		StartRidePaths.MigrateLegacyLayout();
 		StartRidePaths.EnsureLayout();
 		string[] args = Environment.GetCommandLineArgs().Skip(1).ToArray();
@@ -165,12 +164,7 @@ public partial class App : System.Windows.Application
 			((IServiceCollection)services).AddSingleton((ILauncherLogLevelController)logLevelController);
 			services.AddLauncherApplication();
 			services.AddLauncherInfrastructure();
-			// StartRide：数据目录、设置文件、账户状态全部改用自有布局（StartRidePaths）。
-			// 框架默认会把设置写到 <EXE>\BHL、账户写到 %APPDATA%\BHL\accounts、并把默认游戏目录算成 .minecraft，
-			// 以前是靠三个目录联接把这三个名字遮住；现在直接注入我们自己的路径——这几个类型的构造函数
-			// 本来就接受路径参数，且没有别的注册点在构造时就缓存它们，所以排在 AddLauncherInfrastructure() 之后即可顶掉。
-			// ⚠️ 框架设置服务的落盘目录用 StartRidePaths.LauncherState 而不是 Root：JsonSettingsService 写的是
-			// 「<目录>\settings.json」，直接用 Root 会和自有 AppSettings 抢同一个文件、互相整体覆盖（详见 StartRidePaths）。
+
 			services.AddSingleton(new LauncherPathProvider(StartRidePaths.Root, StartRidePaths.Root));
 			services.AddSingleton<ISettingsService>(serviceProvider => new StartRideSettingsService(
 				new JsonSettingsService(StartRidePaths.LauncherState, serviceProvider.GetRequiredService<ILogger<JsonSettingsService>>())));
@@ -178,16 +172,9 @@ public partial class App : System.Windows.Application
 				serviceProvider.GetRequiredService<LauncherPathProvider>(),
 				StartRidePaths.Accounts,
 				serviceProvider.GetRequiredService<ILogger<JsonAccountStateService>>()));
-			// StartRide：账户只有 Steam 一种，不存在 Minecraft 皮肤/披风那套缓存；顶掉框架实现，
-			// 顺带掐掉它按 ApplicationId 现拼出来的 <根>\<框架名>\accounts\{microsoft,third-party}\... 目录。
+
 			services.AddSingleton<IAccountSkinLibraryService, StartRideSkinLibraryService>();
-			// StartRide：磁盘上那套 <根>\<框架名>\accounts\{microsoft,third-party}\{avatars,capes,skins}
-			// 目录其实只有两个来源，都是**在构造函数里**就建出来的（无源码，改不掉）：
-			//   ① AccountSkinLibraryService（public 构造只收 LauncherPathProvider）→ 上面已整体顶掉；
-			//   ② ThirdPartyAccountService（public 构造收 LauncherPathProvider，internal 构造不收路径）
-			//      → 这里改用它的 internal 构造造实例再按接口注册回去：行为不变，但不再建那套目录。
-			// 构造需要从容器里取依赖，所以用工厂注册；两条路都失败就退回框架公开构造（目录会照旧被建，
-			// 但启动不受影响）。
+
 			Type thirdPartyAccountServiceType = FrameworkServiceOverrides.FindType(
 				"Launcher.Infrastructure.Accounts.ThirdParty.ThirdPartyAccountService");
 			if (thirdPartyAccountServiceType != null)
@@ -211,16 +198,11 @@ public partial class App : System.Windows.Application
 						thirdPartyAccountServiceType, serviceProvider);
 				});
 			}
-			// StartRide：Microsoft 账户也整个不支持（账户类型只剩 Steam）。框架的
-			// MicrosoftAccountService 内部构造收 LauncherPathProvider，构造时会把
-			// <根>\accounts\microsoft\{avatars,capes,skins} 一并建出来。
-			// 换成它「只收 ILogger」的公开构造（=「未配置登录」的轻量实例）：目录不再出现，
-			// 而所有 Microsoft 专用流程本来就走不到。构造失败就不注册，框架原注册继续生效。
+
 			Type microsoftAccountServiceType = FrameworkServiceOverrides.FindType(
 				"Launcher.Infrastructure.Accounts.MicrosoftAccountService");
 			if (microsoftAccountServiceType != null)
 			{
-				// 先扣下框架原本那条注册，构造失败时原样退回（保证启动绝不因此失败）。
 				ServiceDescriptor microsoftFallback = null;
 				foreach (ServiceDescriptor d in services)
 				{
@@ -242,22 +224,14 @@ public partial class App : System.Windows.Application
 					}
 				});
 			}
-			// StartRide：把"检查更新"从上游启动器的 GitHub 清单换成自有的
-			// （startride.top/update → 本仓库 update/ 两个通道）。
-			// MS.DI 取后注册者，因此必须排在 AddLauncherInfrastructure 之后才顶得掉原实现。
+
 			services.AddSingleton<ILauncherUpdateService, StartRideLauncherUpdateService>();
-			// StartRide：自有的在线更新（zip 整包下载 → 校验 → 替换安装目录 → 自动重启）。
-			// 框架层那套只支持"下载一个 exe 覆盖当前 exe"，而本工程界面全在 StartRide.dll 里
-			// （exe 只有 200 KB），只换 exe 没有任何意义；且它的 CanAutoInstall 对 zip 包直接返回
-			// false，导致「更新」按钮点了只会报"未找到可自动安装的更新包"。
+
 			services.AddSingleton<ILauncherSelfUpdateService, StartRideSelfUpdateService>();
-			// StartRide：联机页改用自建中继（房间码）实现顶替原 Terracotta。
-			// MS.DI 取后注册者，因此这一行必须排在 AddLauncherApplication 之后。
+
 			services.AddSingleton<IMultiplayerLobbyService, StartRideLobbyService>();
-			// StartRide：无需下载 Terracotta/EasyTier，直接报告模块就绪，免掉那份第三方协议弹窗。
 			services.AddSingleton<ITerracottaProvisioningService, StartRideProvisioningService>();
-			// StartRide：用"本机 BeamNG.drive"这一个合成实例顶替 Minecraft 实例扫描，
-			// 并把「启动游戏」接到真实拉起 BeamNG.drive.exe。
+
 			services.AddSingleton<IGameInstanceService, StartRideInstanceService>();
 			services.AddSingleton<ILaunchService, StartRideLaunchService>();
 			services.AddSingleton<IStatusService, StatusService>();
@@ -282,8 +256,7 @@ public partial class App : System.Windows.Application
 			services.AddSingleton<LauncherShutdownService>();
 			services.AddSingleton<MainWindowPlacementService>();
 			services.AddSingleton<LaunchStatusDialogViewModel>();
-			// 条款阅读器：首次运行弹窗与设置页的「查看」都从容器里取同一个实例，
-			// 这样两边打开的是同一份状态，关掉也能同步。
+
 			services.AddSingleton<LegalReaderViewModel>();
 			services.AddSingleton<UserAgreementDialogViewModel>();
 			services.AddSingleton<GameDirectoryStartupRecoveryDialogViewModel>();
@@ -319,7 +292,6 @@ public partial class App : System.Windows.Application
 			services.AddSingleton<MainWindow>();
 			serviceProvider = services.BuildServiceProvider();
 			Log.Debug("Service provider built.");
-			// StartRide：把浮动提示挂到 AppState，供不走 DI 的那些页面 VM 用。
 			try
 			{
 				IFloatingMessageService toast = serviceProvider.GetRequiredService<IFloatingMessageService>();
@@ -353,8 +325,7 @@ public partial class App : System.Windows.Application
 			await mainViewModel.PrimeAsync(startupSettings, minecraftDirectoryStartupRecovery);
 			IThemeService requiredService = serviceProvider.GetRequiredService<IThemeService>();
 			requiredService.ApplyPreference(mainViewModel.Settings.Theme, mainViewModel.Settings.ThemeFollowSystem, mainViewModel.Settings.LauncherBackgroundOpacityPercent);
-			// StartRide：这里原来硬编码 ApplyAccent("Blue")，用户在设置里选的强调色重启就没了
-			// （界面里选着色是对的，只是每次启动又被强制刷回蓝色）。改成读用户设置。
+
 			requiredService.ApplyAccent(mainViewModel.Settings.AccentColor);
 			requiredService.ApplyBackgroundEffect(mainViewModel.Settings.LauncherBackgroundEffect, mainViewModel.Settings.EnableImageBackgroundControlBlur);
 			MainWindow requiredService2 = serviceProvider.GetRequiredService<MainWindow>();
@@ -609,8 +580,7 @@ public partial class App : System.Windows.Application
 		_ = 1;
 		try
 		{
-			// StartRide：「启动时检查启动器更新」开关以前没有任何代码读它，
-			// 关掉照样每次启动都去检查 -> 这里接上。
+
 			if (!StartRide.Core.AppSettings.Current.AutoUpdate)
 			{
 				return;
@@ -687,9 +657,7 @@ public partial class App : System.Windows.Application
 
 	private void RegisterUnhandledExceptionLogging()
 	{
-		//IL_0015: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0020: Expected O, but got Unknown
+
 		object obj = _003C_003Ec._003C_003E9__23_0;
 		if (obj == null)
 		{

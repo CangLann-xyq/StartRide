@@ -25,11 +25,6 @@ internal static class NavigationCatalog
 
 	public const string SettingsPage = "Settings";
 
-	/// <summary>
-	/// 「高光时刻」是一级导航项，但它复用回放页的 View/VM —— 只是进页时把视图模式切到"高光"。
-	/// 它必须有自己的 Page 名：否则导航栏两项的 Page 都叫 "Install"，
-	/// 选中判据（IsPage(item.Page, CurrentPage)）会让两项同时高亮。
-	/// </summary>
 	public const string HighlightsPage = "Highlights";
 
 	public static readonly string[] PageOrder = new string[9] { "Account", "Home", "Multiplayer", "Download", "GameSettings", "Resources", "Settings", "Install", "Highlights" };
@@ -47,7 +42,6 @@ internal static class NavigationCatalog
 
 	public static IEnumerable<NavigationItem> CreatePrimaryItems()
 	{
-		// StartRide 主导航：BeamNG 真实功能页。
 		return new global::_003C_003Ez__ReadOnlyArray<NavigationItem>(new NavigationItem[8]
 		{
 			new NavigationItem
@@ -55,8 +49,7 @@ internal static class NavigationCatalog
 				Page = "Account",
 				Title = "账户",
 				Icon = "\ue77b",
-				// 必须写成 目录/文件名 双前缀：SvgIcon 会按 /Assets/Icons/<key>.svg 找，
-				// 写 general/person 会找不到文件（图标空白）。
+
 				IconKey = "general/general_person"
 			},
 			new NavigationItem
@@ -96,8 +89,7 @@ internal static class NavigationCatalog
 			},
 			new NavigationItem
 			{
-				// 与「回放」共用 ReplaysPageView/VM，只是进页时切到高光视图模式。
-				// 图标 beamng/record 是摄像机（stroke-width=4，与相邻导航项同规格）。
+
 				Page = "Highlights",
 				Title = "高光时刻",
 				Icon = "\ue722",
@@ -224,12 +216,6 @@ internal static class NavigationCatalog
 		return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 	}
 
-	/// <summary>
-	/// 这个页面名有没有**专属宿主页面**（MainWindow.ResolvePageRoot 里有一个对应分支）。
-	/// 兜底页 GeneralPageView 靠它决定自己要不要显示 —— 见 FallbackPageVisibilityConverter。
-	/// ⚠️ 以后新增一级页面，把它加进 PageOrder 就行，兜底页会自动让位；
-	/// 忘了加 = 兜底页盖在真页面上（叠标题 + 页内点不动），而且**不会报任何错**。
-	/// </summary>
 	public static bool HasDedicatedView(string? page)
 	{
 		if (string.IsNullOrEmpty(page))

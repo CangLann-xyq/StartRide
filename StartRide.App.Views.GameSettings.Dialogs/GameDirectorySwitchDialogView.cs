@@ -37,11 +37,7 @@ public partial class GameDirectorySwitchDialogView : UserControl, IComponentConn
 
 	private void DirectoryListBox_PreviewKeyDown(object sender, KeyEventArgs e)
 	{
-		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_000f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0010: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0013: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0015: Invalid comparison between Unknown and I4
+
 		if (IsSelectionBlocked())
 		{
 			Key key = e.Key;

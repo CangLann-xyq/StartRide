@@ -144,9 +144,7 @@ public sealed class PageTransitionService
 
 	private void WaitForCompositionFrames(int frameCount, Action continuation)
 	{
-		//IL_0065: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006a: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0076: Expected O, but got Unknown
+
 		CancelPendingCompositionWait();
 		int remaining = Math.Max(frameCount, 1);
 		EventHandler handler = null;
@@ -199,9 +197,7 @@ public sealed class PageTransitionService
 
 	private void StartTransitionWatchdog()
 	{
-		//IL_000e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0013: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001f: Expected O, but got Unknown
+
 		StopTransitionWatchdog();
 		DispatcherTimer val = new DispatcherTimer((DispatcherPriority)9, dispatcher)
 		{

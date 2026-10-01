@@ -104,12 +104,7 @@ public partial class FloatingMessage : UserControl, IComponentConnector
 
 	static FloatingMessage()
 	{
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0058: Expected O, but got Unknown
-		//IL_0083: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008d: Expected O, but got Unknown
-		//IL_0088: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0092: Expected O, but got Unknown
+
 		FadeInDuration = TimeSpan.FromMilliseconds(140.0);
 		FadeOutDuration = TimeSpan.FromMilliseconds(190.0);
 		MessageProperty = DependencyProperty.Register("Message", typeof(string), typeof(FloatingMessage), new PropertyMetadata((object)string.Empty));

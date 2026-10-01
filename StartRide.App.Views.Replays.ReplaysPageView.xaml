@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl x:Class="StartRide.App.Views.Replays.ReplaysPageView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:res="clr-namespace:StartRide.App.Resources" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:replays="clr-namespace:StartRide.App.ViewModels.Replays" x:Name="Root" Focusable="False">
   <FrameworkElement.Resources>
-    <!-- 模式切换按钮（回放文件 / 高光时刻）。Tag 绑"我是不是当前模式"来切换高亮外观；
-         项目里 ModManagementFilterButtonStyle 就是这个套路，保持一致。 -->
+
     <Style x:Key="ReplaysViewModeButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource LauncherDialogButtonStyle}">
       <Setter Property="MinWidth" Value="104" />
       <Setter Property="Margin" Value="0,0,8,0" />
@@ -16,7 +15,6 @@
       </Style.Triggers>
     </Style>
 
-    <!-- 高光类型筛选小按钮。MinWidth 比模式切换小得多，6 个才排得下一行（筛选行只有 32px 高）。 -->
     <Style x:Key="ReplaysHighlightChipStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource LauncherDialogButtonStyle}">
       <Setter Property="MinWidth" Value="64" />
       <Setter Property="Padding" Value="10,0" />
@@ -60,13 +58,11 @@
       </Grid>
     </DataTemplate>
 
-    <!-- 一条高光：缩略图 + 类型与数值 + 地图与时间 + 时间码 -->
     <DataTemplate DataType="{x:Type replays:HighlightEntry}">
       <controls:ListPageItemButton IconSource="{Binding ShotImage}" IconWidth="88" IconHeight="50" IconColumnWidth="106" Title="{Binding Title}" Subtitle="{Binding Subtitle}" TrailingText="{Binding TimeCodeText}" ToolTip="{Binding DetailText}" Command="{Binding DataContext.RevealHighlightCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}">
         <controls:ListPageItemButton.TrailingContent>
           <StackPanel Orientation="Horizontal">
-            <!-- 这里原本还有一个圆形的 ▶ 按钮（在资源管理器中定位这段 .rpl 录像）；
-                 用户觉得它多余，已去掉。定位截图仍可双击整条高光（RevealHighlightCommand）。 -->
+
             <Button Style="{StaticResource InlineIconButtonStyle}" ToolTip="{x:Static res:Strings.Replays_CopyHighlightTooltip}" Command="{Binding DataContext.CopyHighlightCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}">
               <controls:SvgIcon Width="16" Height="16" IconKey="general/general_copy" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
             </Button>
@@ -86,7 +82,6 @@
       <controls:ListPageFrame.ListContent>
         <Grid Tag="ReplaysListStep">
 
-          <!-- ① 回放文件 -->
           <Grid Visibility="{Binding IsReplaysMode, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
             <ListBox ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding Replays}">
               <ItemsControl.ItemsPanel>
@@ -96,7 +91,6 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type replays:ReplayItem}">
-                  <!-- IconKey 必须写 目录/文件名 双前缀；不写的话左侧 50px 图标列是空的 -->
                   <controls:ListPageItemButton IconKey="beamng/replay" IconWidth="30" IconHeight="30" Title="{Binding Name}" Subtitle="{Binding MapName}" TrailingText="{Binding FileSizeText}" ToolTip="{x:Static res:Strings.Replays_ReplayItemTooltip}" Command="{Binding DataContext.OpenReplayLocationCommand, RelativeSource={RelativeSource AncestorType={x:Type ListBox}}}" CommandParameter="{Binding}" />
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -110,7 +104,6 @@
             </TextBlock>
           </Grid>
 
-          <!-- ② 高光时刻 -->
           <Grid Visibility="{Binding IsHighlightsMode, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
             <ListBox ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Style="{StaticResource ListPageVirtualizedListBoxStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding Highlights}">
               <ItemsControl.ItemsPanel>
@@ -131,7 +124,6 @@
       </controls:ListPageFrame.ListContent>
     </controls:ListPageFrame>
 
-    <!-- 空状态引导卡片：无回放时引导打开游戏回放功能（覆盖在列表之上）。高光模式下不显示。 -->
     <Border Grid.Row="1" Margin="36,190,36,8" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="520" Visibility="{Binding NeedsGuide, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
       <Border.Style>
         <Style BasedOn="{StaticResource ReadOnlyFieldSurfaceStyle}" TargetType="{x:Type Border}">
@@ -148,7 +140,6 @@
       </StackPanel>
     </Border>
 
-    <!-- 高光为空时的引导卡片 -->
     <Border Grid.Row="1" Margin="36,190,36,8" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="560">
       <Border.Style>
         <Style BasedOn="{StaticResource ReadOnlyFieldSurfaceStyle}" TargetType="{x:Type Border}">

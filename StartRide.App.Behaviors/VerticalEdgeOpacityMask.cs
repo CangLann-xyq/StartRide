@@ -139,8 +139,7 @@ public static class VerticalEdgeOpacityMask
 
 	private static void ApplyMask(FrameworkElement element)
 	{
-		//IL_01af: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01cc: Unknown result type (might be due to invalid IL or missing references)
+
 		double actualHeight = element.ActualHeight;
 		if (actualHeight <= 0.0)
 		{
@@ -212,38 +211,7 @@ public static class VerticalEdgeOpacityMask
 
 	static VerticalEdgeOpacityMask()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
-		//IL_0068: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0072: Expected O, but got Unknown
-		//IL_006d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0077: Expected O, but got Unknown
-		//IL_00aa: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b4: Expected O, but got Unknown
-		//IL_00af: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00b9: Expected O, but got Unknown
-		//IL_00ec: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f6: Expected O, but got Unknown
-		//IL_00f1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fb: Expected O, but got Unknown
-		//IL_012e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0138: Expected O, but got Unknown
-		//IL_0133: Unknown result type (might be due to invalid IL or missing references)
-		//IL_013d: Expected O, but got Unknown
-		//IL_0170: Unknown result type (might be due to invalid IL or missing references)
-		//IL_017a: Expected O, but got Unknown
-		//IL_0175: Unknown result type (might be due to invalid IL or missing references)
-		//IL_017f: Expected O, but got Unknown
-		//IL_01b2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01bc: Expected O, but got Unknown
-		//IL_01b7: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01c1: Expected O, but got Unknown
-		//IL_01f4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_01fe: Expected O, but got Unknown
-		//IL_01f9: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0203: Expected O, but got Unknown
+
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(VerticalEdgeOpacityMask), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 		TopFadeLengthProperty = DependencyProperty.RegisterAttached("TopFadeLength", typeof(double), typeof(VerticalEdgeOpacityMask), new PropertyMetadata((object)0.0, new PropertyChangedCallback(OnFadePropertyChanged)));
 		BottomFadeLengthProperty = DependencyProperty.RegisterAttached("BottomFadeLength", typeof(double), typeof(VerticalEdgeOpacityMask), new PropertyMetadata((object)0.0, new PropertyChangedCallback(OnFadePropertyChanged)));

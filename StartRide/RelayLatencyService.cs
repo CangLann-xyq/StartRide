@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace StartRide.Core
 {
-    /// <summary>一条线路的测速结果。</summary>
     public sealed class RelayProbeResult
     {
         public string Name { get; init; } = "";
@@ -21,15 +20,6 @@ namespace StartRide.Core
             : "不可达";
     }
 
-    /// <summary>
-    /// 联机中继连通性 / 延迟测试。
-    ///
-    /// 联机出问题时第一个要回答的问题是"我这台机器到中继到底通不通"。
-    /// 这里分别测两条通道：
-    ///   · WebSocket（80 端口）—— 主力通道，能穿过云安全组
-    ///   · 直连 TCP（7777）—— 兜底通道，公网通常被安全组挡掉
-    /// 顺带读一次 HTTP 响应头，确认对端确实是中继而不是随便一个监听端口。
-    /// </summary>
     public sealed class RelayLatencyService
     {
         private readonly AppSettings _settings;
@@ -38,7 +28,6 @@ namespace StartRide.Core
 
         private const int TimeoutMs = 5000;
 
-        /// <summary>测全部通道 + 更新设置里记录的最近延迟。</summary>
         public async Task<System.Collections.Generic.List<RelayProbeResult>> ProbeAllAsync()
         {
             var app = _settings;
@@ -60,7 +49,6 @@ namespace StartRide.Core
             return results;
         }
 
-        /// <summary>WebSocket 通道：TCP 连接 + 发一次 HTTP GET 看对端有没有回响应。</summary>
         private static async Task<RelayProbeResult> ProbeWebSocketAsync(AppSettings app)
         {
             string host = app.RelayHost;
@@ -130,7 +118,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>直连 TCP 通道。</summary>
         private static async Task<RelayProbeResult> ProbeTcpAsync(AppSettings app)
         {
             string host = app.RelayHost;

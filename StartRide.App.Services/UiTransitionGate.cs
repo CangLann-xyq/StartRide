@@ -145,11 +145,7 @@ internal static class UiTransitionGate
 
 	private static void EnsureDeadlineWatchdog()
 	{
-		//IL_0020: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0025: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0055: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005b: Expected O, but got Unknown
+
 		if (deadlineWatchdog != null || DeferredActions.Count == 0)
 		{
 			return;

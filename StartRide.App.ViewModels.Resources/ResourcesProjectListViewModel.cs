@@ -955,8 +955,7 @@ public sealed class ResourcesProjectListViewModel : ObservableObject, IDisposabl
 	{
 		IReadOnlyList<string> readOnlyList = ResolveMinecraftVersions(SelectedVersionOption);
 		string text = SelectedSourceOption?.Id;
-		// 注：Loader/Source/Category/Offset/PageSize 都是 init-only，
-		// 必须在对象初始化器里一次性赋值（反编译原本展开成了逐条赋值，不合法）。
+
 		return new ResourceCatalogSearchRequest
 		{
 			Kind = options.Kind,
@@ -965,11 +964,11 @@ public sealed class ResourcesProjectListViewModel : ObservableObject, IDisposabl
 			MinecraftVersions = readOnlyList,
 			Loader = (options.ShowsLoaderFilters ? (SelectedLoaderOption?.Id switch
 			{
-				"fabric" => LoaderKind.Fabric, 
-				"forge" => LoaderKind.Forge, 
-				"neoforge" => LoaderKind.NeoForge, 
-				"quilt" => LoaderKind.Quilt, 
-				_ => LoaderKind.Vanilla, 
+				"fabric" => LoaderKind.Fabric,
+				"forge" => LoaderKind.Forge,
+				"neoforge" => LoaderKind.NeoForge,
+				"quilt" => LoaderKind.Quilt,
+				_ => LoaderKind.Vanilla,
 			}) : LoaderKind.Vanilla),
 			Source = ((text == "modrinth") ? new ResourceProjectSource?(ResourceProjectSource.Modrinth) : ((!(text == "curseforge")) ? ((ResourceProjectSource?)null) : new ResourceProjectSource?(ResourceProjectSource.CurseForge))),
 			Category = ResolveCategory(SelectedTypeOption),
@@ -1086,11 +1085,11 @@ public sealed class ResourcesProjectListViewModel : ObservableObject, IDisposabl
 	{
 		string id = instance.Loader switch
 		{
-			LoaderKind.Fabric => "fabric", 
-			LoaderKind.Forge => "forge", 
-			LoaderKind.NeoForge => "neoforge", 
-			LoaderKind.Quilt => "quilt", 
-			_ => "all", 
+			LoaderKind.Fabric => "fabric",
+			LoaderKind.Forge => "forge",
+			LoaderKind.NeoForge => "neoforge",
+			LoaderKind.Quilt => "quilt",
+			_ => "all",
 		};
 		return LoaderOptions.FirstOrDefault((ResourcesFilterOptionItem option) => string.Equals(option.Id, id, StringComparison.OrdinalIgnoreCase)) ?? LoaderOptions[0];
 	}

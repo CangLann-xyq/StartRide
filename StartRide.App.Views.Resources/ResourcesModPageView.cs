@@ -42,8 +42,7 @@ public partial class ResourcesModPageView : UserControl, IComponentConnector
 
 	public ResourcesModPageView()
 	{
-		//IL_008c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0096: Expected O, but got Unknown
+
 		InitializeComponent();
 		stepTransition = new SlidingContentTransitionCoordinator(this, ModStepHost, ProjectListStep, ProjectDetailsStep);
 		detailsTransition = new SlidingContentTransitionCoordinator(this, DetailsStepHost, InstallTargetStep, ProjectVersionsStep);

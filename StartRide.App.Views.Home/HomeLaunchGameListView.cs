@@ -114,8 +114,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	public HomeLaunchGameListView()
 	{
-		//IL_009d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a7: Expected O, but got Unknown
+
 		InitializeComponent();
 		progressiveBlurController = new ProgressiveBlurBandController(new ProgressiveBlurVisualParts(this, HomeLaunchProgressiveBlurLayer, HomeLaunchProgressiveBlurVisualSource, HomeLaunchProgressiveBlurDirectHost, HomeLaunchProgressiveBlurViewport, HomeLaunchProgressiveBlurUpscaleHost, HomeLaunchProgressiveBlurUpscaleTransform, HomeLaunchProgressiveBlurHorizontalHost, HomeLaunchProgressiveBlurVerticalHost, HomeLaunchProgressiveBlurBrush), () => base.IsVisible && isProgressiveBlurActive);
 		SetResourceReference(IsProgressiveBlurEnabledProperty, "Is.ProgressiveBlur.Enabled");
@@ -150,8 +149,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private void ScheduleDelayedCollapse()
 	{
-		//IL_0010: Unknown result type (might be due to invalid IL or missing references)
-		//IL_001a: Expected O, but got Unknown
+
 		if (collapseDelayTimer == null)
 		{
 			collapseDelayTimer = new DispatcherTimer((DispatcherPriority)5, ((DispatcherObject)this).Dispatcher);
@@ -190,8 +188,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private bool IsPointerOverMenu()
 	{
-		//IL_004c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0051: Unknown result type (might be due to invalid IL or missing references)
+
 		if (HomeLaunchMenuPanelShadow.IsMouseOver)
 		{
 			return true;
@@ -330,10 +327,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private void QueueApplyMenuState(bool animate, DispatcherPriority priority = (DispatcherPriority)6)
 	{
-		//IL_0015: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0016: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0063: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008e: Unknown result type (might be due to invalid IL or missing references)
+
 		pendingAnimate |= animate;
 		if (isApplyQueued || !((DispatcherObject)this).Dispatcher.CheckAccess())
 		{
@@ -341,7 +335,6 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 			{
 				((DispatcherObject)this).Dispatcher.BeginInvoke((Delegate)(Action)delegate
 				{
-					//IL_000d: Unknown result type (might be due to invalid IL or missing references)
 					QueueApplyMenuState(animate, priority);
 				}, priority, Array.Empty<object>());
 			}
@@ -423,7 +416,6 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private void UpdateMenuClipHost(double expandedHeight)
 	{
-		//IL_00f6: Unknown result type (might be due to invalid IL or missing references)
 		double resourceDouble = GetResourceDouble("HomeLaunchMenuPanelWidth", 224.0);
 		if (HomeLaunchMenuClipHost.Clip == null || !(Math.Abs(HomeLaunchMenuClipHost.Width - resourceDouble) < 0.1) || !(Math.Abs(HomeLaunchMenuClipHost.Height - expandedHeight) < 0.1))
 		{
@@ -521,9 +513,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private bool IsWithinScrollViewport(FrameworkElement? container)
 	{
-		//IL_006f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0074: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0079: Unknown result type (might be due to invalid IL or missing references)
+
 		if (container != null && !(container.ActualHeight <= 0.0))
 		{
 			ScrollViewer scrollViewer = VisualTreeSearch.FindDescendant((DependencyObject)(object)HomeLaunchInstanceListBox, (ScrollViewer _) => true);
@@ -546,9 +536,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private void NormalizeSelectedItemCollapseStart()
 	{
-		//IL_0044: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0049: Unknown result type (might be due to invalid IL or missing references)
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
+
 		HomeLaunchInstanceItem homeLaunchInstanceItem = attachedViewModel?.SelectedLaunchInstanceItem;
 		FrameworkElement frameworkElement = ((homeLaunchInstanceItem == null) ? null : GetSelectedItemContainer(homeLaunchInstanceItem));
 		if (frameworkElement == null)
@@ -573,9 +561,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private double CalculateCollapsedListTranslate()
 	{
-		//IL_004d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0052: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0057: Unknown result type (might be due to invalid IL or missing references)
+
 		HomeLaunchInstanceItem homeLaunchInstanceItem = attachedViewModel?.SelectedLaunchInstanceItem;
 		FrameworkElement frameworkElement = ((homeLaunchInstanceItem == null) ? null : GetSelectedItemContainer(homeLaunchInstanceItem));
 		if (frameworkElement == null)
@@ -604,9 +590,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private double GetEmptyStateTextHeight()
 	{
-		//IL_007d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_008d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0092: Unknown result type (might be due to invalid IL or missing references)
+
 		if (HomeLaunchEmptyStateText.ActualHeight > 0.0)
 		{
 			return HomeLaunchEmptyStateText.ActualHeight;
@@ -727,12 +711,7 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	static HomeLaunchGameListView()
 	{
-		//IL_001f: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Expected O, but got Unknown
-		//IL_0054: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005e: Expected O, but got Unknown
-		//IL_0059: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0063: Expected O, but got Unknown
+
 		SuppressSelectedItemBackgroundProperty = DependencyProperty.Register("SuppressSelectedItemBackground", typeof(bool), typeof(HomeLaunchGameListView), new PropertyMetadata((object)false));
 		IsProgressiveBlurEnabledProperty = DependencyProperty.Register("IsProgressiveBlurEnabled", typeof(bool), typeof(HomeLaunchGameListView), new PropertyMetadata((object)false, new PropertyChangedCallback(OnProgressiveBlurEnabledChanged)));
 		FallbackPanelMargin = new Thickness(24.0, 24.0, 0.0, 24.0);

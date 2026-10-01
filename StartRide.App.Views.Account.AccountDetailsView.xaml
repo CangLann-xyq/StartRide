@@ -13,7 +13,6 @@
             <UIElement.RenderTransform>
               <TranslateTransform />
             </UIElement.RenderTransform>
-            <!-- StartRide：Steam 头像（有则显示真图，本地缓存/远程 URL），无头像回退首字母圆形 -->
             <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Left" Background="#FF1B2838" BorderBrush="#FF2A475E" BorderThickness="1.5" ClipToBounds="True">
               <Grid>
                 <Image Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding AccountList.SelectedAccount.AvatarSource}">
@@ -95,7 +94,6 @@
                   </Grid>
                 </StackPanel>
               </GroupBox>
-              <!-- StartRide：已删除 Minecraft 皮肤/披风管理（BeamNG 联机无需皮肤）。 -->
               <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Account_IdentityHeader}" Style="{StaticResource RideSectionStyle}">
                 <StackPanel>
                   <StackPanel Orientation="Horizontal">

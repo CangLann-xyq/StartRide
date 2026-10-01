@@ -484,7 +484,6 @@ public sealed partial class LaunchMemorySettingsViewModel : SettingsSectionViewM
 			DefaultJvmArguments = settings.DefaultJvmArguments;
 			DefaultGameArguments = settings.DefaultGameArguments;
 		});
-		// BeamNG 侧的内存上限是真实作用到进程上的，值也必须跟着这里走
 		InitializeStartRideMemory();
 	}
 
@@ -529,8 +528,7 @@ public sealed partial class LaunchMemorySettingsViewModel : SettingsSectionViewM
 				settings.DefaultGameArguments = NormalizeText(DefaultGameArguments);
 			});
 			SyncStartRideMemorySettings();
-			// 启动行为开关（检查文件/最小化/全屏/启动前命令/退出后命令/游戏参数）
-			// 以前只写进 LauncherSettings，启动流程读的是 AppSettings → 这里同步过去才真生效
+
 			SyncStartRideLaunchBehaviorSettings();
 			LaunchDefaultsChanged?.Invoke(this, EventArgs.Empty);
 		}
@@ -597,9 +595,7 @@ public sealed partial class LaunchMemorySettingsViewModel : SettingsSectionViewM
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	private void OnDefaultCheckFilesBeforeLaunchChanged(bool value)
 	{
-		// StartRide：以前这里把「自动修复缺失文件」强制跟着「启动前检查文件」走，
-		// 两项永远相等 → 用户怎么点都没区别。现在两项独立，各自的消费方见
-		// LaunchMemorySettingsViewModel.StartRide.cs 的 SyncStartRideLaunchBehaviorSettings。
+
 		PersistAndNotify();
 	}
 

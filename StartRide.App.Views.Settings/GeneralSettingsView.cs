@@ -38,11 +38,7 @@ public partial class GeneralSettingsView : UserControl, IComponentConnector
 
 	private void MinecraftDirectoryListBox_PreviewKeyDown(object sender, KeyEventArgs e)
 	{
-		//IL_002c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0031: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0032: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0037: Invalid comparison between Unknown and I4
+
 		if (!IsMinecraftDirectorySelectionBlocked() || !(sender is ListBox stop))
 		{
 			return;

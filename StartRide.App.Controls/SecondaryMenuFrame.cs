@@ -96,18 +96,7 @@ public partial class SecondaryMenuFrame : UserControl, IComponentConnector
 
 	static SecondaryMenuFrame()
 	{
-		//IL_001e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0028: Expected O, but got Unknown
-		//IL_004e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0058: Expected O, but got Unknown
-		//IL_0053: Unknown result type (might be due to invalid IL or missing references)
-		//IL_005d: Expected O, but got Unknown
-		//IL_0088: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0092: Expected O, but got Unknown
-		//IL_008d: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0097: Expected O, but got Unknown
-		//IL_00b6: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00c0: Expected O, but got Unknown
+
 		TitleProperty = DependencyProperty.Register("Title", typeof(string), typeof(SecondaryMenuFrame), new PropertyMetadata((object)string.Empty));
 		MenuContentProperty = DependencyProperty.Register("MenuContent", typeof(object), typeof(SecondaryMenuFrame), new PropertyMetadata((object)null, new PropertyChangedCallback(OnContentHostPropertyChanged)));
 		UseInternalScrollViewerProperty = DependencyProperty.Register("UseInternalScrollViewer", typeof(bool), typeof(SecondaryMenuFrame), new PropertyMetadata((object)true, new PropertyChangedCallback(OnContentHostPropertyChanged)));

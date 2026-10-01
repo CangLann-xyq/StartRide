@@ -3,9 +3,7 @@
   <FontFamily x:Key="LauncherFontFamily">Segoe UI Variable Text, Microsoft YaHei UI</FontFamily>
   <FontFamily x:Key="LauncherIconFontFamily">Segoe MDL2 Assets</FontFamily>
   <system:Double x:Key="LauncherCompactControlHeight" xmlns:system="clr-namespace:System;assembly=System.Private.CoreLib">36</system:Double>
-  <!-- StartRide：原版 800 是为 Minecraft 那套窄列表定的。窗口拉宽后正文被卡在 800px，
-       右侧留出大片空白，一眼就是"套模板"。放到 1180：常见分辨率下不再出现空白，
-       同时仍给超宽屏留一条可读的行长上限。 -->
+
   <Double x:Key="DetailPageContentMaxWidth" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">1180</Double>
   <Double x:Key="HomeLaunchMenuPanelWidth" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">224</Double>
   <Double x:Key="HomeLaunchMenuCollapsedHeight" xmlns="clr-namespace:System;assembly=System.Private.CoreLib">72</Double>

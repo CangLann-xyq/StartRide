@@ -28,9 +28,7 @@ internal sealed class UiThreadStallMonitor : IDisposable
 
 	internal UiThreadStallMonitor(Dispatcher dispatcher)
 	{
-		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0019: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0029: Expected O, but got Unknown
+
 		ArgumentNullException.ThrowIfNull(dispatcher, "dispatcher");
 		timer = new DispatcherTimer((DispatcherPriority)4, dispatcher)
 		{

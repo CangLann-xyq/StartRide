@@ -44,7 +44,6 @@ public static class TextOverflowToolTip
 
 	internal static bool HasOverflow(TextBlock textBlock)
 	{
-		//IL_00ca: Unknown result type (might be due to invalid IL or missing references)
 		if (string.IsNullOrEmpty(textBlock.Text) || !textBlock.IsArrangeValid)
 		{
 			return false;
@@ -75,10 +74,7 @@ public static class TextOverflowToolTip
 
 	static TextOverflowToolTip()
 	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		//IL_002b: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0035: Expected O, but got Unknown
+
 		IsEnabledProperty = DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(TextOverflowToolTip), new PropertyMetadata((object)false, new PropertyChangedCallback(OnIsEnabledChanged)));
 	}
 }

@@ -1,8 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:controls="clr-namespace:StartRide.App.Controls" xmlns:behaviors="clr-namespace:StartRide.App.Behaviors" xmlns:converters="clr-namespace:StartRide.App.Converters" xmlns:res="clr-namespace:StartRide.App.Resources">
-  <!-- StartRide：原版模板就是「16px 半透明白标题 + 12px 间距 + 卡片」，和原版逐像素一致，
-       所以换过配色之后整页仍然一眼认得出出处。这里改成左侧强调竖条 + 高对比标题 + 一条基线，
-       每一段都有明确的"章节"起止，19 个设置/详情页共用。 -->
+
   <Style x:Key="LauncherContentSectionStyle" TargetType="{x:Type GroupBox}">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="0" />
@@ -28,10 +26,7 @@
       </Setter.Value>
     </Setter>
   </Style>
-  <!-- StartRide 设置页章节（取代 LauncherContentSectionStyle 的旧骨架）。
-       旧骨架是「裸标题 + 标题下一道线 + 内嵌一张带描边的卡片」，卡片里还套着卡片 —— 盒套盒一眼看出是套模板。
-       新版把整块收成一张极淡的卡片，标题旁边一枚强调竖条，正文左缩进 12px 与标题文字对齐（同一条左轨）。
-       与 Ride* 系列（styles/controlstyles.page.xaml）共用一套版式语言。 -->
+
   <Style x:Key="RideSectionStyle" TargetType="{x:Type GroupBox}">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
     <Setter Property="FontSize" Value="15" />
@@ -78,7 +73,6 @@
               <Border Name="SelectedBackground" Background="{DynamicResource Brush.List.Item.Selected}" CornerRadius="13" Opacity="0" />
               <Border Name="HoverBackground" Background="{DynamicResource Brush.List.Item.Hover}" CornerRadius="13" Opacity="0" />
               <Border Name="PressedBackground" Background="{DynamicResource Brush.2EFFFFFF}" CornerRadius="13" Opacity="0" />
-              <!-- 选中态左侧强调条：比整行变色更克制，也更像"自己设计的" -->
               <Border Name="SelectedAccent" Width="2.5" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,0" CornerRadius="2" Background="{DynamicResource Brush.Accent.Primary}" Opacity="0" />
               <Border Name="TopSeparator" Height="1" Margin="15,0,15,0" VerticalAlignment="Top" Background="{DynamicResource Brush.14FFFFFF}" />
               <Border Name="BottomSeparator" Height="1" Margin="15,0,15,0" VerticalAlignment="Bottom" Background="{DynamicResource Brush.14FFFFFF}" Opacity="0" />

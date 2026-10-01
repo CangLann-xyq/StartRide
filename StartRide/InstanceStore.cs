@@ -7,16 +7,12 @@ using System.Text.Json;
 
 namespace StartRide.Core
 {
-    /// <summary>一个"游戏"条目（沿用原版的 instance 模型）。</summary>
     public sealed class GameInstance
     {
         public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
         public string Name { get; set; } = "";
-        /// <summary>游戏根目录（含 BeamNG.drive.exe 的那一层）。</summary>
         public string Directory { get; set; } = "";
-        /// <summary>图标键，对应 GameSettings_Icon* 文案（Anvil/Beacon/...）。</summary>
         public string IconKey { get; set; } = "GrassBlock";
-        /// <summary>来源渠道：Release / Snapshot / AprilFools / Ancient / LocalImport。</summary>
         public string Channel { get; set; } = "Release";
         public string Version { get; set; } = "";
         public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -24,10 +20,6 @@ namespace StartRide.Core
         public string ExecutablePath => Path.Combine(Directory, "BeamNG.drive.exe");
         public bool IsValid => Directory.Length > 0 && File.Exists(ExecutablePath);
 
-        /// <summary>
-        /// 版本号：优先用登记时记下的值，其次读 version.txt；
-        /// 都拿不到时看目录名像不像版本号（0.36.x 这种），不像就算未知。
-        /// </summary>
         public string ResolvedVersion
         {
             get
@@ -60,12 +52,6 @@ namespace StartRide.Core
         }
     }
 
-    /// <summary>
-    /// 已安装游戏清单。持久化到 %AppData%\StartRide\instances.json。
-    ///
-    /// 首次运行会自动把「全局设置里探测到的游戏目录」导入成第一条记录，
-    /// 这样老用户升级上来不会看到空列表。
-    /// </summary>
     public sealed class InstanceStore
     {
         public static string StorePath => Path.Combine(AppSettings.ConfigDirectory, "instances.json");
@@ -101,7 +87,6 @@ namespace StartRide.Core
                 Items = new List<GameInstance>();
             }
 
-            // 首次：把全局设置里的目录接管进来
             if (Items.Count == 0 && !string.IsNullOrWhiteSpace(_settings.GameDirectory) &&
                 File.Exists(Path.Combine(_settings.GameDirectory, "BeamNG.drive.exe")))
             {
@@ -136,7 +121,6 @@ namespace StartRide.Core
             Changed?.Invoke();
         }
 
-        /// <summary>注册一个目录为游戏条目；已存在同目录则直接返回旧条目。</summary>
         public GameInstance Add(string directory, string? name = null, string channel = "LocalImport")
         {
             string full = Path.GetFullPath(directory);
@@ -191,13 +175,11 @@ namespace StartRide.Core
             if (Items.All(i => i.Id != id)) return;
             _settings.ActiveInstanceId = id;
             var inst = Items.First(i => i.Id == id);
-            // 全局目录跟着当前实例走，启动逻辑与模组安装都读这个值
             _settings.GameDirectory = inst.Directory;
             _settings.Save();
             Changed?.Invoke();
         }
 
-        /// <summary>扫描常见安装位置，返回找到的、尚未登记的游戏目录。</summary>
         public List<string> ScanForInstallations()
         {
             var found = new List<string>();
@@ -230,10 +212,6 @@ namespace StartRide.Core
             return found;
         }
 
-        /// <summary>
-        /// 从压缩包导入：解压到 %AppData%\StartRide\instances\&lt;名字&gt;，
-        /// 解压后若在子目录里发现 BeamNG.drive.exe 就自动下钻一层。
-        /// </summary>
         public string? ImportArchive(string archivePath, string? displayName, out string error)
         {
             error = "";
@@ -254,7 +232,7 @@ namespace StartRide.Core
                         string rel = e.FullName.Replace('/', Path.DirectorySeparatorChar);
                         string dest = Path.GetFullPath(Path.Combine(target, rel));
                         if (!dest.StartsWith(Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
-                            continue;   // 防御 zip 穿越
+                            continue;
                         if (e.Name.Length == 0)
                         {
                             Directory.CreateDirectory(dest);
@@ -277,7 +255,6 @@ namespace StartRide.Core
             }
         }
 
-        /// <summary>在目录树里找含 BeamNG.drive.exe 的那一层（最多下钻两层）。</summary>
         public static string? FindGameRoot(string root)
         {
             try
