@@ -1,9 +1,42 @@
 # StartRide
 
-**BeamNG.drive 多人联机启动器** · Windows · C# / WPF (.NET 8)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/CangLann-xyq/StartRide)](https://github.com/CangLann-xyq/StartRide/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)](#)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512bd4.svg)](#)
+
+**BeamNG.drive 多人联机启动器** · Windows · C# / WPF (.NET 8) · [English overview](#english-overview)
 
 StartRide 把「装模组 → 找房间 → 进游戏」这几件事收进一个窗口里。它自建了一套中继
 服务，用房间码组队，不依赖任何第三方穿透工具，也不需要你在路由器上开端口。
+
+---
+
+## English overview
+
+**StartRide** is an open-source multiplayer launcher for **BeamNG.drive**, written in
+C# / WPF (.NET 8) for Windows x64.
+
+It replaces the manual, error-prone setup — installing in-game mods, hunting down server
+addresses, configuring the game, launching it with the right arguments — with a single
+window. Players create or join a room with a four-digit room code; the launcher then
+installs the required in-game Lua mods, configures the game and starts it. It ships with
+its own self-hosted relay service, so no third-party tunneling tool and no router port
+forwarding is required on the player's side.
+
+| | |
+| --- | --- |
+| Build | `dotnet publish .\StartRide.csproj -c Release -o out` — needs .NET 8 SDK; **all third-party binaries are vendored in [`third_party/launcher-libs/`](third_party/launcher-libs/)**, so a clone builds as-is |
+| License | [GPL-3.0-or-later](LICENSE) — UI layer derived from a GPL-3.0 open-source Minecraft launcher skeleton, see [NOTICE](NOTICE) |
+| Download | [startride.top](https://startride.top) · [Releases](https://github.com/CangLann-xyq/StartRide/releases) |
+| Code signing policy | [docs/code-signing.md](docs/code-signing.md) |
+| Maintainer | [CangLann-xyq](https://github.com/CangLann-xyq) · cloudfur2026@qq.com |
+
+The launcher also provides vehicle/mod/replay management, Steam account detection,
+playtime statistics, cloud sync of settings and a diagnostic bundle export. The interface
+is localised in Simplified Chinese, Traditional Chinese, English and Japanese.
+
+> StartRide is an unofficial tool and is not affiliated with or endorsed by BeamNG GmbH.
 
 ---
 
@@ -53,8 +86,11 @@ dotnet publish .\StartRide.csproj -c Release -o out
 已随源码一并分发），因此克隆下来即可直接构建，不需要额外下载任何二进制文件；
 NuGet 只需要还原 `System.Management` 一个包。
 
-> 发行版由 `.github/workflows/release-sign.yml` 在 GitHub 托管的运行器上构建并签名，
-> 与本地构建使用完全相同的源码与依赖。
+> 发行版**只由本仓库源码构建**：维护者用上面完全相同的命令在本机构建、打包，
+> 产物不经任何手工修改。用于签名发版的流水线
+> [`.github/workflows/release-sign.yml`](.github/workflows/release-sign.yml)
+> 会从同一个 tag、用同一份源码与依赖在 GitHub 托管的运行器上复现这次构建，
+> 并把产物提交给签名服务 —— 这也是本项目在 SignPath 申请中承诺的构建方式。
 
 ### 改完样式后请跑一次引用检查
 

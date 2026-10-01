@@ -46,10 +46,13 @@ launcher always agree.
 ## Build and release process
 
 1. Release source is tagged in this repository (`v<version>`).
-2. The release build is produced by the project's own build pipeline from that
-   tag on GitHub-hosted runners
-   ([`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml)),
-   in a clean environment, without manual modification of the artifacts.
+2. The release build is produced from that tag by the project's own build
+   pipeline, without manual modification of the artifacts. Up to and including
+   v0.1.8 this is run by the maintainer on a local Windows machine with the exact
+   commands documented in the README; from the first signed release onward it runs
+   on GitHub-hosted runners via
+   [`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml),
+   which is the only channel that submits artifacts for signing.
 3. The resulting artifacts are submitted to SignPath for signing and approval.
 4. Signed artifacts are published to the
    [Releases](https://github.com/CangLann-xyq/StartRide/releases) page and to the
@@ -120,9 +123,11 @@ StartRide 由个人独立开发维护，因此签名相关的全部角色由同�
 ## 构建与发布流程
 
 1. 发行源码在仓库中以标签形式标记（`v<版本>`）。
-2. 发行版本由本项目自己的构建流水线从该标签在 GitHub 托管运行器上构建
-   （[`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml)），
-   产物不做任何手工修改。
+2. 发行版本由本项目自己的构建流水线从该标签构建，产物不做任何手工修改。
+   截至 `v0.1.8`（含），构建由维护者在本机使用 README 中记录的完全相同命令完成；
+   自首个已签名发行版起，构建改在 GitHub 托管的运行器上由
+   [`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml) 执行，
+   该流水线是唯一提交签名产物的通道。
 3. 构建产物提交至 SignPath 完成签名与批准。
 4. 已签名的产物发布到 [Releases](https://github.com/CangLann-xyq/StartRide/releases) 页面与官方下载页 [startride.top](https://startride.top)。
 
