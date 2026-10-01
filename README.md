@@ -40,6 +40,24 @@ is localised in Simplified Chinese, Traditional Chinese, English and Japanese.
 
 ---
 
+## 界面
+
+主页是全部功能的入口：一个按钮启动游戏，顶栏切换各功能页。
+
+![主页](docs/screenshots/01-home.jpg)
+
+| 联机 | 车辆管理 |
+| --- | --- |
+| ![联机](docs/screenshots/02-multiplayer.jpg) | ![车辆管理](docs/screenshots/03-vehicles.jpg) |
+| **模组仓库** | **回放** |
+| ![模组仓库](docs/screenshots/04-mods.jpg) | ![回放](docs/screenshots/05-replays.jpg) |
+| **高光时刻** | **全局设置** |
+| ![高光时刻](docs/screenshots/06-highlights.jpg) | ![全局设置](docs/screenshots/07-settings.jpg) |
+
+> 截图取自 v0.1.8，未做后期处理。
+
+---
+
 ## 功能
 
 **联机**
