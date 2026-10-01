@@ -37,10 +37,12 @@ Derivation and modifications
 The user-interface layer of StartRide is derived from the user-interface layer of an
 open-source Minecraft launcher that is licensed under GPL-3.0-or-later. StartRide as a
 whole is therefore released under the same license. All files derived from that project
-have been modified for this project; the features inherited from it are no longer
-reachable from the user interface or from StartRide's execution paths, and the parts
-that remain are not enabled. A list of what is inherited and what is original work is
-in `README.md`, section "许可证与来源声明".
+have been modified for this project. The user-interface features inherited from it have
+been removed from StartRide's navigation; however, part of the inherited code, some of
+its internal identifiers, and several third-party dependencies remain in the source tree
+and in the released packages, even though they have no user-interface entry point any
+more. A list of what is inherited and what is original work is in `README.md`, section
+"许可证与来源声明".
 
 This notice is given in accordance with GPL-3.0 section 5(a).
 
@@ -48,8 +50,9 @@ This notice is given in accordance with GPL-3.0 section 5(a).
 --------------
 
 StartRide 的界面层派生自一个以 GPL-3.0-or-later 授权的开源 Minecraft 启动器的界面层，
-因此本项目整体以同一许可发布。所有派生自该项目的文件均已为本项目作过修改；其中沿用
-的功能在 StartRide 的界面与运行路径中均已不再可达，保留的部分也不处于启用状态。
+因此本项目整体以同一许可发布。所有派生自该项目的文件均已为本项目作过修改；沿用自该
+项目的界面功能已从 StartRide 的导航中移除。但部分沿用代码、内部标识符与若干第三方
+依赖仍留在源码与发行包中，只是已经没有界面入口。
 哪些部分沿用、哪些属于独立实现，见 `README.md` 的「许可证与来源声明」一节。
 
 本声明依 GPL-3.0 第 5(a) 条作出。
