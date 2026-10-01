@@ -244,37 +244,37 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Launcher.Infrastructure">
-      <HintPath>..\startride-electron\_helm_dlls\Launcher.Infrastructure.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Launcher.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.DependencyInjection">
-      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Microsoft.Extensions.DependencyInjection.dll</HintPath>
     </Reference>
     <Reference Include="Launcher.Domain">
-      <HintPath>..\startride-electron\_helm_dlls\Launcher.Domain.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Launcher.Domain.dll</HintPath>
     </Reference>
     <Reference Include="Launcher.Application">
-      <HintPath>..\startride-electron\_helm_dlls\Launcher.Application.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Launcher.Application.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
-      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="CommunityToolkit.Mvvm">
-      <HintPath>..\startride-electron\_helm_dlls\CommunityToolkit.Mvvm.dll</HintPath>
+      <HintPath>third_party\launcher-libs\CommunityToolkit.Mvvm.dll</HintPath>
     </Reference>
     <Reference Include="Serilog">
-      <HintPath>..\startride-electron\_helm_dlls\Serilog.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Serilog.dll</HintPath>
     </Reference>
     <Reference Include="Serilog.Sinks.File">
-      <HintPath>..\startride-electron\_helm_dlls\Serilog.Sinks.File.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Serilog.Sinks.File.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging">
-      <HintPath>..\startride-electron\_helm_dlls\Microsoft.Extensions.Logging.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Microsoft.Extensions.Logging.dll</HintPath>
     </Reference>
     <Reference Include="Serilog.Extensions.Logging">
-      <HintPath>..\startride-electron\_helm_dlls\Serilog.Extensions.Logging.dll</HintPath>
+      <HintPath>third_party\launcher-libs\Serilog.Extensions.Logging.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

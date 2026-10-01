@@ -28,3 +28,39 @@ Copyright (C) 2026 CangLann-xyq
 
 GitHub 账号 github.com/CangLann-xyq 与项目站点 startride.top 均由本项目
 维护者本人运营；仓库中的全部源码与发行版出自同一人，联系邮箱如上。
+
+-----------------------------------------------------------------------
+
+Third-party binaries bundled with this repository
+-------------------------------------------------
+
+The directory `third_party/launcher-libs/` contains 29 unmodified
+third-party DLLs that StartRide links against. They are committed to
+this repository so that anyone can clone it and build StartRide without
+downloading additional binary files, and so that hosted CI can
+reproduce the official builds byte for byte.
+
+These binaries are redistributed as-is, each under its own license, and
+are NOT covered by this project's GPL-3.0 license. Their copyright
+holders are credited, together with version and license information, in
+`docs/legal/06-third-party-notices.md` (also shown inside the
+application at Settings > Legal > Referenced projects).
+
+No third-party binary is modified, repackaged, or re-signed by this
+project.
+
+-----------------------------------------------------------------------
+
+随本仓库分发的第三方二进制文件
+-------------------------------------------------
+
+`third_party/launcher-libs/` 目录下是本项目链接使用的 29 个第三方 DLL，
+**未作任何修改**。把它们放进仓库是为了让任何人克隆下来即可构建
+StartRide，无需另行下载二进制文件，也让托管 CI 能逐一复现官方构建。
+
+这些文件按各自的许可协议原样分发，**不受本项目 GPL-3.0 许可约束**。
+其版权归属、版本与许可信息见 `docs/legal/06-third-party-notices.md`
+（软件内「设置 → 法律与许可 → 引用的项目」中亦可查看）。
+
+本项目不对任何第三方二进制文件做修改、重新打包或重新签名。
+

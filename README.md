@@ -44,12 +44,17 @@ StartRide 把「装模组 → 找房间 → 进游戏」这几件事收进一个
 需要 **.NET 8 SDK** 或更高版本，Windows 10 1809+。
 
 ```powershell
-dotnet build .\StartRide.csproj -c Release
+git clone https://github.com/CangLann-xyq/StartRide.git
+cd StartRide
+dotnet publish .\StartRide.csproj -c Release -o out
 ```
 
-产物位于 `bin\Release\net8.0-windows\`。首次构建会自动还原 NuGet 依赖。
+产物位于 `out\`。**仓库自带全部第三方依赖**（`third_party\launcher-libs\`，共 29 个 DLL，
+已随源码一并分发），因此克隆下来即可直接构建，不需要额外下载任何二进制文件；
+NuGet 只需要还原 `System.Management` 一个包。
 
-> 若要发布单文件版本，使用 `dotnet publish -c Release -r win-x64 --self-contained false`。
+> 发行版由 `.github/workflows/release-sign.yml` 在 GitHub 托管的运行器上构建并签名，
+> 与本地构建使用完全相同的源码与依赖。
 
 ### 改完样式后请跑一次引用检查
 
@@ -143,9 +148,14 @@ GitHub 账号 [CangLann-xyq](https://github.com/CangLann-xyq) 与项目站点
 完整政策正文见 **[docs/code-signing.md](docs/code-signing.md)**（团队角色、签名范围、
 构建与发布流程、隐私与卸载说明）。
 
-本项目**尚未购买商业代码签名证书**，因此 Windows 首次运行会提示「未知发布者」或
+本项目**尚未取得代码签名证书**，因此 Windows 首次运行会提示「未知发布者」或
 「Windows 已保护你的电脑」。这是所有未签名程序的统一待遇，不代表程序有问题 ——
 点击提示里的「更多信息」→「仍要运行」即可继续。
+
+> 维护者已按 [SignPath Foundation](https://signpath.org) 的开源项目免费签名计划提交申请
+> （OSI 许可、公开仓库、自动化构建、人工批准签署等条件均已满足，签名用的 CI 流水线见
+> [`.github/workflows/release-sign.yml`](.github/workflows/release-sign.yml)）。
+> 在证书签发之前，上面的提示会一直存在。
 
 每个发行包都由维护者本人从本仓库源码构建，发布在
 [Releases](https://github.com/CangLann-xyq/StartRide/releases) 与官网 [startride.top](https://startride.top)，

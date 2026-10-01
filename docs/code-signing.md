@@ -29,6 +29,7 @@ Only artifacts built by this project from the source code in this repository are
 submitted for signing. For each release, the signed set is:
 
 - `StartRide.exe` — the launcher itself
+- `StartRide-Uninstall.exe` — the uninstaller shipped inside the installer
 - `StartRide-Setup-<version>-win-x64.exe` — the installer
 
 Third-party runtime libraries published by other open-source projects
@@ -46,7 +47,9 @@ launcher always agree.
 
 1. Release source is tagged in this repository (`v<version>`).
 2. The release build is produced by the project's own build pipeline from that
-   tag, in a clean environment, without manual modification of the artifacts.
+   tag on GitHub-hosted runners
+   ([`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml)),
+   in a clean environment, without manual modification of the artifacts.
 3. The resulting artifacts are submitted to SignPath for signing and approval.
 4. Signed artifacts are published to the
    [Releases](https://github.com/CangLann-xyq/StartRide/releases) page and to the
@@ -104,6 +107,7 @@ StartRide 由个人独立开发维护，因此签名相关的全部角色由同�
 仅提交由本项目从本仓库源码构建的产物用于签名。每次发行签名的文件为：
 
 - `StartRide.exe` —— 启动器本体
+- `StartRide-Uninstall.exe` —— 随安装包一同分发的卸载程序
 - `StartRide-Setup-<版本>-win-x64.exe` —— 安装程序
 
 其他开源项目发布的第三方运行时库（`CommunityToolkit.Mvvm`、`Serilog` 等，清单见
@@ -116,7 +120,9 @@ StartRide 由个人独立开发维护，因此签名相关的全部角色由同�
 ## 构建与发布流程
 
 1. 发行源码在仓库中以标签形式标记（`v<版本>`）。
-2. 发行版本由本项目自己的构建流水线从该标签在干净环境中构建，产物不做任何手工修改。
+2. 发行版本由本项目自己的构建流水线从该标签在 GitHub 托管运行器上构建
+   （[`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml)），
+   产物不做任何手工修改。
 3. 构建产物提交至 SignPath 完成签名与批准。
 4. 已签名的产物发布到 [Releases](https://github.com/CangLann-xyq/StartRide/releases) 页面与官方下载页 [startride.top](https://startride.top)。
 

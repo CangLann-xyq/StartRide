@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  StartRide 代码签名产物配置（SignPath Artifact Configuration）
+
+  用途：告诉 SignPath「这份上传的 zip 里，哪些文件需要签名」。
+  GitHub Actions 的 actions/upload-artifact 会把产物打成 ZIP，
+  所以这里的根元素必须是 zip-file。
+
+  匹配规则为什么是根目录下的 *.exe：
+    本工程的三次签名请求，各自把「要签的那个 exe」放在 zip 根目录：
+      主程序    StartRide.exe
+      卸载器    StartRide-Uninstall.exe
+      安装向导  StartRideSetup.exe
+    发布产物里除这三个之外没有别的 .exe（第三方依赖全是 .dll，
+    见 third_party/launcher-libs/），因此 *.exe 既精确又不会误签第三方组件。
+
+  注意：这个文件是仓库内的存档副本。真正生效的那一份要在
+  SignPath 门户里创建（项目 → Artifact Configurations → Add → Custom，
+  把下面 XML 原样粘进去），两边内容应保持一致。
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="*.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
