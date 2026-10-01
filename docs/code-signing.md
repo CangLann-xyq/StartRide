@@ -48,7 +48,7 @@ launcher always agree.
 1. Release source is tagged in this repository (`v<version>`).
 2. The release build is produced from that tag by the project's own build
    pipeline, without manual modification of the artifacts. Up to and including
-   v0.1.8 this is run by the maintainer on a local Windows machine with the exact
+   v1.0.0 this is run by the maintainer on a local Windows machine with the exact
    commands documented in the README; from the first signed release onward it runs
    on GitHub-hosted runners via
    [`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml),
@@ -129,7 +129,7 @@ StartRide 由个人独立开发维护，因此签名相关的全部角色由同�
 
 1. 发行源码在仓库中以标签形式标记（`v<版本>`）。
 2. 发行版本由本项目自己的构建流水线从该标签构建，产物不做任何手工修改。
-   截至 `v0.1.8`（含），构建由维护者在本机使用 README 中记录的完全相同命令完成；
+   截至 `v1.0.0`（含），构建由维护者在本机使用 README 中记录的完全相同命令完成；
    自首个已签名发行版起，构建改在 GitHub 托管的运行器上由
    [`.github/workflows/release-sign.yml`](../.github/workflows/release-sign.yml) 执行，
    该流水线是唯一提交签名产物的通道。

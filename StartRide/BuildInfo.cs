@@ -2,7 +2,7 @@
 {
     public static class BuildInfo
     {
-        public const string Version = "0.1.9";
+        public const string Version = "1.0.0";
 
         public const string UpstreamVersionReference = "0.9.15.0";
     }
