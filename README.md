@@ -27,7 +27,7 @@ forwarding is required on the player's side.
 | | |
 | --- | --- |
 | Build | `dotnet publish .\StartRide.csproj -c Release -o out` — needs .NET 8 SDK; **all third-party binaries are vendored in [`third_party/launcher-libs/`](third_party/launcher-libs/)**, so a clone builds as-is |
-| License | [GPL-3.0-or-later](LICENSE) — UI layer derived from a GPL-3.0 open-source Minecraft launcher skeleton, see [NOTICE](NOTICE) |
+| License | [GPL-3.0-or-later](LICENSE) — the UI layer is derived from a GPL-3.0 open-source Minecraft launcher skeleton; some inherited identifiers and third-party dependencies remain bundled but unused. See [NOTICE](NOTICE) |
 | Download | [startride.top](https://startride.top) · [Releases](https://github.com/CangLann-xyq/StartRide/releases) |
 | Code signing policy | [docs/code-signing.md](docs/code-signing.md) |
 | Maintainer | [CangLann-xyq](https://github.com/CangLann-xyq) · cloudfur2026@qq.com |
@@ -150,8 +150,14 @@ StartRide 的界面层基于一个开源 Minecraft 启动器（GPL-3.0）的既�
 **属于独立实现的部分**：联机会话与中继协议、模组安装与版本校验、BeamNG 启动与运行时
 管理、游玩时长统计、诊断包导出、云端同步、Steam 登录、以及全部车辆/模组/回放的管理界面。
 
-界面层沿用上述骨架。那个启动器面向 Minecraft，其实例扫描、加载器选择、皮肤披风、
-第三方认证等模块在 StartRide 中已不可达或移除；被替换为 BeamNG.drive 的对应实现。
+界面层沿用上述骨架，因此仓库与发行包中仍能见到该骨架遗留的内部标识符（类型名、
+资源键名）及其部分第三方依赖库（`CmlLib.Core`、`XboxAuthNet` 系列等，版权与许可见
+[docs/legal/06-third-party-notices.md](docs/legal/06-third-party-notices.md)）。
+
+那个启动器面向 Minecraft。它的实例扫描、加载器选择、皮肤模型、账号认证等能力，
+在 StartRide 中**已不再提供界面入口、也不再进入运行路径**，对应位置改由 BeamNG.drive
+的实现承担（例如「皮肤」在 StartRide 中即车辆涂装）。但请留意：**这不等同于相关
+代码与第三方依赖已从项目中删除** —— 它们仍在源码与发行包中，只是处于不启用状态。
 
 第三方依赖及其许可证可在启动器「设置 → 关于」中查看。
 
