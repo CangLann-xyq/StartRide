@@ -47,6 +47,7 @@ public partial class InstallerWindow : Window
         }
 
         VersionLabel.Text = "版本 " + ProductInfo.Version;
+        DeveloperLabel.Text = "开发者 " + ProductInfo.Developer;
         FooterHint.Text = Payload.DescribeSelf();
     }
 

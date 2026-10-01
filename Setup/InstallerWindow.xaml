@@ -75,6 +75,8 @@
           <Image x:Name="BrandLogo" Width="196" HorizontalAlignment="Left" Stretch="Uniform" />
           <TextBlock Text="BeamNG.drive 多人联机启动器" Margin="0,8,0,0"
                      Style="{StaticResource DimText}" TextWrapping="Wrap" />
+          <TextBlock x:Name="DeveloperLabel" Margin="0,6,0,0"
+                     Style="{StaticResource DimText}" TextWrapping="Wrap" />
 
           <Border Height="1" Background="{StaticResource Brush.Line}" Margin="0,22,0,22" />
 

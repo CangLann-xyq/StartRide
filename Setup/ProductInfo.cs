@@ -10,7 +10,8 @@ internal static class ProductInfo
     public const string ProductName = "StartRide";
     public const string AppExeName = "StartRide.exe";
     public const string UninstallerName = "StartRide-Uninstall.exe";
-    public const string Publisher = "StartRide";
+    public const string Developer = "肖又祺";
+    public const string Publisher = Developer;
     public const string Tagline = "BeamNG.drive 多人联机启动器";
 
     public const string UninstallRegistryKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\StartRide";
