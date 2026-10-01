@@ -138,7 +138,10 @@ GitHub 账号 [CangLann-xyq](https://github.com/CangLann-xyq) 与项目站点
 
 ---
 
-## 代码签名政策
+## Code signing policy（代码签名政策）
+
+完整政策正文见 **[docs/code-signing.md](docs/code-signing.md)**（团队角色、签名范围、
+构建与发布流程、隐私与卸载说明）。
 
 本项目**尚未购买商业代码签名证书**，因此 Windows 首次运行会提示「未知发布者」或
 「Windows 已保护你的电脑」。这是所有未签名程序的统一待遇，不代表程序有问题 ——
