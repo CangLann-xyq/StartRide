@@ -1,0 +1,98 @@
+name: Build (verification)
+
+# 从干净检出验证「本仓库可以被自动构建出来」，且不依赖任何密钥。
+# 这条流水线是给代码签名审核看的证据：源码 → 构建 → 产物，全程可复现。
+# 真正带签名的发版流水线是 release-sign.yml，需要批准后配置的 SignPath 密钥。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'StartRide/**'
+      - 'Setup/**'
+      - 'Mods/**'
+      - 'Properties/**'
+      - 'StartRide.csproj'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    env:
+      APP_OUT: build\app
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Show toolchain versions
+        shell: pwsh
+        run: |
+          dotnet --version
+          dotnet --list-sdks | Write-Host
+
+      - name: Read version from source
+        id: ver
+        shell: pwsh
+        run: |
+          $src = Get-Content -Raw -Path 'StartRide\BuildInfo.cs'
+          if ($src -notmatch 'Version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') {
+            throw 'StartRide/BuildInfo.cs 里读不到 Version'
+          }
+          "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          Write-Host "版本: $($Matches[1])"
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore 'StartRide.csproj' --nologo -v m
+
+      - name: Build launcher (Release)
+        shell: pwsh
+        run: dotnet publish 'StartRide.csproj' -c Release -o $env:APP_OUT --nologo -v m
+
+      - name: Verify output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:APP_OUT\StartRide.exe")) {
+            throw "构建产物中找不到 StartRide.exe"
+          }
+          $exe = Get-Item "$env:APP_OUT\StartRide.exe"
+          Write-Host ("StartRide.exe  {0} B" -f $exe.Length)
+          $dll = Get-Item "$env:APP_OUT\StartRide.dll"
+          $vi = $dll.VersionInfo
+          Write-Host ("FileVersion    {0}" -f $vi.FileVersion)
+          Write-Host ("ProductName    {0}" -f $vi.ProductName)
+          Write-Host ("CompanyName    {0}" -f $vi.CompanyName)
+          Write-Host ("LegalCopyright {0}" -f $vi.LegalCopyright)
+          $n = (Get-ChildItem $env:APP_OUT -Filter *.dll).Count
+          Write-Host "输出文件: $((Get-ChildItem $env:APP_OUT -File).Count) 个（其中 $n 个 DLL）"
+
+      - name: Record hashes of the build output
+        shell: pwsh
+        run: |
+          Get-FileHash "$env:APP_OUT\StartRide.exe" -Algorithm SHA256 |
+            ForEach-Object { Write-Host ("SHA256 StartRide.exe  {0}" -f $_.Hash.ToLower()) }
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: startride-unsigned-${{ steps.ver.outputs.version }}-${{ github.sha }}
+          path: ${{ env.APP_OUT }}
+          retention-days: 14
+          if-no-files-found: error
