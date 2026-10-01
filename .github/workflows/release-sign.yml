@@ -1,0 +1,262 @@
+name: Release (signed)
+
+# 手动触发的发版流水线。
+# 为什么不挂在 push 上：SignPath 的 release-signing 策略需要人工批准，
+# 整条流水线会在签名那一步等人点确认，挂在 push 上会一直占着运行器。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（留空 = 从 StartRide/BuildInfo.cs 读取；填了则必须与源码一致）'
+        required: false
+        default: ''
+      create_release:
+        description: '签名完成后是否创建 GitHub Release（true / false）'
+        required: false
+        default: 'true'
+
+# SignPath 的提交动作要读 Actions artifact（actions: read），
+# 建 Release 要写仓库内容（contents: write）。
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-sign-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # SignPath 的免费档要求使用 GitHub 托管的运行器
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    env:
+      APP_OUT: build\app
+      UNINST_OUT: build\uninstaller
+      SETUP_OUT: build\setup
+      SIGNED: signed
+      ARTIFACT_CONFIG: startride-binaries
+
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # ── 版本号 ────────────────────────────────────────────────────────
+      - name: 读取并校验版本号
+        id: ver
+        shell: pwsh
+        run: |
+          $src = Get-Content -Raw -Path 'StartRide\BuildInfo.cs'
+          if ($src -notmatch 'Version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') {
+            throw 'StartRide/BuildInfo.cs 里读不到 Version'
+          }
+          $v = $Matches[1]
+          $want = '${{ inputs.version }}'
+          if ($want -ne '' -and $want -ne $v) {
+            throw "输入版本 $want 与源码里的 $v 不一致，请先改 BuildInfo.cs"
+          }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "版本: $v"
+
+      # ── 1) 主程序 ─────────────────────────────────────────────────────
+      - name: 构建主程序
+        shell: pwsh
+        run: |
+          dotnet publish 'StartRide.csproj' -c Release -o $env:APP_OUT --nologo -v m
+
+      - name: 打包待签名的主程序
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:APP_OUT\*" -DestinationPath 'unsigned-app.zip' -Force
+
+      - name: 上传待签名的主程序
+        id: up-app
+        uses: actions/upload-artifact@v4
+        with:
+          name: startride-unsigned-app
+          path: unsigned-app.zip
+          retention-days: 3
+
+      - name: 提交签名请求（主程序，需人工批准）
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.ARTIFACT_CONFIG }}
+          github-artifact-id: ${{ steps.up-app.outputs.artifact-id }}
+          wait-for-completion: true
+          # 人工批准会让人等很久，默认 600 秒不够
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed\app
+
+      - name: 校验主程序签名
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature "$env:SIGNED\app\StartRide.exe"
+          Write-Host "签名状态: $($sig.Status)"
+          if ($sig.SignerCertificate) { Write-Host "签名者  : $($sig.SignerCertificate.Subject)" }
+          if ($sig.Status -ne 'Valid') { throw "主程序签名无效：$($sig.Status)" }
+
+      # ── 2) 卸载器 ─────────────────────────────────────────────────────
+      - name: 构建卸载器
+        shell: pwsh
+        run: |
+          dotnet publish 'Setup\StartRide.Setup.csproj' -c Release -o $env:UNINST_OUT `
+            -p:UninstallerOnly=true -p:SetupVersion=${{ steps.ver.outputs.version }} `
+            -p:DebugType=none --nologo -v m
+
+      - name: 打包待签名的卸载器
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:UNINST_OUT\*" -DestinationPath 'unsigned-uninstaller.zip' -Force
+
+      - name: 上传待签名的卸载器
+        id: up-uninst
+        uses: actions/upload-artifact@v4
+        with:
+          name: startride-unsigned-uninstaller
+          path: unsigned-uninstaller.zip
+          retention-days: 3
+
+      - name: 提交签名请求（卸载器，需人工批准）
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.ARTIFACT_CONFIG }}
+          github-artifact-id: ${{ steps.up-uninst.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed\uninstaller
+
+      # ── 3) 安装向导（必须用「已签名的主程序」当载荷）──────────────────
+      - name: 组装安装载荷
+        shell: pwsh
+        run: |
+          $ver = '${{ steps.ver.outputs.version }}'
+          # 整包：顶层必须带一层目录名，启动器在线更新会剥掉这层
+          $appStage = "build\payload\StartRide-$ver-win-x64"
+          New-Item -ItemType Directory -Force -Path $appStage | Out-Null
+          Copy-Item -Path "$env:SIGNED\app\*" -Destination $appStage -Recurse -Force
+
+          New-Item -ItemType Directory -Force -Path 'Setup\Payload' | Out-Null
+          Compress-Archive -Path "build\payload\StartRide-$ver-win-x64" `
+            -DestinationPath 'Setup\Payload\StartRide-app.zip' -Force
+          # 卸载器：条目用相对路径，解压方直接铺到目标目录
+          Compress-Archive -Path "$env:SIGNED\uninstaller\*" `
+            -DestinationPath 'Setup\Payload\StartRide-Uninstall.zip' -Force
+
+          Write-Host '载荷已放入 Setup\Payload\'
+
+      - name: 构建安装向导
+        shell: pwsh
+        run: |
+          dotnet publish 'Setup\StartRide.Setup.csproj' -c Release -o $env:SETUP_OUT `
+            -p:SetupVersion=${{ steps.ver.outputs.version }} `
+            -p:PublishSingleFile=true -p:SelfContained=false `
+            -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none `
+            --nologo -v m
+
+      - name: 打包待签名的安装向导
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:SETUP_OUT\*" -DestinationPath 'unsigned-setup.zip' -Force
+
+      - name: 上传待签名的安装向导
+        id: up-setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: startride-unsigned-setup
+          path: unsigned-setup.zip
+          retention-days: 3
+
+      - name: 提交签名请求（安装向导，需人工批准）
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.ARTIFACT_CONFIG }}
+          github-artifact-id: ${{ steps.up-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed\setup
+
+      # ── 4) 收尾：校验、整理成发布产物 ─────────────────────────────────
+      - name: 校验全部签名
+        shell: pwsh
+        run: |
+          $targets = @(
+            "$env:SIGNED\app\StartRide.exe",
+            "$env:SIGNED\uninstaller\StartRide-Uninstall.exe",
+            "$env:SIGNED\setup\StartRideSetup.exe"
+          )
+          $bad = 0
+          foreach ($t in $targets) {
+            if (-not (Test-Path $t)) { Write-Host "缺失: $t"; $bad++; continue }
+            $sig = Get-AuthenticodeSignature $t
+            $who = if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { '(无)' }
+            Write-Host ("{0,-34} {1}  {2}" -f (Split-Path $t -Leaf), $sig.Status, $who)
+            if ($sig.Status -ne 'Valid') { $bad++ }
+          }
+          if ($bad -gt 0) { throw "有 $bad 个文件签名无效" }
+
+      - name: 生成发布产物
+        shell: pwsh
+        run: |
+          $ver = '${{ steps.ver.outputs.version }}'
+          $appStage = "build\payload\StartRide-$ver-win-x64"
+          Copy-Item -Path "$env:SIGNED\setup\StartRideSetup.exe" `
+            -Destination "StartRide-Setup-$ver-win-x64.exe" -Force
+          Compress-Archive -Path $appStage -DestinationPath "StartRide-$ver-win-x64.zip" -Force
+          Get-ChildItem "StartRide-*-win-x64.*" | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            Write-Host ("{0}  {1,10} B  {2}" -f $_.Name, $_.Length, $h)
+          }
+
+      - name: 上传签名后的产物（供官网分发使用）
+        uses: actions/upload-artifact@v4
+        with:
+          name: startride-signed-${{ steps.ver.outputs.version }}
+          path: |
+            StartRide-${{ steps.ver.outputs.version }}-win-x64.zip
+            StartRide-Setup-${{ steps.ver.outputs.version }}-win-x64.exe
+          retention-days: 30
+
+      - name: 创建 GitHub Release
+        if: ${{ inputs.create_release == 'true' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = '${{ steps.ver.outputs.version }}'
+          $tag = "v$ver"
+          $assets = @("StartRide-$ver-win-x64.zip", "StartRide-Setup-$ver-win-x64.exe")
+          gh release view $tag 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag 已存在，覆盖附件"
+            gh release upload $tag @assets --clobber
+          } else {
+            Write-Host "创建 Release $tag"
+            gh release create $tag --title $tag --generate-notes @assets
+          }
+
+      - name: 结果摘要
+        shell: pwsh
+        run: |
+          Write-Host "StartRide ${{ steps.ver.outputs.version }} 已完成签名构建"
+          foreach ($f in Get-ChildItem "StartRide-*-win-x64.*") {
+            Write-Host ("  {0}  {1} B" -f $f.Name, $f.Length)
+          }
+          Write-Host "签名后的产物已上传为本工作流 artifact；官网分发下载后跑 _sr_deploy_update.py"
