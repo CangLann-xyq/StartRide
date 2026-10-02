@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -76,7 +76,20 @@ public sealed class AccountOfflineUuidViewModel : ObservableObject
 
 	public ObservableCollection<OfflineUuidModeOption> OfflineUuidOptions { get; }
 
-	public bool HasSelectedOfflineAccount => accountList.SelectedAccount?.IsOffline ?? false;
+	private const string SteamAccountIdPrefix = "steam-";
+
+	public bool HasSelectedOfflineAccount
+	{
+		get
+		{
+			LauncherAccount? account = accountList.SelectedAccount;
+			if (account == null || !account.IsOffline)
+			{
+				return false;
+			}
+			return account.Id == null || !account.Id.StartsWith(SteamAccountIdPrefix, StringComparison.Ordinal);
+		}
+	}
 
 	public bool HasManualUuidEditor
 	{

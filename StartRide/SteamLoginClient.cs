@@ -8,6 +8,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using System.Diagnostics;
+using System.Threading;
 
 namespace StartRide.Core
 {
@@ -84,6 +86,119 @@ namespace StartRide.Core
             {
             }
             return null;
+        }
+
+        /// <summary>Steam 客户端可执行文件路径（注册表 SteamExe 优先，退回 SteamPath\steam.exe）。</summary>
+        public static string? GetSteamExePath()
+        {
+            try
+            {
+                object? value = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamExe", null);
+                if (value is string exe && exe.Length > 0 && File.Exists(exe))
+                {
+                    return exe;
+                }
+            }
+            catch
+            {
+            }
+
+            string? root = GetSteamPath();
+            if (!string.IsNullOrWhiteSpace(root))
+            {
+                string candidate = Path.Combine(root, "steam.exe");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>Steam 客户端是否已在运行。</summary>
+        public static bool IsSteamRunning()
+        {
+            var list = new List<Process>();
+            try
+            {
+                list.AddRange(Process.GetProcessesByName("steam"));
+                foreach (Process p in list)
+                {
+                    try
+                    {
+                        if (!p.HasExited)
+                        {
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                foreach (Process p in list)
+                {
+                    try { p.Dispose(); } catch { }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 确保 Steam 客户端在运行 —— 这是「从启动器启动的游玩被 Steam 记入时长」的前提。
+        ///
+        /// 实测结论：即使直接启动 BeamNG.drive.exe（不经 Steam 启动），只要 Steam 客户端在运行，
+        /// Steam 依然会把这段时长记到账上（rtime_last_played 会刷新）；
+        /// 而 Steam 没开时，这段时间 Steam 完全不知情。
+        ///
+        /// 拿不到 Steam 路径或拉起失败都返回 false —— 调用方必须放行游戏，
+        /// 绝不能因为 Steam 的问题让人进不去。
+        /// </summary>
+        public static bool EnsureSteamRunning(int waitMs = 30000, Action<string>? log = null)
+        {
+            if (IsSteamRunning())
+            {
+                return true;
+            }
+
+            string? exe = GetSteamExePath();
+            if (string.IsNullOrWhiteSpace(exe))
+            {
+                log?.Invoke("本机找不到 Steam 客户端（注册表 SteamExe / SteamPath 都没有）");
+                return false;
+            }
+
+            try
+            {
+                log?.Invoke("Steam 未运行，正在拉起：" + exe);
+                Process.Start(new ProcessStartInfo { FileName = exe, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke("拉起 Steam 失败：" + ex.Message);
+                return false;
+            }
+
+            var watch = Stopwatch.StartNew();
+            while (watch.ElapsedMilliseconds < waitMs)
+            {
+                if (IsSteamRunning())
+                {
+                    // 进程起来 ≠ 客户端就绪：登录/加载还要一点时间，
+                    // 太早启动游戏会以「Steam 未运行」的方式失败。
+                    Thread.Sleep(4000);
+                    return true;
+                }
+                Thread.Sleep(700);
+            }
+            log?.Invoke("等待 Steam 启动超时（" + (waitMs / 1000) + " 秒）");
+            return false;
         }
 
         public static SteamUserInfo? DetectSignedInUser()

@@ -9,106 +9,264 @@
     <Grid Name="PART_ProgressiveBlurDirectHost" SnapsToDevicePixels="True">
       <Grid Name="PART_ProgressiveBlurVisualSource" Background="#00FFFFFF">
         <ScrollViewer Name="AccountDetailsScrollViewer" Style="{StaticResource ListPageScrollViewerStyle}">
-          <StackPanel Name="DetailsContentRoot" Margin="12,132,12,72" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
+          <Grid Name="DetailsContentRoot" MinHeight="{Binding ActualHeight, ElementName=AccountDetailsScrollViewer}" Margin="12,0,12,0" MaxWidth="{StaticResource DetailPageContentMaxWidth}" HorizontalAlignment="Stretch">
             <UIElement.RenderTransform>
               <TranslateTransform />
             </UIElement.RenderTransform>
-            <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Left" Background="#FF1B2838" BorderBrush="#FF2A475E" BorderThickness="1.5" ClipToBounds="True">
-              <Grid>
-                <Image Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding AccountList.SelectedAccount.AvatarSource}">
-                  <FrameworkElement.Style>
-                    <Style TargetType="{x:Type Image}">
-                      <Setter Property="Visibility" Value="{Binding AccountList.SelectedAccount.AvatarSource, Converter={StaticResource BlankToCollapsedConverter}}" />
-                    </Style>
-                  </FrameworkElement.Style>
-                </Image>
-                <TextBlock Text="{Binding AccountList.SelectedAccount.DisplayName, Converter={StaticResource StringInitialConverter}}" FontSize="28" FontWeight="SemiBold" Foreground="#FF66C0F4" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <FrameworkElement.Style>
-                    <Style TargetType="{x:Type TextBlock}">
-                      <Setter Property="Visibility" Value="Collapsed" />
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding AccountList.SelectedAccount.AvatarSource}" Value="{x:Null}">
-                          <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding AccountList.SelectedAccount.AvatarSource}" Value="">
-                          <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </FrameworkElement.Style>
-                </TextBlock>
-              </Grid>
-            </Border>
-            <Grid Margin="0,18,0,0" HorizontalAlignment="Left">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 账户头：头像 · 昵称 · 类型 · 重命名（原先是竖排三块，现在收成一行，和车辆管理页的页头同构） -->
+            <Grid Grid.Row="0" Margin="0,132,0,0">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock Style="{StaticResource RidePageTitleTextStyle}" VerticalAlignment="Center" Text="{Binding AccountList.SelectedAccount.DisplayName}" />
-              <Button Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource InlineIconButtonStyle}" IsEnabled="{Binding CanRenameSelectedAccount}" Visibility="{Binding CanRenameSelectedAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" Command="{Binding RequestRenameAccountCommand}">
-                <controls:SvgIcon Width="16" Height="16" IconKey="general/general_edit" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
-              </Button>
+              <Border Width="64" Height="64" CornerRadius="32" Background="#FF1B2838" BorderBrush="#FF2A475E" BorderThickness="1.5" ClipToBounds="True">
+                <Grid>
+                  <Image Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding AccountList.SelectedAccount.AvatarSource}">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type Image}">
+                        <Setter Property="Visibility" Value="{Binding AccountList.SelectedAccount.AvatarSource, Converter={StaticResource BlankToCollapsedConverter}}" />
+                      </Style>
+                    </FrameworkElement.Style>
+                  </Image>
+                  <TextBlock Text="{Binding AccountList.SelectedAccount.DisplayName, Converter={StaticResource StringInitialConverter}}" FontSize="28" FontWeight="SemiBold" Foreground="#FF66C0F4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding AccountList.SelectedAccount.AvatarSource}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding AccountList.SelectedAccount.AvatarSource}" Value="">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </FrameworkElement.Style>
+                  </TextBlock>
+                </Grid>
+              </Border>
+              <StackPanel Grid.Column="1" Margin="16,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource RidePageTitleTextStyle}" TextTrimming="CharacterEllipsis" Text="{Binding AccountList.SelectedAccount.DisplayName}" />
+                <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12.5" Text="{Binding AccountList.SelectedAccount, Converter={StaticResource AccountKindTextConverter}}" />
+              </StackPanel>
+              <Button Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Account_RenameButton}" IsEnabled="{Binding CanRenameSelectedAccount}" Visibility="{Binding CanRenameSelectedAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" Command="{Binding RequestRenameAccountCommand}" />
             </Grid>
-            <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12.5" Text="{Binding AccountList.SelectedAccount, Converter={StaticResource AccountKindTextConverter}}" />
-            <StackPanel Margin="0,26,0,0">
-              <GroupBox Header="{x:Static res:Strings.Account_UuidHeader}" Style="{StaticResource RideSectionStyle}">
-                <StackPanel>
-                  <Border Style="{StaticResource RideFieldSurfaceStyle}">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                      </Grid.ColumnDefinitions>
-                      <TextBlock Style="{StaticResource ReadOnlyFieldTextStyle}" Text="{Binding OfflineUuid.SelectedAccountUuidText}" />
-                      <Button Grid.Column="1" Margin="10,-4,-6,-4" Style="{StaticResource InlineIconButtonStyle}" Command="{Binding OfflineUuid.CopySelectedUuidCommand}">
-                        <controls:SvgIcon Width="16" Height="16" IconKey="general/general_copy" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}" />
-                      </Button>
-                    </Grid>
+
+            <!-- 本机记录：游玩时长/启动次数/上次启动都是本机维度，不跟账户走，所以右侧明写「不分账户」 -->
+            <Border Grid.Row="1" Margin="0,18,0,0" Style="{StaticResource RideStatStripStyle}">
+              <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Secondary}" Text="{Binding MachineStatsBandText}" />
+                <StackPanel Orientation="Horizontal">
+                  <Border Style="{StaticResource RideStatChipStyle}">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource RideStatChipValueStyle}" Text="{Binding PlaytimeText}" />
+                      <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Account_StatChipPlaytimeLabel}" />
+                    </StackPanel>
                   </Border>
-                  <Grid Margin="0,12,0,0" Visibility="{Binding OfflineUuid.HasSelectedOfflineAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                  <Border Style="{StaticResource RideStatChipStyle}">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LaunchCountText}" />
+                      <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Account_StatChipLaunchCountLabel}" />
+                    </StackPanel>
+                  </Border>
+                  <Border Style="{StaticResource RideStatChipStyle}">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LastLaunchText}" />
+                      <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Account_StatChipLastLaunchLabel}" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </DockPanel>
+            </Border>
+
+            <!-- 本地昵称账户专用：联机 ID 生成方式 / 手动 ID。Steam 账户由 SteamID64 强制决定 ID，这一块整体隐藏 -->
+            <!-- Steam 同步：时长的权威账本在 Steam（它记所有会话），本机计数只是启动器自己那份账 -->
+            <Border Grid.Row="2" Margin="0,14,0,0" Style="{StaticResource RideDetailSurfaceStyle}">
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource RideDetailTitleStyle}" Text="{x:Static res:Strings.Account_SteamSection}" />
+                    <TextBlock Margin="0,6,0,0" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamSyncedAtText}" />
+                  </StackPanel>
+                  <Button Grid.Column="1" VerticalAlignment="Top" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Account_SteamSyncNowButton}" Command="{Binding SyncSteamCommand}" Visibility="{Binding HasSteamSync, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                </Grid>
+
+                <!-- 没绑定 Steam：说清楚为什么这块是空的 -->
+                <TextBlock Margin="0,14,0,0" FontSize="12.5" LineHeight="20" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamNotBound}" Visibility="{Binding HasNoSteamSync, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+
+                <StackPanel Visibility="{Binding HasSteamSync, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                  <Grid Margin="0,16,0,0">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="*" />
-                      <ColumnDefinition Width="220" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{x:Static res:Strings.Account_OfflineUuidModeLabel}" Foreground="{DynamicResource Brush.CFFFFFFF}" FontSize="13" VerticalAlignment="Center" />
-                    <controls:AnimatedComboBox Grid.Column="1" Style="{StaticResource LauncherComboBoxStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True" ItemsSource="{Binding OfflineUuid.OfflineUuidOptions}" SelectedItem="{Binding OfflineUuid.SelectedOfflineUuidOption, Mode=TwoWay}" IsEnabled="{Binding OfflineUuid.CanChangeOfflineUuidMode}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:OfflineUuidModeOption}">
-                          <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" VerticalAlignment="Center" Text="{Binding Title}" />
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </controls:AnimatedComboBox>
+                    <StackPanel>
+                      <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamPlaytimeLabel}" />
+                      <TextBlock Margin="0,6,0,0" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamPlaytimeText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamRecentLabel}" />
+                      <TextBlock Margin="0,6,0,0" FontSize="13.5" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamRecentText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamLastPlayedLabel}" />
+                      <TextBlock Margin="0,6,0,0" FontSize="13.5" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamLastPlayedText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3">
+                      <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamDistanceLabel}" />
+                      <TextBlock Margin="0,6,0,0" FontSize="13.5" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamDistanceText}" />
+                    </StackPanel>
                   </Grid>
-                  <Grid Margin="0,12,0,0" Visibility="{Binding OfflineUuid.HasManualUuidEditor, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
-                    <Grid.RowDefinitions>
-                      <RowDefinition Height="Auto" />
-                      <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+
+                  <Border Margin="0,18,0,0" Style="{StaticResource RideHairlineStyle}" />
+
+                  <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource RideDetailMetaLabelStyle}" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamAchievementsLabel}" />
+                    <ProgressBar Grid.Column="1" Margin="16,0" Height="5" Minimum="0" Maximum="100" VerticalAlignment="Center" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding SteamAchievementPercent, Mode=OneWay}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                      <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamAchievementProgressText}" />
+                      <TextBlock Margin="10,0,0,0" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SteamAchievementPercentText}" />
+                    </StackPanel>
+                  </Grid>
+
+                  <!-- 成就明细：默认收起。展开后已解锁的排前面，右侧标全球解锁率 -->
+                  <TextBlock Margin="0,14,0,0" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{x:Static res:Strings.Account_SteamWriteBackHint}" />
+
+                  <!-- 全局开关：这个行为在 GameLauncher 里，不是按实例走的 -->
+                  <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Height="36" FontSize="12" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding OfflineUuid.ManualUuidText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Apply_Button}" IsEnabled="{Binding OfflineUuid.CanApplyManualUuid}" Command="{Binding OfflineUuid.ApplyManualUuidCommand}" />
-                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="2,8,0,0" Text="{x:Static res:Strings.Account_OfflineUuidInvalid}" Foreground="{DynamicResource Brush.FFFF8A8A}" FontSize="12" Visibility="{Binding OfflineUuid.IsManualUuidInvalid, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Secondary}" Text="{x:Static res:Strings.Account_SteamEnsureLaunchLabel}" />
+                    <CheckBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding EnsureSteamOnLaunch, Mode=TwoWay}" />
                   </Grid>
+
+                  <Button Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource LauncherDialogButtonStyle}" Content="{Binding AchievementsToggleText}" Command="{Binding ToggleAchievementsCommand}" Visibility="{Binding HasAchievementList, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                  <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Achievements}" Visibility="{Binding AchievementsExpanded, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel>
+                          <Grid MinHeight="46">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,10,16,10" VerticalAlignment="Center">
+                              <TextBlock FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{Binding Name}">
+                                <TextBlock.Style>
+                                  <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding Unlocked}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </TextBlock.Style>
+                              </TextBlock>
+                              <TextBlock Margin="0,4,0,0" FontSize="11.5" LineHeight="16" MaxHeight="32" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding Desc}" Visibility="{Binding HasDesc, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                              <TextBlock HorizontalAlignment="Right" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Accent.Primary}" Text="{Binding StateText}" Visibility="{Binding Unlocked, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                              <TextBlock HorizontalAlignment="Right" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding StateText}" Visibility="{Binding Locked, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                              <TextBlock HorizontalAlignment="Right" Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding GlobalText}" />
+                            </StackPanel>
+                          </Grid>
+                          <Border Style="{StaticResource RideHairlineStyle}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Margin="0,8,0,0" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Warning}" Text="{Binding SteamSyncMessageText}" Visibility="{Binding HasSteamSyncMessage, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
                 </StackPanel>
-              </GroupBox>
-              <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Account_IdentityHeader}" Style="{StaticResource RideSectionStyle}">
-                <StackPanel>
+              </StackPanel>
+            </Border>
+
+            <GroupBox Grid.Row="3" Margin="0,14,0,0" Header="{x:Static res:Strings.Account_UuidHeader}" Style="{StaticResource RideSectionStyle}" Visibility="{Binding OfflineUuid.HasSelectedOfflineAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="220" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{x:Static res:Strings.Account_OfflineUuidModeLabel}" Foreground="{DynamicResource Brush.CFFFFFFF}" FontSize="13" VerticalAlignment="Center" />
+                  <controls:AnimatedComboBox Grid.Column="1" Style="{StaticResource LauncherComboBoxStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True" ItemsSource="{Binding OfflineUuid.OfflineUuidOptions}" SelectedItem="{Binding OfflineUuid.SelectedOfflineUuidOption, Mode=TwoWay}" IsEnabled="{Binding OfflineUuid.CanChangeOfflineUuidMode}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type models:OfflineUuidModeOption}">
+                        <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="13" VerticalAlignment="Center" Text="{Binding Title}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </controls:AnimatedComboBox>
+                </Grid>
+                <Grid Margin="0,12,0,0" Visibility="{Binding OfflineUuid.HasManualUuidEditor, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBox Grid.Column="0" Height="36" FontSize="12" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding OfflineUuid.ManualUuidText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  <Button Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Apply_Button}" IsEnabled="{Binding OfflineUuid.CanApplyManualUuid}" Command="{Binding OfflineUuid.ApplyManualUuidCommand}" />
+                  <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="2,8,0,0" Text="{x:Static res:Strings.Account_OfflineUuidInvalid}" Foreground="{DynamicResource Brush.FFFF8A8A}" FontSize="12" Visibility="{Binding OfflineUuid.IsManualUuidInvalid, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
+                </Grid>
+              </StackPanel>
+            </GroupBox>
+
+            <!-- 账户详情卡：末行 * 撑满视口，把原先页面下方的大片空白吃掉 -->
+            <Border Grid.Row="4" Margin="0,16,0,40" Style="{StaticResource RideDetailSurfaceStyle}">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Style="{StaticResource RideDetailTitleStyle}" Text="{x:Static res:Strings.Account_IdentityHeader}" />
+                <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="{x:Static res:Strings.Account_DetailKindLabel}" />
+                    <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding AccountList.SelectedAccount, Converter={StaticResource AccountKindTextConverter}}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="{x:Static res:Strings.Account_UuidHeader}" />
+                    <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding OfflineUuid.SelectedAccountUuidText}" />
+                  </StackPanel>
                   <StackPanel Orientation="Horizontal">
-                    <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.0891FE}" VerticalAlignment="Center">
-                      <controls:SvgIcon Width="26" Height="26" IconKey="general/general_person" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                      <TextBlock Foreground="{DynamicResource Brush.F4F4F4}" FontSize="14" FontWeight="SemiBold" Text="{Binding AccountList.SelectedAccount.DisplayName}" />
-                      <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource Brush.8FFFFFFF}" FontSize="12" Text="{x:Static res:Strings.Account_MultiplayerNicknameLabel}" />
-                    </StackPanel>
+                    <TextBlock Style="{StaticResource RideDetailMetaLabelStyle}" Text="{x:Static res:Strings.Account_DetailIdLabel}" />
+                    <TextBlock Style="{StaticResource RideDetailMetaValueStyle}" Text="{Binding AccountList.SelectedAccount.Id}" />
                   </StackPanel>
                 </StackPanel>
-              </GroupBox>
-            </StackPanel>
-          </StackPanel>
+                <StackPanel Grid.Row="2" Margin="0,18,0,0">
+                  <Border Style="{StaticResource RideHairlineStyle}" />
+                  <Button HorizontalAlignment="Stretch" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Account_CopyUuidButton}" Command="{Binding OfflineUuid.CopySelectedUuidCommand}" />
+                  <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Account_DeleteButton}" Command="{Binding RequestDeleteAccountCommand}" CommandParameter="{Binding AccountList.SelectedItem}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </Grid>
         </ScrollViewer>
       </Grid>
     </Grid>

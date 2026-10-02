@@ -159,6 +159,8 @@ public static class Strings
 
 	public static string Multiplayer_LobbyPlayerListHeader => Get("Multiplayer_LobbyPlayerListHeader");
 
+	public static string Multiplayer_LobbyPlayerListNote => Get("Multiplayer_LobbyPlayerListNote");
+
 	public static string Multiplayer_LobbyPlayerPlaceholderFormat => Get("Multiplayer_LobbyPlayerPlaceholderFormat");
 
 	public static string Multiplayer_LobbyClientIdPlaceholderFormat => Get("Multiplayer_LobbyClientIdPlaceholderFormat");
@@ -628,6 +630,13 @@ public static class Strings
 	public static string Settings_SectionTheme => Get("Settings_SectionTheme");
 
 	public static string Settings_SectionFeedback => Get("Settings_SectionFeedback");
+	public static string Settings_FeedbackChannelsSection => Get("Settings_FeedbackChannelsSection");
+	public static string Settings_FeedbackDescription => Get("Settings_FeedbackDescription");
+	public static string Settings_FeedbackFeatureDescription => Get("Settings_FeedbackFeatureDescription");
+	public static string Settings_FeedbackBugDescription => Get("Settings_FeedbackBugDescription");
+	public static string Settings_FeedbackOpenButton => Get("Settings_FeedbackOpenButton");
+	public static string Settings_FeedbackBeforeSubmitSection => Get("Settings_FeedbackBeforeSubmitSection");
+	public static string Settings_FeedbackBeforeSubmitDescription => Get("Settings_FeedbackBeforeSubmitDescription");
 
 	public static string Settings_SectionInfo => Get("Settings_SectionInfo");
 
@@ -1471,6 +1480,46 @@ public static class Strings
 	public static string Launch_Button => Get("Launch_Button");
 
 	public static string Account_ListTitle => Get("Account_ListTitle");
+	public static string Account_StatsBandText => Get("Account_StatsBandText");
+	public static string Account_StatsBandEmptyText => Get("Account_StatsBandEmptyText");
+	public static string Account_SteamSection => Get("Account_SteamSection");
+	public static string Account_SteamNotBound => Get("Account_SteamNotBound");
+	public static string Account_SteamPlaytimeLabel => Get("Account_SteamPlaytimeLabel");
+	public static string Account_SteamRecentLabel => Get("Account_SteamRecentLabel");
+	public static string Account_SteamLastPlayedLabel => Get("Account_SteamLastPlayedLabel");
+	public static string Account_SteamDistanceLabel => Get("Account_SteamDistanceLabel");
+	public static string Account_SteamDistanceValueFormat => Get("Account_SteamDistanceValueFormat");
+	public static string Account_SteamAchievementsLabel => Get("Account_SteamAchievementsLabel");
+	public static string Account_SteamAchievementProgressFormat => Get("Account_SteamAchievementProgressFormat");
+	public static string Account_SteamAchievementPercentFormat => Get("Account_SteamAchievementPercentFormat");
+	public static string Account_SteamNoData => Get("Account_SteamNoData");
+	public static string Account_SteamSyncNowButton => Get("Account_SteamSyncNowButton");
+	public static string Account_SteamSyncFailedFormat => Get("Account_SteamSyncFailedFormat");
+	public static string Account_SteamSyncedAtFormat => Get("Account_SteamSyncedAtFormat");
+	public static string Account_SteamWriteBackHint => Get("Account_SteamWriteBackHint");
+	public static string Account_SteamAchievementsExpandFormat => Get("Account_SteamAchievementsExpandFormat");
+	public static string Account_SteamAchievementsCollapse => Get("Account_SteamAchievementsCollapse");
+	public static string Account_SteamAchievementUnlocked => Get("Account_SteamAchievementUnlocked");
+	public static string Account_SteamAchievementLocked => Get("Account_SteamAchievementLocked");
+	public static string Account_SteamAchievementGlobalFormat => Get("Account_SteamAchievementGlobalFormat");
+	public static string Account_SteamAchievementUnlockedAtFormat => Get("Account_SteamAchievementUnlockedAtFormat");
+	public static string Account_SteamEnsureLaunchLabel => Get("Account_SteamEnsureLaunchLabel");
+	public static string Account_StatsBandSteamText => Get("Account_StatsBandSteamText");
+	public static string Settings_BackgroundEffectLabel => Get("Settings_BackgroundEffectLabel");
+	public static string Settings_HighlightFolderEmptyMessage => Get("Settings_HighlightFolderEmptyMessage");
+	public static string Settings_OpenHighlightsFolderFailedFormat => Get("Settings_OpenHighlightsFolderFailedFormat");
+	public static string Multiplayer_RoomHostFormat => Get("Multiplayer_RoomHostFormat");
+	public static string Multiplayer_RoomPlayerCountFormat => Get("Multiplayer_RoomPlayerCountFormat");
+	public static string Home_TrayTooltipIdle => Get("Home_TrayTooltipIdle");
+	public static string Home_TrayTooltipRunning => Get("Home_TrayTooltipRunning");
+	public static string Account_StatChipPlaytimeLabel => Get("Account_StatChipPlaytimeLabel");
+	public static string Account_StatChipLaunchCountLabel => Get("Account_StatChipLaunchCountLabel");
+	public static string Account_StatChipLastLaunchLabel => Get("Account_StatChipLastLaunchLabel");
+	public static string Account_DetailKindLabel => Get("Account_DetailKindLabel");
+	public static string Account_DetailIdLabel => Get("Account_DetailIdLabel");
+	public static string Account_CopyUuidButton => Get("Account_CopyUuidButton");
+	public static string Account_RenameButton => Get("Account_RenameButton");
+	public static string Account_DeleteButton => Get("Account_DeleteButton");
 
 	public static string Account_AddButton => Get("Account_AddButton");
 
@@ -2789,6 +2838,8 @@ public static class Strings
 	public static string Settings_GameInstallOpenButton => Get("Settings_GameInstallOpenButton");
 
 	public static string Settings_GameInstallFoundFormat => Get("Settings_GameInstallFoundFormat");
+
+	public static string Settings_GameInstallSelectedMessage => Get("Settings_GameInstallSelectedMessage");
 
 	public static string Settings_GameInstallCurrentFormat => Get("Settings_GameInstallCurrentFormat");
 

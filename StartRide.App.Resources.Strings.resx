@@ -200,7 +200,7 @@
   <data name="Status_LauncherAlreadyLatest" xml:space="preserve"><value>当前已是最新版本</value></data>
   <data name="GameSettings_InstanceNameLabel" xml:space="preserve"><value>版本名称</value></data>
   <data name="Dialog_TerracottaProjectLink" xml:space="preserve"><value>StartRide 中继项目</value></data>
-  <data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>输入一个昵称即可联机，StartRide 不需要正版账号。</value></data>
+  <data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>输入一个昵称即可联机，StartRide 不需要游戏账号。</value></data>
   <data name="Status_ModCompatibleFileNotFound" xml:space="preserve"><value>没有找到与当前游戏兼容的模组文件。</value></data>
   <data name="Dialog_LaunchAnalysisOriginalReasonLabel" xml:space="preserve"><value>原始原因</value></data>
   <data name="Settings_UpdateChannelBetaTitle" xml:space="preserve"><value>测试版</value></data>
@@ -365,7 +365,7 @@
   <data name="Settings_UserAgreement" xml:space="preserve"><value>用户协议</value></data>
   <data name="GameSettings_ResourcePackManagementMultiSelectButton" xml:space="preserve"><value>多选</value></data>
   <data name="Resources_ShaderPackProjectsEmpty" xml:space="preserve"><value>没有找到匹配的光影包</value></data>
-  <data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>设置一个昵称即可联机，无需正版账号。</value></data>
+  <data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>还没有账户。创建一个昵称就能开始联机。</value></data>
   <data name="Status_InstallDownloadingLoaderInstaller" xml:space="preserve"><value>正在下载加载器安装程序...</value></data>
   <data name="Settings_LauncherLogDirectoryDescription" xml:space="preserve"><value>启动器日志目录</value></data>
   <data name="Resources_ModFilterTypeLabel" xml:space="preserve"><value>类型</value></data>
@@ -411,7 +411,7 @@
   <data name="Dialog_ThirdPartyImportProgressSubtitle" xml:space="preserve"><value>正在保存角色资料和登录信息。</value></data>
   <data name="Status_InstallingLoaderFormat" xml:space="preserve"><value>正在安装 {0} {1}...</value></data>
   <data name="Settings_UserAgreementDescription" xml:space="preserve"><value>查看使用本软件时适用的条款与重要声明</value></data>
-  <data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>正版账户</value></data>
+  <data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>Microsoft 账户</value></data>
   <data name="Dialog_LaunchAnalysisOutOfMemoryTitle" xml:space="preserve"><value>内存不足</value></data>
   <data name="Multiplayer_Join_ClipboardEmpty" xml:space="preserve"><value>剪贴板中没有可用的房间代码。</value></data>
   <data name="Download_AddonLibraryLatestTag" xml:space="preserve"><value>最新</value></data>
@@ -572,7 +572,7 @@
   <data name="BackupFailure_Generic" xml:space="preserve"><value>创建备份时遇到问题，请稍后重试。</value></data>
   <data name="Download_VanillaLoaderTitle" xml:space="preserve"><value>原版</value></data>
   <data name="Dialog_DeleteInstanceTitle" xml:space="preserve"><value>删除版本</value></data>
-  <data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>通过 Microsoft 账户登录并获取皮肤头像。</value></data>
+  <data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>通过 Microsoft 账户登录并获取头像。</value></data>
   <data name="Settings_BackgroundImageControlBlurDescription" xml:space="preserve"><value>为半透明控件添加高斯模糊效果。开启此选项后可能会导致卡顿。</value></data>
   <data name="GameSettings_ModManagementEmptyMessage" xml:space="preserve"><value>当前没有可用模组</value></data>
   <data name="Resources_ModpackInstallTargetsLoadError" xml:space="preserve"><value>安装方式加载失败</value></data>
@@ -625,6 +625,13 @@
   <data name="Download_QuiltLoaderSubtitle" xml:space="preserve"><value>支持选择 Quilt 版本并安装</value></data>
   <data name="Status_RenamingInstance" xml:space="preserve"><value>正在修改版本...</value></data>
   <data name="Settings_SectionFeedback" xml:space="preserve"><value>建议与反馈</value></data>
+  <data name="Settings_FeedbackChannelsSection" xml:space="preserve"><value>选择反馈通道</value></data>
+  <data name="Settings_FeedbackDescription" xml:space="preserve"><value>提交后会通过浏览器打开 startride.top 的反馈页，并按类型分别跟进。</value></data>
+  <data name="Settings_FeedbackFeatureDescription" xml:space="preserve"><value>想要的新玩法、新面板、新快捷键，都可以写在这里。</value></data>
+  <data name="Settings_FeedbackBugDescription" xml:space="preserve"><value>崩溃、报错、联机连不上、界面错位——附上日志会更快定位。</value></data>
+  <data name="Settings_FeedbackOpenButton" xml:space="preserve"><value>打开</value></data>
+  <data name="Settings_FeedbackBeforeSubmitSection" xml:space="preserve"><value>提交前</value></data>
+  <data name="Settings_FeedbackBeforeSubmitDescription" xml:space="preserve"><value>先把启动器更新到最新版（关于 → 检查更新）；问题能稳定重现时，说明「怎么做就出错」比截图更有用；日志在启动器目录的 logs 文件夹里。</value></data>
   <data name="Download_LoaderPendingSubtitle" xml:space="preserve"><value>暂未接入安装</value></data>
   <data name="Status_InstallRunningLoaderInstaller" xml:space="preserve"><value>正在运行加载器安装程序...</value></data>
   <data name="GameSettings_ModManagementSelectAllButton" xml:space="preserve"><value>全选</value></data>
@@ -682,6 +689,62 @@
   <data name="Status_LoadBackupsFailed" xml:space="preserve"><value>读取备份列表失败。</value></data>
   <data name="Settings_JavaListLabel" xml:space="preserve"><value>Java 列表</value></data>
   <data name="Account_ListTitle" xml:space="preserve"><value>账户</value></data>
+  <data name="Account_StatsBandText" xml:space="preserve"><value>本机记录 · 不分账户</value></data>
+  <data name="Account_StatsBandEmptyText" xml:space="preserve"><value>还没有从 StartRide 启动过游戏</value></data>
+  <data name="Account_SteamSection" xml:space="preserve"><value>Steam 同步</value></data>
+  <data name="Account_SteamNotBound" xml:space="preserve"><value>登录 Steam 账户后，这里会显示 Steam 记录的时长与成就。时长的权威账本在 Steam 那边，本机计数只是启动器自己记的一份。</value></data>
+  <data name="Account_SteamPlaytimeLabel" xml:space="preserve"><value>Steam 记录时长</value></data>
+  <data name="Account_SteamRecentLabel" xml:space="preserve"><value>最近两周</value></data>
+  <data name="Account_SteamLastPlayedLabel" xml:space="preserve"><value>上次游玩</value></data>
+  <data name="Account_SteamDistanceLabel" xml:space="preserve"><value>累计行驶</value></data>
+  <data name="Account_SteamDistanceValueFormat" xml:space="preserve"><value>{0} km</value></data>
+  <data name="Account_SteamAchievementsLabel" xml:space="preserve"><value>成就</value></data>
+  <data name="Account_SteamAchievementProgressFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="Account_SteamAchievementPercentFormat" xml:space="preserve"><value>完成度 {0}%</value></data>
+  <data name="Account_SteamNoData" xml:space="preserve"><value>还没有从 Steam 同步到数据</value></data>
+  <data name="Account_SteamSyncNowButton" xml:space="preserve"><value>立即同步</value></data>
+  <data name="Account_SteamSyncFailedFormat" xml:space="preserve"><value>同步失败：{0}</value></data>
+  <data name="Account_SteamSyncedAtFormat" xml:space="preserve"><value>上次同步 {0}</value></data>
+
+  <data name="Account_SteamAchievementsExpandFormat" xml:space="preserve">
+  	<value>查看全部 {0} 项成就</value>
+  </data>
+
+  <data name="Account_SteamEnsureLaunchLabel" xml:space="preserve">
+  	<value>启动游戏前自动拉起 Steam</value>
+  </data>
+  <data name="Account_SteamAchievementsCollapse" xml:space="preserve">
+  	<value>收起成就列表</value>
+  </data>
+  <data name="Account_SteamAchievementUnlocked" xml:space="preserve">
+  	<value>已解锁</value>
+  </data>
+  <data name="Account_SteamAchievementLocked" xml:space="preserve">
+  	<value>未解锁</value>
+  </data>
+  <data name="Account_SteamAchievementGlobalFormat" xml:space="preserve">
+  	<value>全球 {0}%</value>
+  </data>
+  <data name="Account_SteamAchievementUnlockedAtFormat" xml:space="preserve">
+  	<value>已解锁 {0}</value>
+  </data>
+  <data name="Account_SteamWriteBackHint" xml:space="preserve"><value>启动时 StartRide 直接拉起 BeamNG.drive.exe，同时把 SteamAppId 一并注入给游戏 —— Steam 客户端正是靠这个字段认领这一局的。Steam 客户端需在后台运行，时长才会记进你的 Steam 账号；游戏退出后 StartRide 会自动把这笔时长读回来，两边始终一致。（Steam 的公开接口只读不写，计时始终由 Steam 客户端完成。）</value></data>
+  <data name="Account_StatsBandSteamText" xml:space="preserve"><value>时长取自 Steam · 其余为本机记录</value></data>
+  <data name="Settings_BackgroundEffectLabel" xml:space="preserve"><value>背景效果</value></data>
+  <data name="Settings_HighlightFolderEmptyMessage" xml:space="preserve"><value>还没有高光记录。启动游戏并跑一局，这里就会出现截图与记录文件。</value></data>
+  <data name="Settings_OpenHighlightsFolderFailedFormat" xml:space="preserve"><value>无法打开高光目录：{0}</value></data>
+  <data name="Multiplayer_RoomHostFormat" xml:space="preserve"><value>房主：{0}</value></data>
+  <data name="Multiplayer_RoomPlayerCountFormat" xml:space="preserve"><value>{0}/{1} 人</value></data>
+  <data name="Home_TrayTooltipIdle" xml:space="preserve"><value>StartRide 启动器</value></data>
+  <data name="Home_TrayTooltipRunning" xml:space="preserve"><value>StartRide 启动器 · BeamNG.drive 正在运行</value></data>
+  <data name="Account_StatChipPlaytimeLabel" xml:space="preserve"><value>累计游玩时长</value></data>
+  <data name="Account_StatChipLaunchCountLabel" xml:space="preserve"><value>本机启动次数</value></data>
+  <data name="Account_StatChipLastLaunchLabel" xml:space="preserve"><value>上次启动</value></data>
+  <data name="Account_DetailKindLabel" xml:space="preserve"><value>账户类型</value></data>
+  <data name="Account_DetailIdLabel" xml:space="preserve"><value>账户 ID</value></data>
+  <data name="Account_CopyUuidButton" xml:space="preserve"><value>复制联机 ID</value></data>
+  <data name="Account_RenameButton" xml:space="preserve"><value>重命名账户</value></data>
+  <data name="Account_DeleteButton" xml:space="preserve"><value>删除账户</value></data>
   <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>认证服务器必须使用 HTTPS</value></data>
   <data name="Status_WorldDownloadFailed" xml:space="preserve"><value>世界下载失败</value></data>
   <data name="Status_LocalModImportFileNotFound" xml:space="preserve"><value>找不到要导入的模组文件。</value></data>
@@ -931,6 +994,7 @@
   <data name="Account_OfflineUuidManualTitle" xml:space="preserve"><value>自定义</value></data>
   <data name="Account_ThirdPartyDropInvalidServer" xml:space="preserve"><value>无法识别拖入的认证服务器地址</value></data>
   <data name="Multiplayer_LobbyPlayerListHeader" xml:space="preserve"><value>玩家列表</value></data>
+  <data name="Multiplayer_LobbyPlayerListNote" xml:space="preserve"><value>房主计算物理 · 中继只转发</value></data>
   <data name="Account_ThirdPartyLoginFailed" xml:space="preserve"><value>第三方账户登录失败</value></data>
   <data name="Resources_ModFilterLoaderLabel" xml:space="preserve"><value>加载器</value></data>
   <data name="Dialog_ThirdPartyImportFailureFormat" xml:space="preserve"><value>{0} 个角色导入失败</value></data>
@@ -1012,7 +1076,7 @@
   <data name="GameSettings_SaveManagementMultiSelectButton" xml:space="preserve"><value>多选</value></data>
   <data name="Status_ModpackDownloadFailed" xml:space="preserve"><value>整合包下载失败</value></data>
   <data name="Status_ResourcePackInstalledFormat" xml:space="preserve"><value>{0} 已安装</value></data>
-  <data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>主页</value></data>
+  <data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>游戏实例</value></data>
   <data name="Dialog_TerracottaDisagreeButton" xml:space="preserve"><value>不同意</value></data>
   <data name="Resources_ModInstallTargetsLoading" xml:space="preserve"><value>正在加载游戏列表...</value></data>
   <data name="Status_MinecraftDirectoryAdded" xml:space="preserve"><value>游戏目录已添加并切换。</value></data>
@@ -1422,6 +1486,7 @@
   <data name="Settings_GameInstallBrowseButton" xml:space="preserve"><value>手动选择</value></data>
   <data name="Settings_GameInstallOpenButton" xml:space="preserve"><value>打开目录</value></data>
   <data name="Settings_GameInstallFoundFormat" xml:space="preserve"><value>已自动识别：{0}</value></data>
+  <data name="Settings_GameInstallSelectedMessage" xml:space="preserve"><value>已使用你选择的安装目录</value></data>
   <data name="Settings_GameInstallCurrentFormat" xml:space="preserve"><value>当前使用：{0}</value></data>
   <data name="Settings_GameInstallMissing" xml:space="preserve"><value>没有找到 BeamNG.drive，请点「手动选择」指定安装目录（即含有 BeamNG.drive.exe 的那一层）。</value></data>
   <data name="Settings_GameInstallInvalid" xml:space="preserve"><value>这个目录不是有效的 BeamNG.drive 安装目录（没找到 BeamNG.drive.exe）。</value></data>
@@ -1649,9 +1714,9 @@
   <data name="Legal_Reader_CloseButton" xml:space="preserve"><value>关闭</value></data>
   <data name="Legal_Reader_FooterHint" xml:space="preserve"><value>正文随启动器一同提供，离线也能查看，不会跳转浏览器。</value></data>
   <data name="Legal_Reader_MissingContent" xml:space="preserve"><value>这一份的正文没有随包一起安装。重新安装启动器即可恢复。</value></data>
-  <data name="Settings_HighlightSection" xml:space="preserve"><value>精彩瞬间</value></data>
+  <data name="Settings_HighlightSection" xml:space="preserve"><value>高光时刻</value></data>
   <data name="Settings_HighlightDescription" xml:space="preserve"><value>联机跑一局时自动开始录制回放；大跳跃、重击、翻车、烧胎、破纪录的极速都会被自动抓一张截图并记下时间码，整局结束汇总成一份高光记录（写在游戏回放目录下的 replays/startride）。记录只留在本机，不会上传。</value></data>
-  <data name="Settings_HighlightCaptureLabel" xml:space="preserve"><value>精彩瞬間自動捕捉</value></data>
+  <data name="Settings_HighlightCaptureLabel" xml:space="preserve"><value>高光时刻自动捕捉</value></data>
   <data name="Settings_HighlightAutoRecordLabel" xml:space="preserve"><value>联机时自动录制回放</value></data>
   <data name="Settings_HighlightSinglePlayerLabel" xml:space="preserve"><value>单人开车也记录</value></data>
   <data name="Settings_HighlightOpenFolderButton" xml:space="preserve"><value>打开高光目录</value></data>

@@ -85,7 +85,7 @@
               <ColumnDefinition Width="180" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="{x:Static res:Strings.Settings_ControlDemoProgressLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
-            <ProgressBar Grid.Column="1" Width="180" Maximum="100" VerticalAlignment="Center" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding ControlDemoProgress}" />
+            <ProgressBar Grid.Column="1" Width="180" Maximum="100" VerticalAlignment="Center" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding ControlDemoProgress, Mode=OneWay}" />
           </Grid>
           <Grid Margin="0,18,0,0">
             <Grid.ColumnDefinitions>

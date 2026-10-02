@@ -14,13 +14,7 @@
         <TranslateTransform />
       </UIElement.RenderTransform>
 
-      <DockPanel LastChildFill="False" Margin="0,0,0,14">
-        <StackPanel Orientation="Horizontal">
-          <controls:SvgIcon Width="22" Height="22" Margin="0,0,11,0" VerticalAlignment="Center" IconKey="main_menu_multiplayer" Foreground="{DynamicResource Brush.Text.Strong}" />
-          <TextBlock Style="{StaticResource RidePageTitleTextStyle}" Text="{x:Static res:Strings.Multiplayer_SectionCreateLobby}" />
-          <TextBlock Style="{StaticResource RidePageSubtitleTextStyle}" Text="{x:Static res:Strings.Lobby_CreateHint}" />
-        </StackPanel>
-      </DockPanel>
+      <TextBlock Margin="0,0,0,14" Style="{StaticResource RidePageSubtitleTextStyle}" Text="{x:Static res:Strings.Lobby_CreateHint}" />
 
       <Border Style="{StaticResource RideDetailSurfaceStyle}">
         <StackPanel>
@@ -82,7 +76,7 @@
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0" Margin="12,8,12,6" LastChildFill="False">
               <TextBlock Text="{x:Static res:Strings.Multiplayer_LobbyPlayerListHeader}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Muted}" />
-              <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Multiplayer_LobbyPoweredByTerracotta}" />
+              <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Multiplayer_LobbyPlayerListNote}" />
             </DockPanel>
             <ItemsControl Grid.Row="1" Margin="4,0,4,6" ItemsSource="{Binding LobbyPlayers}">
               <ItemsControl.ItemTemplate>

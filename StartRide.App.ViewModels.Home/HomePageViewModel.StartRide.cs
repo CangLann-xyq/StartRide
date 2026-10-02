@@ -178,8 +178,8 @@ public sealed partial class HomePageViewModel
 			if (System.Windows.Application.Current?.MainWindow is StartRide.App.Views.Shell.MainWindow window)
 			{
 				window.StartRideTrayUpdateTooltip(IsGameRunning
-					? "StartRide 启动器 · BeamNG.drive 正在运行"
-					: "StartRide 启动器");
+					? Strings.Home_TrayTooltipRunning
+					: Strings.Home_TrayTooltipIdle);
 			}
 		}
 		catch

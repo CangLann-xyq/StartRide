@@ -110,7 +110,7 @@
               <ColumnDefinition Width="220" />
               <ColumnDefinition Width="40" />
             </Grid.ColumnDefinitions>
-            <ProgressBar Grid.Column="0" Height="5" Maximum="100" VerticalAlignment="Center" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding LaunchProgressPercent}" />
+            <ProgressBar Grid.Column="0" Height="5" Maximum="100" VerticalAlignment="Center" Style="{StaticResource LauncherProgressBarStyle}" Value="{Binding LaunchProgressPercent, Mode=OneWay}" />
             <Button Grid.Column="1" Margin="8,0,0,0" Width="28" Height="28" Foreground="{DynamicResource Brush.8F96A3}" Style="{StaticResource InlineIconButtonStyle}" ToolTip="{x:Static res:Strings.Cancel_Button}" Command="{Binding CancelLaunchCommand}">
               <controls:SvgIcon Width="16" Height="16" IconKey="home_page/home_page_close" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
             </Button>

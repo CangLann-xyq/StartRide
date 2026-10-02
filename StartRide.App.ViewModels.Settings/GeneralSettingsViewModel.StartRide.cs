@@ -227,7 +227,7 @@ public sealed partial class GeneralSettingsViewModel
 			if (string.IsNullOrWhiteSpace(dir) || !System.IO.Directory.Exists(dir))
 			{
 				System.Windows.MessageBox.Show(
-					"还没有高光记录。启动游戏并跑一局，这里就会出现截图与记录文件。",
+					Strings.Settings_HighlightFolderEmptyMessage,
 					"StartRide",
 					System.Windows.MessageBoxButton.OK,
 					System.Windows.MessageBoxImage.Information);
@@ -237,7 +237,7 @@ public sealed partial class GeneralSettingsViewModel
 		}
 		catch (Exception ex)
 		{
-			System.Windows.MessageBox.Show("无法打开目录：" + ex.Message, "StartRide", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+			System.Windows.MessageBox.Show(string.Format(Strings.Settings_OpenHighlightsFolderFailedFormat, ex.Message), "StartRide", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
 		}
 	}
 
@@ -274,7 +274,7 @@ public sealed partial class GeneralSettingsViewModel
 		BeamNgDirectory = app.GameDirectory ?? string.Empty;
 		IsBeamNgDirectoryValid = AppSettings.IsBeamNgInstall(BeamNgDirectory);
 		BeamNgStatusText = IsBeamNgDirectoryValid
-			? string.Format(Strings.Settings_GameInstallFoundFormat, BeamNgDirectory)
+			? string.Format(Strings.Settings_GameInstallCurrentFormat, BeamNgDirectory)
 			: Strings.Settings_GameInstallMissing;
 	}
 
@@ -307,7 +307,7 @@ public sealed partial class GeneralSettingsViewModel
 				IsBeamNgDirectoryValid = false;
 				return;
 			}
-			ApplyGameDirectory(found[0]);
+			ApplyGameDirectory(found[0], autoDetected: true);
 			statusService.Report(string.Format(Strings.Settings_GameInstallAppliedFormat, found[0]));
 		}
 		catch (Exception ex)
@@ -356,7 +356,7 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
-	private void ApplyGameDirectory(string directory)
+	private void ApplyGameDirectory(string directory, bool autoDetected = false)
 	{
 		var app = AppSettings.Current;
 		app.GameDirectory = directory;
@@ -364,7 +364,9 @@ public sealed partial class GeneralSettingsViewModel
 
 		BeamNgDirectory = directory;
 		IsBeamNgDirectoryValid = AppSettings.IsBeamNgInstall(directory);
-		BeamNgStatusText = string.Format(Strings.Settings_GameInstallFoundFormat, directory);
+		BeamNgStatusText = autoDetected
+			? string.Format(Strings.Settings_GameInstallFoundFormat, directory)
+			: Strings.Settings_GameInstallSelectedMessage;
 		RefreshGameConfigState();
 	}
 
@@ -534,6 +536,9 @@ public sealed class GameConfigFileItem
 
 	public bool IsProblem { get; }
 
+	/// <summary>详情文案与右侧状态徽标重复时（例如都写着「正常」）不必再占一行。</summary>
+	public bool HasDetail { get; }
+
 	public GameConfigFileItem(GameFileHealthItem item)
 	{
 		DisplayName = item.DisplayName;
@@ -550,6 +555,7 @@ public sealed class GameConfigFileItem
 			_ => Strings.Settings_GameHealthStatusNotApplicable,
 		};
 		IsProblem = item.IsProblem;
+		HasDetail = !string.IsNullOrWhiteSpace(Detail) && Detail != StateText;
 	}
 
 	public GameConfigFileItem(ConfigFileStatus status)
@@ -566,5 +572,6 @@ public sealed class GameConfigFileItem
 			_ => Strings.Settings_GameConfigStatusOffline,
 		};
 		IsProblem = status.State != ConfigFileState.Ok && status.State != ConfigFileState.Repaired;
+		HasDetail = !string.IsNullOrWhiteSpace(Detail) && Detail != StateText;
 	}
 }

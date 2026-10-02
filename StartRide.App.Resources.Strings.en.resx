@@ -369,7 +369,7 @@ The launcher will exit. Please check whether the directory is accessible and wri
 
 <data name="Dialog_TerracottaProjectLink" xml:space="preserve"><value>StartRide relay project</value></data>
 
-<data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>Enter a nickname to play online, StartRide does not require a legitimate account.</value></data>
+<data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>Enter a nickname to play online. StartRide does not require a game account.</value></data>
 
 <data name="Status_ModCompatibleFileNotFound" xml:space="preserve"><value>No mod files compatible with the current game were found.</value></data>
 
@@ -693,7 +693,7 @@ The launcher has automatically switched to:
 
 <data name="Resources_ShaderPackProjectsEmpty" xml:space="preserve"><value>No matching light and shadow package found</value></data>
 
-<data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>You can go online by just setting a nickname, no official account required.</value></data>
+<data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>No account yet. Create a nickname to start playing online.</value></data>
 
 <data name="Status_InstallDownloadingLoaderInstaller" xml:space="preserve"><value>Downloading loader installer...</value></data>
 
@@ -785,7 +785,7 @@ The launcher has automatically switched to:
 
 <data name="Settings_UserAgreementDescription" xml:space="preserve"><value>View the terms and important notices applicable when using this software</value></data>
 
-<data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>Genuine account</value></data>
+<data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>Microsoft account</value></data>
 
 <data name="Dialog_LaunchAnalysisOutOfMemoryTitle" xml:space="preserve"><value>Insufficient memory</value></data>
 
@@ -1107,7 +1107,7 @@ The launcher has automatically switched to:
 
 <data name="Dialog_DeleteInstanceTitle" xml:space="preserve"><value>Delete version</value></data>
 
-<data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>Log in with Microsoft account to obtain skin and avatar.</value></data>
+<data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>Sign in with a Microsoft account to fetch your avatar.</value></data>
 
 <data name="Settings_BackgroundImageControlBlurDescription" xml:space="preserve"><value>Add Gaussian blur effect for translucent controls. Enabling this option may cause lag.</value></data>
 
@@ -1212,6 +1212,13 @@ The launcher has automatically switched to:
 <data name="Status_RenamingInstance" xml:space="preserve"><value>Modifying version...</value></data>
 
 <data name="Settings_SectionFeedback" xml:space="preserve"><value>Suggestions and Feedback</value></data>
+  <data name="Settings_FeedbackChannelsSection" xml:space="preserve"><value>Choose a channel</value></data>
+  <data name="Settings_FeedbackDescription" xml:space="preserve"><value>Submitting opens the startride.top feedback page in your browser; reports are triaged by type.</value></data>
+  <data name="Settings_FeedbackFeatureDescription" xml:space="preserve"><value>New gameplay, panels, or shortcuts you would like to see.</value></data>
+  <data name="Settings_FeedbackBugDescription" xml:space="preserve"><value>Crashes, errors, failed connections, or layout glitches. Attaching logs speeds things up.</value></data>
+  <data name="Settings_FeedbackOpenButton" xml:space="preserve"><value>Open</value></data>
+  <data name="Settings_FeedbackBeforeSubmitSection" xml:space="preserve"><value>Before you submit</value></data>
+  <data name="Settings_FeedbackBeforeSubmitDescription" xml:space="preserve"><value>Update the launcher first (About -> Check for updates). If the issue reproduces reliably, the exact steps matter more than a screenshot. Logs live in the logs folder inside the launcher directory.</value></data>
 
 <data name="Download_LoaderPendingSubtitle" xml:space="preserve"><value>Not yet connected for installation</value></data>
 
@@ -1326,6 +1333,62 @@ The launcher has automatically switched to:
 <data name="Settings_JavaListLabel" xml:space="preserve"><value>Java List</value></data>
 
 <data name="Account_ListTitle" xml:space="preserve"><value>Account</value></data>
+<data name="Account_StatsBandText" xml:space="preserve"><value>Local machine stats, not per-account</value></data>
+<data name="Account_StatsBandEmptyText" xml:space="preserve"><value>You haven't launched the game from StartRide yet</value></data>
+<data name="Account_SteamSection" xml:space="preserve"><value>Steam sync</value></data>
+<data name="Account_SteamNotBound" xml:space="preserve"><value>Sign in with Steam and your Steam-recorded playtime and achievements appear here. Steam keeps the authoritative numbers; the local tally is just the launcher's own record.</value></data>
+<data name="Account_SteamPlaytimeLabel" xml:space="preserve"><value>Steam playtime</value></data>
+<data name="Account_SteamRecentLabel" xml:space="preserve"><value>Last 2 weeks</value></data>
+<data name="Account_SteamLastPlayedLabel" xml:space="preserve"><value>Last played</value></data>
+<data name="Account_SteamDistanceLabel" xml:space="preserve"><value>Distance driven</value></data>
+<data name="Account_SteamDistanceValueFormat" xml:space="preserve"><value>{0} km</value></data>
+<data name="Account_SteamAchievementsLabel" xml:space="preserve"><value>Achievements</value></data>
+<data name="Account_SteamAchievementProgressFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+<data name="Account_SteamAchievementPercentFormat" xml:space="preserve"><value>{0}% complete</value></data>
+<data name="Account_SteamNoData" xml:space="preserve"><value>No data synced from Steam yet</value></data>
+<data name="Account_SteamSyncNowButton" xml:space="preserve"><value>Sync now</value></data>
+<data name="Account_SteamSyncFailedFormat" xml:space="preserve"><value>Sync failed: {0}</value></data>
+<data name="Account_SteamSyncedAtFormat" xml:space="preserve"><value>Last synced {0}</value></data>
+
+<data name="Account_SteamAchievementsExpandFormat" xml:space="preserve">
+	<value>Show all {0} achievements</value>
+</data>
+
+<data name="Account_SteamEnsureLaunchLabel" xml:space="preserve">
+	<value>Start Steam before launching the game</value>
+</data>
+<data name="Account_SteamAchievementsCollapse" xml:space="preserve">
+	<value>Hide achievements</value>
+</data>
+<data name="Account_SteamAchievementUnlocked" xml:space="preserve">
+	<value>Unlocked</value>
+</data>
+<data name="Account_SteamAchievementLocked" xml:space="preserve">
+	<value>Locked</value>
+</data>
+<data name="Account_SteamAchievementGlobalFormat" xml:space="preserve">
+	<value>{0}% of players</value>
+</data>
+<data name="Account_SteamAchievementUnlockedAtFormat" xml:space="preserve">
+	<value>Unlocked {0}</value>
+</data>
+<data name="Account_SteamWriteBackHint" xml:space="preserve"><value>StartRide launches BeamNG.drive.exe directly and injects SteamAppId into the game — that is the field the Steam client uses to claim the session. With the Steam client running in the background, the playtime lands on your Steam account, and StartRide reads it back after you quit so both sides stay in sync. (Steam's public API is read-only, so the timing is always done by the Steam client.)</value></data>
+<data name="Account_StatsBandSteamText" xml:space="preserve"><value>Playtime from Steam · other figures are local</value></data>
+<data name="Settings_BackgroundEffectLabel" xml:space="preserve"><value>Background effect</value></data>
+<data name="Settings_HighlightFolderEmptyMessage" xml:space="preserve"><value>No highlights yet. Launch the game and drive a run — screenshots and records will show up here.</value></data>
+<data name="Settings_OpenHighlightsFolderFailedFormat" xml:space="preserve"><value>Could not open the highlights folder: {0}</value></data>
+<data name="Multiplayer_RoomHostFormat" xml:space="preserve"><value>Host: {0}</value></data>
+<data name="Multiplayer_RoomPlayerCountFormat" xml:space="preserve"><value>{0}/{1} players</value></data>
+<data name="Home_TrayTooltipIdle" xml:space="preserve"><value>StartRide Launcher</value></data>
+<data name="Home_TrayTooltipRunning" xml:space="preserve"><value>StartRide Launcher · BeamNG.drive is running</value></data>
+<data name="Account_StatChipPlaytimeLabel" xml:space="preserve"><value>Total playtime</value></data>
+<data name="Account_StatChipLaunchCountLabel" xml:space="preserve"><value>Local launch count</value></data>
+<data name="Account_StatChipLastLaunchLabel" xml:space="preserve"><value>Last launch</value></data>
+<data name="Account_DetailKindLabel" xml:space="preserve"><value>Account type</value></data>
+<data name="Account_DetailIdLabel" xml:space="preserve"><value>Account ID</value></data>
+<data name="Account_CopyUuidButton" xml:space="preserve"><value>Copy online ID</value></data>
+<data name="Account_RenameButton" xml:space="preserve"><value>Rename account</value></data>
+<data name="Account_DeleteButton" xml:space="preserve"><value>Delete account</value></data>
 
 <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>The authentication server must use HTTPS</value></data>
 
@@ -1818,6 +1881,7 @@ There are no other available directories in the list, so the launcher is ready a
 <data name="Account_ThirdPartyDropInvalidServer" xml:space="preserve"><value>Unable to recognize the dragged authentication server address</value></data>
 
 <data name="Multiplayer_LobbyPlayerListHeader" xml:space="preserve"><value>Player List</value></data>
+  <data name="Multiplayer_LobbyPlayerListNote" xml:space="preserve"><value>Host simulates physics · relay only forwards</value></data>
 
 <data name="Account_ThirdPartyLoginFailed" xml:space="preserve"><value>Third-party account login failed</value></data>
 
@@ -1977,7 +2041,7 @@ This will only remove the directory from the launcher list and will not delete t
 
 <data name="Status_ResourcePackInstalledFormat" xml:space="preserve"><value>{0} installed</value></data>
 
-<data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>Home</value></data>
+<data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>Game instances</value></data>
 
 <data name="Dialog_TerracottaDisagreeButton" xml:space="preserve"><value>Disagree</value></data>
 
@@ -2789,6 +2853,7 @@ The current game folder will be automatically backed up before restoration.</val
 <data name="Settings_GameInstallOpenButton" xml:space="preserve"><value>Open Directory</value></data>
 
 <data name="Settings_GameInstallFoundFormat" xml:space="preserve"><value>Automatically Detected: {0}</value></data>
+<data name="Settings_GameInstallSelectedMessage" xml:space="preserve"><value>Using the installation folder you selected</value></data>
 
 <data name="Settings_GameInstallCurrentFormat" xml:space="preserve"><value>Currently in Use: {0}</value></data>
 

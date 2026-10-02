@@ -26,6 +26,9 @@
       <DataTemplate x:Key="{DataTemplateKey {x:Type settings:InfoSettingsViewModel}}" DataType="{x:Type settings:InfoSettingsViewModel}">
         <views:InfoSettingsView />
       </DataTemplate>
+      <DataTemplate x:Key="{DataTemplateKey {x:Type settings:FeedbackSettingsViewModel}}" DataType="{x:Type settings:FeedbackSettingsViewModel}">
+        <views:FeedbackSettingsView />
+      </DataTemplate>
       <DataTemplate x:Key="{DataTemplateKey {x:Type settings:ControlListSettingsViewModel}}" DataType="{x:Type settings:ControlListSettingsViewModel}">
         <views:ControlListSettingsView />
       </DataTemplate>

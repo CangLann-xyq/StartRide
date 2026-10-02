@@ -36,6 +36,14 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private const double FallbackItemHeight = 54.0;
 
+	// 头部高度取自 SecondaryMenuHeaderOverlayStyle(Height=76)；
+	// 列表上下留白取自 SecondaryMenuVirtualizedListBoxStyle 的 ItemsPanel Margin="14,74,14,18"。
+	private const double FallbackHeaderHeight = 76.0;
+
+	private const double FallbackListTopSpacer = 74.0;
+
+	private const double FallbackListBottomSpacer = 18.0;
+
 	private const double FallbackAnimationDurationMilliseconds = 380.0;
 
 	private const double FallbackAnimationEasePower = 3.2;
@@ -659,9 +667,28 @@ public partial class HomeLaunchGameListView : UserControl, IComponentConnector
 
 	private double GetExpandedHeight()
 	{
+		// 只按内容撑高：头部 + n 个条目 + 底部留白。
+		// 早先直接返回浮动层整高（= 主页可用高度），那是 MC 启动器"版本列表"侧栏的做法；
+		// StartRide 只有 1~2 个 BeamNG 安装，展开后会拖出一整块空白面板。
 		Thickness panelMargin = GetPanelMargin();
-		double val = ((HomeLaunchFloatingLayer.ActualHeight > 0.0) ? HomeLaunchFloatingLayer.ActualHeight : base.ActualHeight) - panelMargin.Top - panelMargin.Bottom;
-		return Math.Max(GetCollapsedHeight(), val);
+		double availableHeight = ((HomeLaunchFloatingLayer.ActualHeight > 0.0) ? HomeLaunchFloatingLayer.ActualHeight : base.ActualHeight) - panelMargin.Top - panelMargin.Bottom;
+		double collapsedHeight = GetCollapsedHeight();
+		if (availableHeight <= collapsedHeight)
+		{
+			return collapsedHeight;
+		}
+		int launchInstanceCount = attachedViewModel?.LaunchInstances?.Count ?? 0;
+		double contentHeight;
+		if (launchInstanceCount > 0)
+		{
+			contentHeight = FallbackListTopSpacer + (launchInstanceCount * GetItemHeight()) + FallbackListBottomSpacer;
+		}
+		else
+		{
+			// 空列表：空状态文字在整块面板里居中，所以高度要留成"头部两倍 + 文字高"，否则会被头部遮住。
+			contentHeight = (2.0 * FallbackHeaderHeight) + GetEmptyStateTextHeight();
+		}
+		return Math.Clamp(contentHeight, collapsedHeight, availableHeight);
 	}
 
 	private double GetCollapsedHeight()

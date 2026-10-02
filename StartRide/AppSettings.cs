@@ -94,6 +94,24 @@ namespace StartRide.Core
 
         public bool AutoLaunchGameOnLobby { get; set; } = true;
 
+        /// <summary>启动游戏前确保 Steam 在运行（决定这段游玩时长会不会被 Steam 记账）。</summary>
+        public bool EnsureSteamBeforeLaunch { get; set; } = true;
+
+        // ---- Steam 侧数据缓存 ----
+        // 由服务器查 Steam Web API 得到（客户端直连 api.steampowered.com 在国内不通）。
+        // 缓存到本地是为了链路抖动时仍能显示上次同步到的数值。
+        // 注意：这些是「Steam 的账」，不覆盖本机的 TotalPlaytimeSeconds / LaunchCount。
+        public long SteamPlaytimeMinutes { get; set; }
+        public long SteamPlaytime2WeeksMinutes { get; set; }
+        public long SteamLastPlayedUnix { get; set; }
+        public long SteamMetersDriven { get; set; }
+        public int SteamAchievementsUnlocked { get; set; }
+        public int SteamAchievementsTotal { get; set; }
+        public string SteamSyncedAt { get; set; } = "";
+
+        /// <summary>成就列表的最近一次快照（JSON），冷启动时先拿它渲染，再后台刷新。</summary>
+        public string SteamAchievementsJson { get; set; } = "";
+
         public long TotalPlaytimeSeconds { get; set; }
 
         public int LaunchCount { get; set; }

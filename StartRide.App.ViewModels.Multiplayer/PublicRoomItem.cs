@@ -15,7 +15,9 @@ public sealed record PublicRoomItem(Room Room)
 
 	public string Mode => string.IsNullOrWhiteSpace(Room.Mode) ? "freeroam" : Room.Mode;
 
-	public string PlayerCount => $"{Room.Players}/{Room.Capacity} 人";
+	public string HostText => string.Format(Strings.Multiplayer_RoomHostFormat, Host);
+
+	public string PlayerCountText => string.Format(Strings.Multiplayer_RoomPlayerCountFormat, Room.Players, Room.Capacity);
 
 	public int Players => Room.Players;
 

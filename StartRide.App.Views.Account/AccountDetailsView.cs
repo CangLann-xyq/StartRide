@@ -83,6 +83,7 @@ public partial class AccountDetailsView : UserControl, IComponentConnector
 		currentAccountToken = GetCurrentAccountToken();
 		accountTransitionService.SyncTo(currentAccountToken);
 		ResetContentPresentation();
+		(base.DataContext as AccountDetailsViewModel)?.RefreshMachineStats();
 	}
 
 	private void AccountDetailsView_Unloaded(object sender, RoutedEventArgs e)

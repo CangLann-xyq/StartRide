@@ -200,7 +200,7 @@
 <data name="Status_LauncherAlreadyLatest" xml:space="preserve"><value>現在は最新バージョンです</value></data>
 <data name="GameSettings_InstanceNameLabel" xml:space="preserve"><value>バージョン名</value></data>
 <data name="Dialog_TerracottaProjectLink" xml:space="preserve"><value>StartRide 中継プロジェクト</value></data>
-<data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>ニックネームを入力するだけでオンラインプレイ可能、StartRide は正規アカウント不要。</value></data>
+<data name="Dialog_AddOfflineAccountSubtitle" xml:space="preserve"><value>ニックネームを入力するだけでオンラインプレイ可能。StartRide にゲームアカウントは不要です。</value></data>
 <data name="Status_ModCompatibleFileNotFound" xml:space="preserve"><value>現在のゲームに対応するモッドファイルが見つかりません。</value></data>
 <data name="Dialog_LaunchAnalysisOriginalReasonLabel" xml:space="preserve"><value>原始原因</value></data>
 <data name="Settings_UpdateChannelBetaTitle" xml:space="preserve"><value>テスト版</value></data>
@@ -365,7 +365,7 @@
 <data name="Settings_UserAgreement" xml:space="preserve"><value>ユーザー契約</value></data>
 <data name="GameSettings_ResourcePackManagementMultiSelectButton" xml:space="preserve"><value>複数選択</value></data>
 <data name="Resources_ShaderPackProjectsEmpty" xml:space="preserve"><value>一致するシェーダーパックが見つかりません</value></data>
-<data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>ニックネームを設定するだけでオンライン接続可能、正規アカウント不要。</value></data>
+<data name="Home_ChooseOrCreateAccount" xml:space="preserve"><value>アカウントがありません。ニックネームを作成するとオンライン接続できます。</value></data>
 <data name="Status_InstallDownloadingLoaderInstaller" xml:space="preserve"><value>ローダーインストーラーをダウンロード中...</value></data>
 <data name="Settings_LauncherLogDirectoryDescription" xml:space="preserve"><value>ランチャーログディレクトリ</value></data>
 <data name="Resources_ModFilterTypeLabel" xml:space="preserve"><value>タイプ</value></data>
@@ -411,7 +411,7 @@
 <data name="Dialog_ThirdPartyImportProgressSubtitle" xml:space="preserve"><value>キャラクターデータとログイン情報を保存中です。</value></data>
 <data name="Status_InstallingLoaderFormat" xml:space="preserve"><value>{0} {1} をインストール中...</value></data>
 <data name="Settings_UserAgreementDescription" xml:space="preserve"><value>このソフトウェア使用時に適用される条項と重要な声明を確認</value></data>
-<data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>正規アカウント</value></data>
+<data name="Account_TypeMicrosoftTitle" xml:space="preserve"><value>Microsoft アカウント</value></data>
 <data name="Dialog_LaunchAnalysisOutOfMemoryTitle" xml:space="preserve"><value>メモリ不足</value></data>
 <data name="Multiplayer_Join_ClipboardEmpty" xml:space="preserve"><value>クリップボードに利用可能なルームコードがありません。</value></data>
 <data name="Download_AddonLibraryLatestTag" xml:space="preserve"><value>最新</value></data>
@@ -572,7 +572,7 @@
 <data name="BackupFailure_Generic" xml:space="preserve"><value>バックアップ作成時に問題が発生しました。後で再試行してください。</value></data>
 <data name="Download_VanillaLoaderTitle" xml:space="preserve"><value>オリジナル</value></data>
 <data name="Dialog_DeleteInstanceTitle" xml:space="preserve"><value>バージョンを削除</value></data>
-<data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>Microsoftアカウントでログインしてスキンのアバターを取得</value></data>
+<data name="Account_TypeMicrosoftDescription" xml:space="preserve"><value>Microsoft アカウントでサインインしてアバターを取得します。</value></data>
 <data name="Settings_BackgroundImageControlBlurDescription" xml:space="preserve"><value>半透明コントロールにガウスぼかし効果を追加。このオプションを有効にすると動作が重くなる場合があります。</value></data>
 <data name="GameSettings_ModManagementEmptyMessage" xml:space="preserve"><value>現在利用可能なMODはありません</value></data>
 <data name="Resources_ModpackInstallTargetsLoadError" xml:space="preserve"><value>インストール方法の読み込みに失敗</value></data>
@@ -625,6 +625,13 @@
 <data name="Download_QuiltLoaderSubtitle" xml:space="preserve"><value>Quiltバージョンの選択とインストールをサポート</value></data>
 <data name="Status_RenamingInstance" xml:space="preserve"><value>バージョンを変更中...</value></data>
 <data name="Settings_SectionFeedback" xml:space="preserve"><value>推奨とフィードバック</value></data>
+  <data name="Settings_FeedbackChannelsSection" xml:space="preserve"><value>チャンネルを選ぶ</value></data>
+  <data name="Settings_FeedbackDescription" xml:space="preserve"><value>送信すると startride.top のフィードバックページがブラウザで開き、種類ごとに対応します。</value></data>
+  <data name="Settings_FeedbackFeatureDescription" xml:space="preserve"><value>ほしい遊び方・パネル・ショートカットをここに。</value></data>
+  <data name="Settings_FeedbackBugDescription" xml:space="preserve"><value>クラッシュ、エラー、接続失敗、レイアウトの乱れなど。ログを添えると特定が早くなります。</value></data>
+  <data name="Settings_FeedbackOpenButton" xml:space="preserve"><value>開く</value></data>
+  <data name="Settings_FeedbackBeforeSubmitSection" xml:space="preserve"><value>送信する前に</value></data>
+  <data name="Settings_FeedbackBeforeSubmitDescription" xml:space="preserve"><value>まずランチャーを最新版に（概要 → 更新を確認）。安定して再現する場合は、スクリーンショットより手順の説明が役立ちます。ログはランチャーフォルダの logs にあります。</value></data>
 <data name="Download_LoaderPendingSubtitle" xml:space="preserve"><value>インストール未統合</value></data>
 <data name="Status_InstallRunningLoaderInstaller" xml:space="preserve"><value>ローダーインストーラーを実行中...</value></data>
 <data name="GameSettings_ModManagementSelectAllButton" xml:space="preserve"><value>すべて選択</value></data>
@@ -682,6 +689,62 @@
 <data name="Status_LoadBackupsFailed" xml:space="preserve"><value>バックアップリストの読み込みに失敗しました。</value></data>
 <data name="Settings_JavaListLabel" xml:space="preserve"><value>Java リスト</value></data>
 <data name="Account_ListTitle" xml:space="preserve"><value>アカウント</value></data>
+<data name="Account_StatsBandText" xml:space="preserve"><value>本機の記録 · アカウント別ではありません</value></data>
+<data name="Account_StatsBandEmptyText" xml:space="preserve"><value>まだ StartRide からゲームを起動していません</value></data>
+<data name="Account_SteamSection" xml:space="preserve"><value>Steam 同期</value></data>
+<data name="Account_SteamNotBound" xml:space="preserve"><value>Steam アカウントでログインすると、Steam が記録したプレイ時間と実績がここに表示されます。正式な記録は Steam 側にあり、本機の数値はランチャー独自のものです。</value></data>
+<data name="Account_SteamPlaytimeLabel" xml:space="preserve"><value>Steam のプレイ時間</value></data>
+<data name="Account_SteamRecentLabel" xml:space="preserve"><value>過去2週間</value></data>
+<data name="Account_SteamLastPlayedLabel" xml:space="preserve"><value>最終プレイ</value></data>
+<data name="Account_SteamDistanceLabel" xml:space="preserve"><value>累計走行距離</value></data>
+<data name="Account_SteamDistanceValueFormat" xml:space="preserve"><value>{0} km</value></data>
+<data name="Account_SteamAchievementsLabel" xml:space="preserve"><value>実績</value></data>
+<data name="Account_SteamAchievementProgressFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+<data name="Account_SteamAchievementPercentFormat" xml:space="preserve"><value>達成率 {0}%</value></data>
+<data name="Account_SteamNoData" xml:space="preserve"><value>Steam からまだデータを同期していません</value></data>
+<data name="Account_SteamSyncNowButton" xml:space="preserve"><value>今すぐ同期</value></data>
+<data name="Account_SteamSyncFailedFormat" xml:space="preserve"><value>同期に失敗：{0}</value></data>
+<data name="Account_SteamSyncedAtFormat" xml:space="preserve"><value>最終同期 {0}</value></data>
+
+<data name="Account_SteamAchievementsExpandFormat" xml:space="preserve">
+	<value>全 {0} 個の実績を表示</value>
+</data>
+
+<data name="Account_SteamEnsureLaunchLabel" xml:space="preserve">
+	<value>起動前に Steam を自動起動</value>
+</data>
+<data name="Account_SteamAchievementsCollapse" xml:space="preserve">
+	<value>実績リストを閉じる</value>
+</data>
+<data name="Account_SteamAchievementUnlocked" xml:space="preserve">
+	<value>解除済み</value>
+</data>
+<data name="Account_SteamAchievementLocked" xml:space="preserve">
+	<value>未解除</value>
+</data>
+<data name="Account_SteamAchievementGlobalFormat" xml:space="preserve">
+	<value>世界 {0}%</value>
+</data>
+<data name="Account_SteamAchievementUnlockedAtFormat" xml:space="preserve">
+	<value>解除 {0}</value>
+</data>
+<data name="Account_SteamWriteBackHint" xml:space="preserve"><value>起動時、StartRide は BeamNG.drive.exe を直接実行し、同時に SteamAppId をゲームへ注入します。Steam クライアントはこの値でセッションを認識します。Steam クライアントがバックグラウンドで動作していれば、プレイ時間は Steam アカウントに記録され、ゲーム終了後に StartRide がその記録を読み戻すため両者は常に一致します。（Steam の公開 API は読み取り専用で、計測は常に Steam クライアント側が行います。）</value></data>
+<data name="Account_StatsBandSteamText" xml:space="preserve"><value>プレイ時間は Steam より · 他は本機の記録</value></data>
+<data name="Settings_BackgroundEffectLabel" xml:space="preserve"><value>背景効果</value></data>
+<data name="Settings_HighlightFolderEmptyMessage" xml:space="preserve"><value>ハイライト記録はまだありません。ゲームを起動して一走りすると、ここにスクリーンショットと記録が表示されます。</value></data>
+<data name="Settings_OpenHighlightsFolderFailedFormat" xml:space="preserve"><value>ハイライトフォルダーを開けませんでした：{0}</value></data>
+<data name="Multiplayer_RoomHostFormat" xml:space="preserve"><value>ホスト：{0}</value></data>
+<data name="Multiplayer_RoomPlayerCountFormat" xml:space="preserve"><value>{0}/{1} 人</value></data>
+<data name="Home_TrayTooltipIdle" xml:space="preserve"><value>StartRide ランチャー</value></data>
+<data name="Home_TrayTooltipRunning" xml:space="preserve"><value>StartRide ランチャー · BeamNG.drive 実行中</value></data>
+<data name="Account_StatChipPlaytimeLabel" xml:space="preserve"><value>累計プレイ時間</value></data>
+<data name="Account_StatChipLaunchCountLabel" xml:space="preserve"><value>本機の起動回数</value></data>
+<data name="Account_StatChipLastLaunchLabel" xml:space="preserve"><value>最終起動</value></data>
+<data name="Account_DetailKindLabel" xml:space="preserve"><value>アカウント種別</value></data>
+<data name="Account_DetailIdLabel" xml:space="preserve"><value>アカウント ID</value></data>
+<data name="Account_CopyUuidButton" xml:space="preserve"><value>オンライン ID をコピー</value></data>
+<data name="Account_RenameButton" xml:space="preserve"><value>アカウント名を変更</value></data>
+<data name="Account_DeleteButton" xml:space="preserve"><value>アカウントを削除</value></data>
 <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>認証サーバーは HTTPS を使用する必要があります</value></data>
 <data name="Status_WorldDownloadFailed" xml:space="preserve"><value>ワールドのダウンロードに失敗しました</value></data>
 <data name="Status_LocalModImportFileNotFound" xml:space="preserve"><value>インポートするモッドファイルが見つかりません。</value></data>
@@ -931,6 +994,7 @@
 <data name="Account_OfflineUuidManualTitle" xml:space="preserve"><value>カスタム</value></data>
 <data name="Account_ThirdPartyDropInvalidServer" xml:space="preserve"><value>ドラッグインされた認証サーバーアドレスを認識できません</value></data>
 <data name="Multiplayer_LobbyPlayerListHeader" xml:space="preserve"><value>プレイヤーリスト</value></data>
+  <data name="Multiplayer_LobbyPlayerListNote" xml:space="preserve"><value>物理演算はホスト · 中継は転送のみ</value></data>
 <data name="Account_ThirdPartyLoginFailed" xml:space="preserve"><value>サードパーティアカウントのログインに失敗しました</value></data>
 <data name="Resources_ModFilterLoaderLabel" xml:space="preserve"><value>ローダー</value></data>
 <data name="Dialog_ThirdPartyImportFailureFormat" xml:space="preserve"><value>{0} キャラクターのインポートに失敗しました</value></data>
@@ -1012,7 +1076,7 @@
 <data name="GameSettings_SaveManagementMultiSelectButton" xml:space="preserve"><value>複数選択</value></data>
 <data name="Status_ModpackDownloadFailed" xml:space="preserve"><value>統合パッケージのダウンロードに失敗しました</value></data>
 <data name="Status_ResourcePackInstalledFormat" xml:space="preserve"><value>{0} をインストール済み</value></data>
-<data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>ホーム</value></data>
+<data name="Home_LaunchInstanceMenuTitle" xml:space="preserve"><value>ゲームインスタンス</value></data>
 <data name="Dialog_TerracottaDisagreeButton" xml:space="preserve"><value>同意しない</value></data>
 <data name="Resources_ModInstallTargetsLoading" xml:space="preserve"><value>ゲームリストを読み込み中...</value></data>
 <data name="Status_MinecraftDirectoryAdded" xml:space="preserve"><value>ゲームディレクトリが追加され、切り替え済みです。</value></data>
@@ -1422,6 +1486,7 @@
 <data name="Settings_GameInstallBrowseButton" xml:space="preserve"><value>手動選択</value></data>
 <data name="Settings_GameInstallOpenButton" xml:space="preserve"><value>ディレクトリを開く</value></data>
 <data name="Settings_GameInstallFoundFormat" xml:space="preserve"><value>自動認識済み：{0}</value></data>
+<data name="Settings_GameInstallSelectedMessage" xml:space="preserve"><value>選択したインストール先を使用しています</value></data>
 <data name="Settings_GameInstallCurrentFormat" xml:space="preserve"><value>現在使用中：{0}</value></data>
 <data name="Settings_GameInstallMissing" xml:space="preserve"><value>BeamNG.drive が見つかりません。「手動選択」をクリックしてインストールディレクトリを指定してください（BeamNG.drive.exe が含まれる階層）。</value></data>
 <data name="Settings_GameInstallInvalid" xml:space="preserve"><value>このディレクトリは有効な BeamNG.drive インストールディレクトリではありません（BeamNG.drive.exe が見つかりません）。</value></data>

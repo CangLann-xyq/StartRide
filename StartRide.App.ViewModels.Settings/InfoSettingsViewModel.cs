@@ -353,6 +353,8 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand OpenProjectHomeCommand => openProjectHomeCommand ?? (openProjectHomeCommand = new RelayCommand(OpenProjectHome));
 
+	public event EventHandler? FeedbackRequested;
+
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	[ExcludeFromCodeCoverage]
 	public IRelayCommand OpenFeedbackCommand => openFeedbackCommand ?? (openFeedbackCommand = new RelayCommand(OpenFeedback));
@@ -419,18 +421,8 @@ public sealed class InfoSettingsViewModel : SettingsSectionViewModelBase
 	[RelayCommand]
 	private void OpenFeedback()
 	{
-		try
-		{
-			logger.LogInformation("About page external link. Target=feedback Url={Url}", StartRide.Core.SiteLinks.FeedbackUrl("feature"));
-			if (!externalLinkService.TryOpen(StartRide.Core.SiteLinks.FeedbackUrl("feature")))
-			{
-				statusService.Report(Strings.Status_OpenFeedbackPageFailed);
-			}
-		}
-		catch (Exception)
-		{
-			statusService.Report(Strings.Status_OpenFeedbackPageFailed);
-		}
+		logger.LogInformation("Feedback requested from about page.");
+		FeedbackRequested?.Invoke(this, EventArgs.Empty);
 	}
 
 	[RelayCommand]

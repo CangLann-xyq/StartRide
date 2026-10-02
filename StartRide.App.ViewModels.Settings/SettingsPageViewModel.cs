@@ -52,7 +52,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 
 	public ThemeSettingsViewModel Theme { get; }
 
-	public SettingsFeedbackDialogViewModel Feedback { get; }
+	public FeedbackSettingsViewModel Feedback { get; }
 
 	public InfoSettingsViewModel Info { get; }
 
@@ -204,7 +204,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 
 	public event EventHandler<SettingsGameDirectoryChangedEventArgs>? MinecraftDirectoryChanged;
 
-	public SettingsPageViewModel(ISettingsService settingsService, IStatusService statusService, ISystemMemoryService systemMemoryService, IJavaRuntimeDiscoveryService javaRuntimeDiscoveryService, IMinecraftDirectoryFileSystem minecraftDirectoryFileSystem, MinecraftDirectoryManagementService minecraftDirectoryManagementService, IFilePickerService filePickerService, ICustomFileDownloadService customFileDownloadService, IInstanceFolderService instanceFolderService, IFloatingMessageService floatingMessageService, IThemeService themeService, IExternalLinkService externalLinkService, ILauncherUpdateService launcherUpdateService, ILauncherSelfUpdateService launcherSelfUpdateService, IApplicationExitService applicationExitService, IInfoReferenceProjectCatalog infoReferenceProjectCatalog, LegalReaderViewModel legalReader, ILogger<SettingsFeedbackDialogViewModel>? feedbackDialogLogger = null, ILogger<InfoSettingsViewModel>? infoSettingsLogger = null, ILogger<SettingsPageViewModel>? logger = null, ILogger<CustomFileDownloadViewModel>? customFileDownloadLogger = null, DownloadTasksPageViewModel? downloadTasksPage = null, ILauncherLogLevelController? logLevelController = null, LauncherBackgroundViewModel? launcherBackground = null, SettingsPersistenceCoordinator? settingsPersistence = null)
+	public SettingsPageViewModel(ISettingsService settingsService, IStatusService statusService, ISystemMemoryService systemMemoryService, IJavaRuntimeDiscoveryService javaRuntimeDiscoveryService, IMinecraftDirectoryFileSystem minecraftDirectoryFileSystem, MinecraftDirectoryManagementService minecraftDirectoryManagementService, IFilePickerService filePickerService, ICustomFileDownloadService customFileDownloadService, IInstanceFolderService instanceFolderService, IFloatingMessageService floatingMessageService, IThemeService themeService, IExternalLinkService externalLinkService, ILauncherUpdateService launcherUpdateService, ILauncherSelfUpdateService launcherSelfUpdateService, IApplicationExitService applicationExitService, IInfoReferenceProjectCatalog infoReferenceProjectCatalog, LegalReaderViewModel legalReader, ILogger<FeedbackSettingsViewModel>? feedbackLogger = null, ILogger<InfoSettingsViewModel>? infoSettingsLogger = null, ILogger<SettingsPageViewModel>? logger = null, ILogger<CustomFileDownloadViewModel>? customFileDownloadLogger = null, DownloadTasksPageViewModel? downloadTasksPage = null, ILauncherLogLevelController? logLevelController = null, LauncherBackgroundViewModel? launcherBackground = null, SettingsPersistenceCoordinator? settingsPersistence = null)
 	{
 		ILogger<SettingsPageViewModel> logger2 = logger ?? NullLogger<SettingsPageViewModel>.Instance;
 		persistence = settingsPersistence ?? new SettingsPersistenceCoordinator(settingsService, statusService, logger2);
@@ -216,9 +216,13 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 		LaunchMemory = new LaunchMemorySettingsViewModel(persistence, systemMemoryService);
 		Java = new JavaSettingsViewModel(persistence, javaRuntimeDiscoveryService, statusService, filePickerService, floatingMessageService, () => General.MinecraftDirectory);
 		Theme = new ThemeSettingsViewModel(persistence, themeService, launcherBackground);
-		Feedback = new SettingsFeedbackDialogViewModel(statusService, floatingMessageService, externalLinkService, feedbackDialogLogger);
+		Feedback = new FeedbackSettingsViewModel(persistence, statusService, floatingMessageService, externalLinkService, feedbackLogger);
 		Info = new InfoSettingsViewModel(persistence, statusService, floatingMessageService, externalLinkService, launcherUpdateService, launcherSelfUpdateService, applicationExitService, infoReferenceProjectCatalog, legalReader, infoSettingsLogger);
 		ControlList = new ControlListSettingsViewModel(persistence);
+		Info.FeedbackRequested += delegate
+		{
+			ShowFeedbackSection();
+		};
 		Download.DownloadSourceChanged += delegate(object? _, SettingsDownloadSourceChangedEventArgs args)
 		{
 			DownloadSourceChanged?.Invoke(this, args);
@@ -273,6 +277,11 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 		SelectSectionCore(Sections.FirstOrDefault((SettingsSectionItem section) => section.Section == SettingsPageSection.Java));
 	}
 
+	public void ShowFeedbackSection()
+	{
+		SelectSectionCore(Sections.FirstOrDefault((SettingsSectionItem section) => section.Section == SettingsPageSection.Feedback));
+	}
+
 	public Task FlushPendingSettingsAsync(CancellationToken cancellationToken = default(CancellationToken))
 	{
 		return persistence.FlushAsync(cancellationToken);
@@ -297,14 +306,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 	{
 		if (section != null)
 		{
-			if (section.Section == SettingsPageSection.Feedback)
-			{
-				Feedback.Open();
-			}
-			else
-			{
-				SelectedSection = section;
-			}
+			SelectedSection = section;
 		}
 	}
 
@@ -332,6 +334,7 @@ public sealed class SettingsPageViewModel : ObservableObject, IDisposable
 			SettingsPageSection.Java => Java,
 			SettingsPageSection.Theme => Theme,
 			SettingsPageSection.Info => Info,
+			SettingsPageSection.Feedback => Feedback,
 			SettingsPageSection.ControlList => ControlList,
 			_ => General,
 		};

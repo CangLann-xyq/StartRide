@@ -245,6 +245,89 @@ namespace StartRide.Core
             }
             catch { return null; }
         }
+
+        // ---- Steam 时长 / 成就 ----
+        // 客户端不直连 api.steampowered.com（国内不通），一律经服务器中转，
+        // Steam Web API Key 只存在服务器上，不下发到客户端。
+
+        /// <summary>
+        /// 刷新并取回 Steam 侧记录的权威时长。
+        /// forceFresh：跳过服务端 5 分钟缓存。退出游戏后立刻回读必须用它，
+        /// 否则可能命中启动时写下的缓存，刚玩的那几分钟看不到。
+        /// </summary>
+        public async Task<SteamProfileInfo?> GetSteamProfileAsync(bool forceFresh = false)
+        {
+            if (string.IsNullOrEmpty(Token)) return null;
+            try
+            {
+                string url = $"{BASE}/steam/profile" + (forceFresh ? "?fresh=1" : "");
+                var resp = await _http.SendAsync(Authorized(HttpMethod.Get, url));
+                var r = await resp.Content.ReadFromJsonAsync<ApiResult<SteamProfileInfo>>(_jsonOpts);
+                return r?.Code == 200 ? r.Data : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>取回成就（名称/描述已按 lang 本地化，并带全球解锁率）。</summary>
+        public async Task<SteamAchievementResult?> GetSteamAchievementsAsync(string lang)
+        {
+            if (string.IsNullOrEmpty(Token)) return null;
+            try
+            {
+                string q = Uri.EscapeDataString(string.IsNullOrWhiteSpace(lang) ? "zh-Hans" : lang);
+                var resp = await _http.SendAsync(Authorized(HttpMethod.Get, $"{BASE}/steam/achievements?lang={q}"));
+                var r = await resp.Content.ReadFromJsonAsync<ApiResult<SteamAchievementResult>>(_jsonOpts);
+                return r?.Code == 200 ? r.Data : null;
+            }
+            catch { return null; }
+        }
+    }
+
+    /// <summary>Steam 侧时长快照（服务器查 Web API 得到）。</summary>
+    public class SteamProfileInfo
+    {
+        public bool Bound { get; set; }
+        public string? SteamId { get; set; }
+        public bool? OwnsBeamng { get; set; }
+        public long PlaytimeMinutes { get; set; }
+        public long Playtime2WeeksMinutes { get; set; }
+        public long LastPlayedUnix { get; set; }
+        public int AchievementsUnlocked { get; set; }
+        public int AchievementsTotal { get; set; }
+        public string? SyncedAt { get; set; }
+        /// <summary>false = 本次没从 Steam 取到，返回的是库里上次同步的值。</summary>
+        public bool? Fresh { get; set; }
+    }
+
+    /// <summary>Steam 成就查询结果。</summary>
+    public class SteamAchievementResult
+    {
+        public bool Bound { get; set; }
+        public bool Available { get; set; }
+        public string? Reason { get; set; }
+        public int Total { get; set; }
+        public int Unlocked { get; set; }
+        public List<SteamAchievementItem>? List { get; set; }
+        public SteamPlayerStats? Stats { get; set; }
+    }
+
+    public class SteamAchievementItem
+    {
+        public string Api { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Desc { get; set; } = "";
+        public bool Achieved { get; set; }
+        public long UnlockedAt { get; set; }
+        public double? Percent { get; set; }
+    }
+
+    /// <summary>Steam 记的玩家数值（GetUserStatsForGame）。</summary>
+    public class SteamPlayerStats
+    {
+        public long MetersDriven { get; set; }
+        public long AirTimeMinutes { get; set; }
+        public long RollOver { get; set; }
+        public long VehiclesSpawned { get; set; }
     }
 
     public class ApiResult<T>

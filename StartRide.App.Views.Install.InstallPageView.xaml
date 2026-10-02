@@ -50,7 +50,7 @@
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="48" />
                     </Grid.ColumnDefinitions>
-                    <ProgressBar Height="5" Maximum="100" Style="{StaticResource LauncherProgressBarStyle}" VerticalAlignment="Center" Value="{Binding ProgressPercent}" />
+                    <ProgressBar Height="5" Maximum="100" Style="{StaticResource LauncherProgressBarStyle}" VerticalAlignment="Center" Value="{Binding ProgressPercent, Mode=OneWay}" />
                     <TextBlock Grid.Column="1" Style="{StaticResource InstallTaskProgressTextStyle}" Text="{Binding ProgressText}" />
                   </Grid>
                 </Grid>

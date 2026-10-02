@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace StartRide.Core
@@ -79,7 +80,13 @@ namespace StartRide.Core
             Downloads = new DownloadManager(Settings);
 
             Multiplayer.Log += Log;
-            Launcher.Log += Log;
+            // 故意用静态事件而不是 Launcher.Log / Launcher.RunningChanged：
+            // 主页/实例/回放/托盘会各自 new 一个 GameLauncher（要指向不同实例目录），
+            // 只挂 AppState.Launcher 会漏掉这四条入口 —— 2026-10-02 实测踩到。
+            GameLauncher.AnyLog -= Log;
+            GameLauncher.AnyLog += Log;
+            GameLauncher.AnyGameExited -= QueueSteamPlaytimeRefresh;
+            GameLauncher.AnyGameExited += QueueSteamPlaytimeRefresh;
             ModInstaller.Log += Log;
             Instances.Log += Log;
             Downloads.Log += Log;
@@ -94,6 +101,47 @@ namespace StartRide.Core
             try { ModInstaller.ApplyPendingRemoval(); } catch { }
 
             try { ModInstaller.RemoveStaleOnStartup(); } catch { }
+        }
+
+        /// <summary>
+        /// 游戏退出后，隔一会儿把 Steam 侧时长读回来。
+        /// 为什么能这么做：这一局是启动器直接起 exe 的（不经 Steam 启动），但 Steam 客户端一直在跑，
+        /// 所以 Steam 会把它记进自己的账本 —— 公开 Web API 没有「写时长」的能力，时长只能由 Steam 自己掐表。
+        /// 为什么等一会儿：Steam 在进程退出后几秒才把这局结算进 playtime_forever，立刻读会拿到旧值。
+        /// </summary>
+        private void QueueSteamPlaytimeRefresh()
+        {
+            if (string.IsNullOrWhiteSpace(Api.Token)) return;
+            if (string.IsNullOrWhiteSpace(Settings.SteamSyncedAt) &&
+                Settings.SteamPlaytimeMinutes <= 0) return;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(12));
+                    // forceFresh：跳过服务端 5 分钟缓存，否则会命中启动时写下的那份，
+                    // 刚打完的这几分钟就看不到。
+                    SteamProfileInfo? profile = await Api.GetSteamProfileAsync(forceFresh: true);
+                    if (profile == null || !profile.Bound || profile.Fresh == false) return;
+
+                    Settings.SteamPlaytimeMinutes = profile.PlaytimeMinutes;
+                    Settings.SteamPlaytime2WeeksMinutes = profile.Playtime2WeeksMinutes;
+                    Settings.SteamLastPlayedUnix = profile.LastPlayedUnix;
+                    if (profile.AchievementsTotal > 0)
+                    {
+                        Settings.SteamAchievementsUnlocked = profile.AchievementsUnlocked;
+                        Settings.SteamAchievementsTotal = profile.AchievementsTotal;
+                    }
+                    Settings.SteamSyncedAt = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
+                    Settings.Save();
+                    Log("Steam 时长已回读：" + profile.PlaytimeMinutes + " 分钟");
+                }
+                catch (Exception ex)
+                {
+                    Log("退出后回读 Steam 时长失败：" + ex.Message);
+                }
+            });
         }
 
         public static readonly IReadOnlyList<(string Key, Color Color, string Display)> AccentOptions =
