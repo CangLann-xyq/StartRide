@@ -71,7 +71,13 @@ namespace StartRide.Core
             string safeName = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName.Trim();
             PlayerName = safeName;
 
-            PlayerId = StartRidePlayerId.Create(safeName);
+            // ⚠️ 这里必须**每个进程唯一**，不能只用昵称派生。
+            // StartRidePlayerId.Create 是「昵称的确定性哈希」，昵称一样 → ID 一样。
+            // 两个都用默认昵称（或碰巧重名）的玩家会拿到相同的 ID，
+            // 而游戏内模组是用 id 来过滤「自己发的包」的 → 双方互相丢对方的包，
+            // 表现就是「联机时看不见对方 / 远程车包=0」。线上内测正是这个症状。
+            // 所以：昵称只作为可读前缀，另叠一个本机安装+本会话都唯一的短尾巴。
+            PlayerId = BuildUniquePlayerId(safeName);
 
             _joinLine = JsonSerializer.Serialize(new
             {
@@ -114,6 +120,60 @@ namespace StartRide.Core
             Log?.Invoke("中继连接失败：" + LastError);
             ConnectionChanged?.Invoke(false, LastError);
             return false;
+        }
+
+        // 本机安装标识：第一次用到时生成一次并持久化，之后固定。
+        // 它不是「账号」，只用来区分「同一台机器之外的另一个人」，重名玩家不会撞车。
+        private static readonly object _installKeyLock = new();
+        private static string? _installKey;
+
+        private static string InstallKey()
+        {
+            lock (_installKeyLock)
+            {
+                if (_installKey != null) return _installKey;
+                try
+                {
+                    string dir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StartRide");
+                    Directory.CreateDirectory(dir);
+                    string file = Path.Combine(dir, "machine.key");
+                    if (File.Exists(file))
+                    {
+                        string existing = File.ReadAllText(file).Trim();
+                        if (existing.Length >= 8) { _installKey = existing; return existing; }
+                    }
+                    string fresh = Guid.NewGuid().ToString("N").Substring(0, 12).ToUpperInvariant();
+                    File.WriteAllText(file, fresh);
+                    _installKey = fresh;
+                    return fresh;
+                }
+                catch
+                {
+                    // 落盘失败也得唯一：退化成进程级随机，至少本次不撞车
+                    _installKey = Guid.NewGuid().ToString("N").Substring(0, 12).ToUpperInvariant();
+                    return _installKey;
+                }
+            }
+        }
+
+        // 每次进房一个随机 nonce：同一台机器连开两局也不会被当成同一个人。
+        private static string NewSessionNonce() =>
+            Guid.NewGuid().ToString("N").Substring(0, 6).ToUpperInvariant();
+
+        /// <summary>
+        /// 生成「人可读 + 机器唯一」的玩家 ID：
+        ///   SR-&lt;昵称哈希&gt;-&lt;本机key&gt;-&lt;本次会话nonce&gt;
+        /// 昵称哈希保住可读性与「同一个人认得出自己」；后两段保证任何情况下都不会撞。
+        /// </summary>
+        private static string BuildUniquePlayerId(string displayName)
+        {
+            string baseId = StartRidePlayerId.Create(displayName);
+            // SR-XXXX-XXXX-XXXX → 取中间三段拼成紧凑体
+            string body = baseId.StartsWith(StartRidePlayerId.Prefix, StringComparison.Ordinal)
+                ? baseId.Substring(StartRidePlayerId.Prefix.Length)
+                : baseId;
+            return StartRidePlayerId.Prefix + body + "-" + InstallKey() + "-" + NewSessionNonce();
         }
 
         private async Task ConnectWebSocketAsync(string joinLine)
@@ -237,9 +297,33 @@ namespace StartRide.Core
             if (_stopping || _roomClosed || !IsConnected) return;
 
             long idle = Environment.TickCount64 - Interlocked.Read(ref _lastInboundTicks);
-            if (idle <= 75000) return;
 
-            Log?.Invoke($"中继 {idle / 1000} 秒无任何下行，判定链路已死，开始重连");
+            // WebSocket 隧道另有一份「收到任何字节」的时间戳（含控制帧 pong）。
+            // 服务端每 25s 发一次文本 ping，正常时这份时间戳总是很新；
+            // 一旦隧道被 nginx 静默半开（读不到 EOF、写不报错），两份都不再更新 ——
+            // 这时要尽快判定死并重连，而不是憋到 75s 让玩家以为"还连着"却互看不见。
+            long wsIdle = long.MaxValue;
+            try
+            {
+                var ws = _ws;
+                if (ws is { IsOpen: true })
+                {
+                    long ticks = ws.LastInboundUtcTicks;
+                    if (ticks > 0)
+                    {
+                        long wsIdleMs = (long)(DateTime.UtcNow - new DateTime(ticks, DateTimeKind.Utc)).TotalMilliseconds;
+                        if (wsIdleMs >= 0) wsIdle = wsIdleMs;
+                    }
+                }
+            }
+            catch { }
+
+            long worst = Math.Min(idle, wsIdle);
+
+            // 35s：比服务端 25s 保活留一次丢包余量，又远小于旧版的 75s。
+            if (worst <= 35000) return;
+
+            Log?.Invoke($"中继 {worst / 1000} 秒无任何下行，判定链路已死，开始重连");
             IsConnected = false;
             CleanupTransport();
             ConnectionChanged?.Invoke(false, "中继无响应");

@@ -3334,6 +3334,14 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Lobby_SpawnCountFormat" xml:space="preserve"><value>{0} spawn points</value></data>
   <data name="Lobby_SpawnDefaultOnly" xml:space="preserve"><value>Default only</value></data>
   <data name="Lobby_CreateRoomButton" xml:space="preserve"><value>Create room</value></data>
+  <data name="Lobby_CapacitySectionTitle" xml:space="preserve"><value>Player limit</value></data>
+  <data name="Lobby_CapacityHint" xml:space="preserve"><value>Maximum players including you. The host can change it at any time after creating the room.</value></data>
+  <data name="Lobby_CapacityValueFormat" xml:space="preserve"><value>{0}</value></data>
+  <data name="Lobby_CapacitySummaryFormat" xml:space="preserve"><value>{0} / {1} players</value></data>
+  <data name="Lobby_CapacityDecreaseButton" xml:space="preserve"><value>One fewer player</value></data>
+  <data name="Lobby_CapacityIncreaseButton" xml:space="preserve"><value>One more player</value></data>
+  <data name="Lobby_CapacitySetFailed" xml:space="preserve"><value>Could not change the player limit. Check the relay connection and try again.</value></data>
+  <data name="Lobby_CapacityTooLowHint" xml:space="preserve"><value>Cannot be lower than the current player count</value></data>
   <data name="Lobby_PickRoomHint" xml:space="preserve"><value>Pick a room from the list above</value></data>
   <data name="Lobby_JoinRoomTitleFormat" xml:space="preserve"><value>Join “{0}”</value></data>
   <data name="Lobby_JoinRoomMapFormat" xml:space="preserve"><value>Host map: {0}</value></data>

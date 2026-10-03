@@ -18,6 +18,12 @@ namespace StartRide.Core
         /// <summary>BeamNG 在 Steam 上的 appid。游戏目录里没有 steam_appid.txt，只能由启动器告诉它。</summary>
         public const string BeamNgSteamAppId = "284160";
 
+        /// <summary>
+        /// 上一次组参数时「因为显示配置不安全而没强开全屏」的原因；null = 正常。
+        /// <see cref="BuildLaunchArguments"/> 是静态的，调用方紧接着读它即可（同一个线程内组装+启动）。
+        /// </summary>
+        public static string? LastFullscreenSuppressedReason { get; private set; }
+
         public event Action<string>? Log;
         public event Action<bool>? RunningChanged;
 
@@ -36,11 +42,20 @@ namespace StartRide.Core
         public static event Action? AnyGameExited;
 
         /// <summary>
-        /// 本进程内「已启动且仍在跑」的游戏目录。
+        /// 本进程内「已启动且仍在跑」的游戏目录 → 进程对象。
         /// 同一目录重复启动会让 BeamNG 崩（2026-10-02 实测 0xC0000409）。
+        ///
+        /// ⚠️ 2026-10-03 从 HashSet 改成 Dictionary：<see cref="IsRunning"/> 必须能跨实例判断。
+        /// 内测诊断包实证（12:22 那批崩溃）：用户从主页启动游戏后进联机建房，
+        /// <c>StartRideLobbyService</c> 用的是 <c>AppState.Current.Launcher</c> —— 另一个实例，
+        /// 它的 <c>_process</c> 永远是 null，于是 <c>IsRunning</c> 恒为 false，
+        /// 每次都重新走一遍 Launch()：虽然被这个静态守卫栏下（日志「重复启动被忽略」），
+        /// 但 <c>RepairGameConfigAsync</c>/<c>RunPreLaunchCommand</c>/<c>EnsureSteamRunning</c>
+        /// 已经执行过 —— 在游戏正在初始化的那几秒里改配置，游戏随即崩溃。
+        /// 日志里「已启动 → 2 秒后重复被忽略 → 十秒后游戏已退出」连刷 5 轮就是这个。
         /// </summary>
-        private static readonly HashSet<string> RunningDirectories =
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Process?> RunningDirectories =
+            new Dictionary<string, Process?>(StringComparer.OrdinalIgnoreCase);
 
         private static readonly object RunningGate = new object();
 
@@ -50,8 +65,51 @@ namespace StartRide.Core
             AnyLog?.Invoke(message);
         }
 
-        public bool IsRunning => _process is { HasExited: false };
-        public int? ProcessId => IsRunning ? _process?.Id : null;
+        /// <summary>
+        /// 游戏是否在跑。
+        /// 先看自己这条，再看「同目录有没有别的实例起着」—— 跨实例判定，
+        /// 否则主页起的局在联机页看来就是「没在跑」。
+        /// 表里值是 null 表示「正在启动中」，同样算在跑（避免启动窗口期被判成没跑）。
+        /// </summary>
+        public bool IsRunning
+        {
+            get
+            {
+                if (_process is { HasExited: false }) return true;
+
+                string dir = _settings.GameDirectory ?? string.Empty;
+                if (dir.Length == 0) return false;
+
+                lock (RunningGate)
+                {
+                    if (!RunningDirectories.TryGetValue(dir, out var other)) return false;
+                    return other == null || !other.HasExited;
+                }
+            }
+        }
+
+        /// <summary>正在跑的游戏进程 id（跨实例）。正在启动中（占位）时返回 null。</summary>
+        public int? ProcessId
+        {
+            get
+            {
+                if (_process is { HasExited: false }) return _process.Id;
+
+                string dir = _settings.GameDirectory ?? string.Empty;
+                if (dir.Length == 0) return null;
+
+                lock (RunningGate)
+                {
+                    if (RunningDirectories.TryGetValue(dir, out var other)
+                        && other is { HasExited: false })
+                    {
+                        return other.Id;
+                    }
+                }
+
+                return null;
+            }
+        }
 
         public int AppliedMemoryLimitMb { get; private set; }
 
@@ -139,7 +197,19 @@ namespace StartRide.Core
 
             if (settings.LaunchFullScreen)
             {
-                args.Add("-fullscreen");
+                // ⚠️ 不是无脑加 -fullscreen：游戏窗口模式下存的分辨率/刷新率可能根本不是
+                // 合法的独占全屏模式（引擎只在非 Window 模式校验，见 graphic.lua:486），
+                // 强开会让 D3D11Device::reset 拿到不存在的模式 → device removed → 崩在加载界面。
+                // 2026-10-03 内测 CrashRpt ×4 就是这个。不安全就不强开，退回游戏自己的窗口模式。
+                var disp = DisplaySafetyProbe.Inspect(settings);
+                if (disp.SafeToForceFullscreen)
+                {
+                    args.Add("-fullscreen");
+                }
+                else
+                {
+                    LastFullscreenSuppressedReason = disp.Reason;
+                }
             }
 
             if (settings.SkipLaunchMenu)
@@ -290,15 +360,29 @@ namespace StartRide.Core
             // 同一目录已经在跑就不再启动。
             // 2026-10-02 实测：连点「启动游戏」会各自 new 一个 GameLauncher（IsRunning 各算各的），
             // 于是同一个 userpath 上起了两份 BeamNG —— 后起那份 8 秒后崩在 0xC0000409。
+            //
+            // ⚠️ 2026-10-03：上面这行"重复启动被忽略"曾经是**每个实例各喊一遍**的 ——
+            // 主页起的局在联机页的实例看来不算在跑，于是每次建房/加入都白走一遍
+            // RunPreLaunchCommand / EnsureSteamRunning / 改配置，游戏正在初始化就被搅崩。
+            // 现在 IsRunning 是跨实例的，所以在真正开始动作**之前**先用它挡一次；
+            // 静态表这一层留着兜底连点竞态。
             string gameDir = _settings.GameDirectory ?? string.Empty;
             lock (RunningGate)
             {
-                if (RunningDirectories.Contains(gameDir))
+                if (RunningDirectories.TryGetValue(gameDir, out var existing)
+                    && existing is { HasExited: false })
                 {
                     EmitLog("同一目录的游戏已在运行，本次启动被忽略（重复启动会让 BeamNG 崩溃）");
                     return "游戏已经在运行了，请先结束当前游戏。";
                 }
-                RunningDirectories.Add(gameDir);
+
+                // 剩余的死进程顺手清掉，免得占着位置
+                RunningDirectories.Remove(gameDir);
+
+                // 立刻占位（值是 null = 「正在启动中」）：
+                // 宁可占早了在失败时回滚，也不能让「检查过 → 占位」之间跑进第二个实例（连点）。
+                // IsRunning 里对 null 的处理就是「在跑」——启动窗口期也必须算在跑。
+                RunningDirectories[gameDir] = null;
             }
 
             RunPreLaunchCommand();
@@ -320,6 +404,12 @@ namespace StartRide.Core
                 foreach (var a in BuildLaunchArguments(_settings, levelId))
                 {
                     psi.ArgumentList.Add(a);
+                }
+
+                // 全屏被降级的留痕：玩家报「设了全屏却还是窗口」时能一眼看到原因
+                if (!string.IsNullOrEmpty(LastFullscreenSuppressedReason))
+                {
+                    EmitLog("未强制全屏：" + LastFullscreenSuppressedReason);
                 }
 
                 if (!string.IsNullOrWhiteSpace(levelId))
@@ -347,26 +437,63 @@ namespace StartRide.Core
                     {
                         RunningDirectories.Remove(gameDir);
                     }
+                    EmitLog("启动游戏失败：Process.Start 返回了 null");
+                    return "启动游戏失败。";
                 }
-                else
+
+                lock (RunningGate)
                 {
-                    ApplyMemoryLimit();
-                    _process.EnableRaisingEvents = true;
-                    _process.Exited += (_, _) =>
+                    // 用真实进程顶掉前面占位的那个
+                    RunningDirectories[gameDir] = _process;
+                }
+
+                ApplyMemoryLimit();
+                _process.EnableRaisingEvents = true;
+                _process.Exited += (_, _) =>
+                {
+                    EmitLog("游戏已退出");
+                    lock (RunningGate)
                     {
-                        EmitLog("游戏已退出");
-                        lock (RunningGate)
+                        // 只清自己这一条：期间可能有别的实例接管过（不会，但保险）
+                        if (RunningDirectories.TryGetValue(gameDir, out var cur)
+                            && ReferenceEquals(cur, _process))
                         {
                             RunningDirectories.Remove(gameDir);
                         }
-                        ReleaseMemoryLimit();
-                        RunPostExitCommand();
-                        RunningChanged?.Invoke(false);
-                        AnyGameExited?.Invoke();
-                    };
-                }
+                    }
+
+                    // 与 BeginSession 对称，收在同一个汇点 —— 各入口都从这儿走，不会漏。
+                    try
+                    {
+                        PlaytimeTracker.EndSession(_settings);
+                    }
+                    catch (Exception ex)
+                    {
+                        EmitLog("记录本次游玩结束失败：" + ex.Message);
+                    }
+
+                    ReleaseMemoryLimit();
+                    RunPostExitCommand();
+                    RunningChanged?.Invoke(false);
+                    AnyGameExited?.Invoke();
+                };
 
                 EmitLog("已启动 BeamNG.drive");
+
+                // ⚠️ 计时/计数必须记在**唯一汇点**上。
+                // 内测诊断包实证：settings 里 LaunchCount=8，而日志有 20+ 条「已启动 BeamNG.drive」——
+                // 因为 BeginSession 原先只挂在 StartRideLaunchService 这一条入口，
+                // 从主页/实例/回放/托盘起的局全都漏记。
+                // Launch() 是所有入口的唯一汇点，记在这里才不会漏。
+                try
+                {
+                    PlaytimeTracker.BeginSession(_settings);
+                }
+                catch (Exception ex)
+                {
+                    EmitLog("记录本次游玩开始失败：" + ex.Message);
+                }
+
                 RunningChanged?.Invoke(true);
                 return null;
             }

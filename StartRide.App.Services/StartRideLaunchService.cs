@@ -136,7 +136,8 @@ public sealed class StartRideLaunchService : ILaunchService
 		progress?.Report(new LauncherProgress(
 			LaunchProgressStages.RunningPreLaunchCommand, "BeamNG.drive 已启动", 100));
 
-		PlaytimeTracker.BeginSession(appSettings);
+		// BeginSession 已收在 GameLauncher.Launch() 里（所有入口的唯一汇点）。
+		// 这里再调一次会双计 LaunchCount —— 内测诊断包里的统计失真就是这么来的。
 
 		await Task.CompletedTask.ConfigureAwait(false);
 

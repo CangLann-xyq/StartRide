@@ -5,6 +5,7 @@ using System.Runtime.Versioning;
 using System.Windows;
 
 [assembly: InternalsVisibleTo("Launcher.Tests")]
+[assembly: InternalsVisibleTo("SrHarness")]
 [assembly: ThemeInfo(ResourceDictionaryLocation.None, ResourceDictionaryLocation.SourceAssembly)]
 [assembly: AssemblyMetadata("ReleaseChannel", "release")]
 [assembly: AssemblyMetadata("VersionCode", "10000")]

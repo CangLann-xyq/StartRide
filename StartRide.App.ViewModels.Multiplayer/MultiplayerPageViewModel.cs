@@ -178,6 +178,12 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand<SpawnOptionItem?>? selectJoinSpawnCommand;
 
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? increaseCapacityCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? decreaseCapacityCommand;
+
 	public ObservableCollection<MultiplayerSectionItem> Sections { get; }
 
 	public ObservableCollection<PublicRoomItem> PublicRooms { get; } = new ObservableCollection<PublicRoomItem>();
@@ -195,6 +201,97 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	public ObservableCollection<SpawnOptionItem> LobbySpawns { get; } = new ObservableCollection<SpawnOptionItem>();
 
 	public ObservableCollection<SpawnOptionItem> JoinSpawns { get; } = new ObservableCollection<SpawnOptionItem>();
+
+	// ── 人数上限（只有房主能改）────────────────────────────────────────────
+	// 建房前在设置层选，建房后还能在房间面板里改（走 set-capacity，不用重开房间）。
+	// 取值范围与中继保持一致：2~16。下限 2 是「一个人不算联机」，上限 16 是中继
+	// 单进程扇形广播能撑住的规模（车包按人数平方放大，再多会压垮中继出口带宽）。
+
+	private const int CapacityMin = 2;
+	private const int CapacityMax = 16;
+
+	private int lobbyCapacity = 8;
+
+	/// <summary>房主选定的人数上限。</summary>
+	public int LobbyCapacity
+	{
+		get => lobbyCapacity;
+		set
+		{
+			int clamped = Math.Max(CapacityMin, Math.Min(CapacityMax, value));
+			if (lobbyCapacity == clamped) return;
+			lobbyCapacity = clamped;
+			OnPropertyChanged(nameof(LobbyCapacity));
+			OnPropertyChanged(nameof(LobbyCapacityText));
+			NotifyCapacityCommands();
+		}
+	}
+
+	/// <summary>「4 人」这样的展示文本。</summary>
+	public string LobbyCapacityText => string.Format(Strings.Lobby_CapacityValueFormat, LobbyCapacity);
+
+	public bool CanIncreaseCapacity => LobbyCapacity < CapacityMax;
+
+	public bool CanDecreaseCapacity => LobbyCapacity > CapacityMin;
+
+	/// <summary>房间面板里显示的「人数 / 上限」。加入者也看得到（来自中继快照）。</summary>
+	public string LobbyCapacitySummary
+	{
+		get
+		{
+			if (lobbyService is IStartRideLobbyCapacity cap)
+			{
+				int limit = cap.Capacity > 0 ? cap.Capacity : LobbyCapacity;
+				return string.Format(Strings.Lobby_CapacitySummaryFormat, cap.PlayerCount, limit);
+			}
+			return string.Format(Strings.Lobby_CapacitySummaryFormat, LobbyPlayers.Count, LobbyCapacity);
+		}
+	}
+
+	private void NotifyCapacityCommands()
+	{
+		IncreaseCapacityCommand.NotifyCanExecuteChanged();
+		DecreaseCapacityCommand.NotifyCanExecuteChanged();
+	}
+
+	private bool CanIncreaseCapacityExecute() => CanIncreaseCapacity;
+
+	private bool CanDecreaseCapacityExecute() => CanDecreaseCapacity;
+
+	/// <summary>房主把上限 +1；建房前改的是待用值，建房后同时下发到中继。</summary>
+	[RelayCommand(CanExecute = "CanIncreaseCapacityExecute")]
+	private void IncreaseCapacity() => ApplyCapacity(LobbyCapacity + 1);
+
+	[RelayCommand(CanExecute = "CanDecreaseCapacityExecute")]
+	private void DecreaseCapacity() => ApplyCapacity(LobbyCapacity - 1);
+
+	/// <summary>
+	/// 落地一次上限修改。
+	/// 建房**前**：只写进设置，建房时随 RoomMeta 一起带出去。
+	/// 建房**后**（房主 + 已在房里）：同时发一条 set-capacity 让中继立刻生效。
+	/// </summary>
+	private void ApplyCapacity(int next)
+	{
+		LobbyCapacity = next;
+		try
+		{
+			AppState.Current.Settings.LobbyCapacity = LobbyCapacity;
+			AppState.Current.Settings.Save();
+		}
+		catch (Exception exception)
+		{
+			logger.LogWarning(exception, "Failed to persist the multiplayer lobby capacity.");
+		}
+
+		if (IsLobbyHost && IsLobbyStep && lobbyService is IStartRideLobbyCapacity cap)
+		{
+			if (!cap.SetCapacity(LobbyCapacity))
+			{
+				ReportFailure(Strings.Lobby_CapacitySetFailed);
+			}
+		}
+		OnPropertyChanged(nameof(LobbyCapacitySummary));
+	}
 
 	private LevelOptionItem? selectedLobbyLevel;
 	private SpawnOptionItem? selectedLobbySpawn;
@@ -820,6 +917,12 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 
 	public IRelayCommand<SpawnOptionItem?> SelectJoinSpawnCommand => selectJoinSpawnCommand ?? (selectJoinSpawnCommand = new RelayCommand<SpawnOptionItem>(item => { if (item != null) SelectedJoinSpawn = item; }));
 
+	/// <summary>房主把人数上限 +1。</summary>
+	public IRelayCommand IncreaseCapacityCommand => increaseCapacityCommand ?? (increaseCapacityCommand = new RelayCommand(IncreaseCapacity, CanIncreaseCapacityExecute));
+
+	/// <summary>房主把人数上限 -1。</summary>
+	public IRelayCommand DecreaseCapacityCommand => decreaseCapacityCommand ?? (decreaseCapacityCommand = new RelayCommand(DecreaseCapacity, CanDecreaseCapacityExecute));
+
 	public MultiplayerPageViewModel(IMultiplayerLobbyService lobbyService, IClipboardService clipboardService, IUiDispatcher uiDispatcher, IStatusService statusService, IFloatingMessageService floatingMessageService, AccountPageViewModel? accountPage = null, IExternalLinkService? externalLinkService = null, ILogger<MultiplayerPageViewModel>? logger = null)
 	{
 		this.lobbyService = lobbyService;
@@ -836,6 +939,8 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 			new MultiplayerSectionItem(MultiplayerPageSection.JoinLobby, Strings.Multiplayer_SectionJoinLobby, "multiple_player/multi_enter")
 		};
 		SelectedSection = Sections[0];
+		// 沿用上次建房选的人数上限
+		lobbyCapacity = Math.Max(CapacityMin, Math.Min(CapacityMax, AppState.Current.Settings.LobbyCapacity));
 		lobbyService.SnapshotChanged += OnLobbySnapshotChanged;
 		lobbyService.Stopped += OnLobbyStopped;
 		_ = LoadLobbyLevelsAsync();
@@ -1161,6 +1266,13 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		RoomCode = snapshot.RoomCode;
 		OnPropertyChanged("LobbyMapText");
 		OnPropertyChanged("LobbySpawnText");
+		OnPropertyChanged(nameof(LobbyCapacitySummary));
+		// 中继快照带回了权威上限时，把房主的本地选择同步过来，
+		// 这样房间面板上的 +/- 与实际生效值始终一致（加入者也会看到房主设的数）。
+		if (lobbyService is IStartRideLobbyCapacity cap && cap.Capacity > 0 && cap.Capacity != LobbyCapacity)
+		{
+			LobbyCapacity = cap.Capacity;
+		}
 		LobbyOwnerName = snapshot.Players.FirstOrDefault((MultiplayerLobbyPlayer player) => player.Kind == MultiplayerLobbyPlayerKind.Host)?.DisplayName ?? Strings.Multiplayer_LobbyOwnerPlaceholder;
 		LobbyPlayers.Clear();
 		for (int num = 0; num < snapshot.Players.Count; num++)

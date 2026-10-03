@@ -9,7 +9,25 @@ using StartRide.Core;
 
 namespace StartRide.App.Services;
 
-public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposable
+/// <summary>
+/// 「房主可定人数上限」这条能力的入口。
+/// 为什么不直接加进 IMultiplayerLobbyService：那个接口在第三方 DLL
+/// （Launcher.Application）里，改它要动二进制。所以这里在**应用侧**另开一个小接口，
+/// 页面按需探测——拿不到就退化成「不支持改上限」，而不是编译不过。
+/// </summary>
+public interface IStartRideLobbyCapacity
+{
+	/// <summary>当前房间的人数上限（房主那份是权威值，加入者读到的来自中继快照）。</summary>
+	int Capacity { get; }
+
+	/// <summary>当前房间的在线人数。</summary>
+	int PlayerCount { get; }
+
+	/// <summary>房主改上限；非房主或未连接返回 false。</summary>
+	bool SetCapacity(int capacity);
+}
+
+public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRideLobbyCapacity, IDisposable
 {
 	private readonly AppSettings settings = AppState.Current.Settings;
 
@@ -38,6 +56,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 	private volatile bool inDisconnectGrace;
 
 	public MultiplayerLobbySnapshot? Current => current;
+
+	/// <summary>人数上限以中继快照为准（房主改了之后，所有人的这份都会跟着变）。</summary>
+	public int Capacity => session.State.Capacity > 0 ? session.State.Capacity : ClampCapacity(settings.LobbyCapacity);
+
+	public int PlayerCount => session.State.PlayerCount;
 
 	public event Action<MultiplayerLobbySnapshot>? SnapshotChanged;
 
@@ -74,6 +97,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		// 出生点只发给本地模组（每个人落点可以不同，没必要也不应该让别人的出生点被别人决定）。
 		string mapId = ResolveMapId(settings.LobbyMapId);
 		string spawnPoint = ResolveSpawnPoint(mapId, settings.LobbySpawnPoint);
+		int capacity = ClampCapacity(settings.LobbyCapacity);
 
 		var code = NewRoomCode();
 		var room = new Room
@@ -83,7 +107,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 			Host = playerName,
 			Map = mapId,
 			Mode = "freeroam",
-			Capacity = 8,
+			Capacity = capacity,
 			Players = 1,
 			Live = true,
 		};
@@ -109,7 +133,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		MultiplayerSession.WriteGameBootstrap(playerName, code, roomName, mapId, spawnPoint);
 		StartRideMultiplayerRuntime.RoomMapId = mapId;
 
-		PluginLog($"房主已选地图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}");
+		PluginLog($"房主已选地图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}，人数上限 {capacity}");
 
 		try
 		{
@@ -191,9 +215,45 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 		return Publish(MultiplayerLobbyState.Active);
 	}
 
-	public async Task StopAsync(CancellationToken cancellationToken = default)
+	/// <summary>
+	/// 房主改房间人数上限。走当前隧道发 set-capacity，中继改元数据后广播新快照，
+	/// 启动器不用重连、房主的车也不会掉。
+	/// </summary>
+	public bool SetCapacity(int capacity)
 	{
-		string code = current?.RoomCode ?? "";
+		if (!isHost)
+		{
+			return false;
+		}
+
+		int clamped = ClampCapacity(capacity);
+		if (!session.SetCapacity(clamped))
+		{
+			PluginLog("修改人数上限失败：当前不在房里或中继未连接");
+			return false;
+		}
+
+		// 记住这次选择，下次建房直接沿用
+		try
+		{
+			settings.LobbyCapacity = clamped;
+			settings.Save();
+		}
+		catch (Exception exception)
+		{
+			PluginLog("记住人数上限失败：" + exception.Message);
+		}
+
+		PluginLog("人数上限已改为 " + clamped);
+		RaiseSnapshotChanged(Publish(MultiplayerLobbyState.Active));
+		return true;
+	}
+
+	/// <summary>人数上限合法区间，与中继 relay-broadcast.js 的 CAPACITY_MIN/MAX 保持一致。</summary>
+	private static int ClampCapacity(int value) => Math.Max(2, Math.Min(16, value));
+
+	public async Task StopAsync(CancellationToken cancellationToken = default)
+	{		string code = current?.RoomCode ?? "";
 		if (isHost && code.Length > 0)
 		{
 
@@ -239,7 +299,24 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 
 	private async Task EnsureGameReadyAsync()
 	{
-		await RepairGameConfigAsync().ConfigureAwait(false);
+		// ⚠️ 游戏在跑时**绝不能**动它的配置文件和 mods 目录。
+		// 内测诊断包实证（12:22 连崩 5 轮，每轮游戏只活 12~16 秒）：
+		// 用户开着游戏进联机页建房/加入，这条路径会
+		//   ① ConfigRepairService 写游戏配置文件
+		//   ② ModInstaller 往 mods 目录写联机模组
+		// —— 而这两件事都发生在游戏**正在初始化**的那几秒里，游戏随即崩。
+		// 日志呈现成「已启动 → 2 秒后重复启动被忽略 → 十秒后游戏已退出」反复刷。
+		// 所以：游戏已经在跑就跳过这两个写操作，改为提示玩家重进。
+		bool gameRunning = SafeIsGameRunning();
+
+		if (gameRunning)
+		{
+			PluginLog("游戏已在运行，跳过配置修复与模组安装（运行中改动会令 BeamNG 崩溃）");
+		}
+		else
+		{
+			await RepairGameConfigAsync().ConfigureAwait(false);
+		}
 
 		if (string.IsNullOrWhiteSpace(settings.GameDirectory) || !Directory.Exists(settings.GameDirectory))
 		{
@@ -261,6 +338,14 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 
 		ModInstaller installer = AppState.Current.ModInstaller;
 		bool wasInstalled = installer.IsInstalled;
+
+		if (gameRunning && wasInstalled)
+		{
+			// 模组早就在了，这局能直接用 —— 不必（也不能）重装
+			PluginLog("联机模组已就位，游戏运行中无需重装");
+			return;
+		}
+
 		string? error = installer.Install();
 		if (error != null)
 		{
@@ -269,7 +354,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 				"安装联机模组失败：" + error);
 		}
 
-		if (!wasInstalled && ModInstaller.IsGameRunning())
+		if (!wasInstalled && SafeIsGameRunning())
 		{
 			PluginLog("联机模组是在游戏启动之后才装入的，本局需要重启游戏才会加载");
 			try
@@ -279,6 +364,32 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 			catch
 			{
 			}
+		}
+	}
+
+	/// <summary>
+	/// 查游戏是否在跑。跨实例（<c>GameLauncher.IsRunning</c> 会看同目录的其它实例），
+	/// 并且兜一层 ModInstaller 的进程探测 —— 两条路任一说在跑就算在跑。
+	/// 宁可误判成「在跑」（跳过写操作、让玩家重进）也不能误判成「没跑」
+	/// （那就会往正在初始化的游戏里写文件，直接把它搞崩）。
+	/// </summary>
+	private static bool SafeIsGameRunning()
+	{
+		try
+		{
+			if (ModInstaller.IsGameRunning()) return true;
+		}
+		catch
+		{
+		}
+
+		try
+		{
+			return AppState.Current.Launcher.IsRunning;
+		}
+		catch
+		{
+			return false;
 		}
 	}
 
@@ -314,16 +425,22 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IDisposabl
 			return;
 		}
 
-		await RepairGameConfigAsync().ConfigureAwait(false);
-
 		try
 		{
 			GameLauncher launcher = AppState.Current.Launcher;
+
+			// ⚠️ 先后顺序是命门：游戏已经在跑时**什么都不做**，直接回。
+			// 内测诊断包实证（12:22 连崩 5 轮）：以前这里先跑 RepairGameConfigAsync()，
+			// 那会在游戏**正在初始化**的那几秒里去改它的配置文件 ——
+			// 于是日志呈现成「已启动 → 2 秒后重复启动被忽略 → 十秒后游戏已退出」。
+			// IsRunning 现在跨实例判定（主页起的局在联机页也认得），这里就真的能挡住了。
 			if (launcher.IsRunning)
 			{
-				PluginLog("BeamNG.drive 已在运行，跳过自动启动");
+				PluginLog("BeamNG.drive 已在运行，跳过自动启动（也不改动其配置）");
 				return;
 			}
+
+			await RepairGameConfigAsync().ConfigureAwait(false);
 
 			string? error = launcher.Launch(withMod: false, levelId: mapId);
 			PluginLog(error == null

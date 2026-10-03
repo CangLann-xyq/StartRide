@@ -106,6 +106,14 @@ namespace StartRide.Core
         /// </summary>
         public string LobbySpawnPoint { get; set; } = "";
 
+        /// <summary>
+        /// 房主建房时选的房间人数上限（含自己）。
+        /// 只有房主这一份会被中继当作权威值；加入者带的值中继会忽略。
+        /// 取值范围 2~16：下限 2 是「一个人不算联机」，上限 16 是中继单进程
+        /// 扇形广播能撑住的规模（车包是 O(n²) 放大，再多会把中继出口压垮）。
+        /// </summary>
+        public int LobbyCapacity { get; set; } = 8;
+
         /// <summary>启动游戏前确保 Steam 在运行（决定这段游玩时长会不会被 Steam 记账）。</summary>
         public bool EnsureSteamBeforeLaunch { get; set; } = true;
 
@@ -371,9 +379,115 @@ namespace StartRide.Core
         public static string UserDataDirectory =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BeamNG.drive");
 
+        /// <summary>
+        /// 从 BeamNG 启动器自己的 ini 里读玩家设定的 userFolder 根目录。
+        ///
+        /// ⚠️ 这是**唯一权威**的来源。玩家在 BeamNG 启动器里改过 userpath 之后，
+        /// 名字可以叫任何东西（线上就有人设成 D:\BeamNG，里面既没有 "AppData" 也没有 "current"），
+        /// 靠目录名猜必然漏。所以先来这里问，猜只当兜底。
+        ///
+        /// 两个地方都会写：
+        ///   · %LOCALAPPDATA%\BeamNG\BeamNG.drive.ini  的 userFolder（跨版本的主配置）
+        ///   · &lt;游戏根&gt;\startup.ini 的 currentUserPath（启动器改完会同步一份）
+        /// </summary>
+        private static string? ReadConfiguredUserFolder()
+        {
+            // ① %LOCALAPPDATA%\BeamNG\BeamNG.drive.ini → userFolder
+            try
+            {
+                string ini = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "BeamNG", "BeamNG.drive.ini");
+                if (File.Exists(ini))
+                {
+                    foreach (var raw in File.ReadAllLines(ini))
+                    {
+                        var line = raw.Trim();
+                        if (line.Length == 0 || line[0] == ';' || line[0] == '#') continue;
+                        int eq = line.IndexOf('=');
+                        if (eq <= 0) continue;
+                        if (!line.Substring(0, eq).Trim()
+                                .Equals("userFolder", StringComparison.OrdinalIgnoreCase)) continue;
+                        var val = line.Substring(eq + 1).Trim().Trim('"');
+                        if (val.Length > 0 && Directory.Exists(val)) return val;
+                    }
+                }
+            }
+            catch { }
+
+            // ② <游戏根>\startup.ini → currentUserPath（installPath 也在同一个 ini 里）
+            try
+            {
+                string root = DetectGameDirectory();
+                if (!string.IsNullOrWhiteSpace(root))
+                {
+                    string ini = Path.Combine(root, "startup.ini");
+                    if (File.Exists(ini))
+                    {
+                        foreach (var raw in File.ReadAllLines(ini))
+                        {
+                            var line = raw.Trim();
+                            if (line.Length == 0 || line[0] == ';' || line[0] == '#') continue;
+                            int eq = line.IndexOf('=');
+                            if (eq <= 0) continue;
+                            var key = line.Substring(0, eq).Trim();
+                            if (!key.Equals("currentUserPath", StringComparison.OrdinalIgnoreCase) &&
+                                !key.Equals("userFolder", StringComparison.OrdinalIgnoreCase)) continue;
+                            var val = line.Substring(eq + 1).Trim().Trim('"');
+                            if (val.Length > 0 && Directory.Exists(val)) return val;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 判定一个目录像不像 userpath 根：下面直接有 settings，或有子目录 current\settings。
+        /// </summary>
+        private static bool LooksLikeUserPathRoot(string dir, out string resolved)
+        {
+            resolved = "";
+            try
+            {
+                if (Directory.Exists(Path.Combine(dir, "settings"))) { resolved = dir; return true; }
+                var nested = Path.Combine(dir, "current");
+                if (Directory.Exists(Path.Combine(nested, "settings"))) { resolved = nested; return true; }
+            }
+            catch { }
+            return false;
+        }
+
+        /// <summary>
+        /// 候选 userpath 根目录，**权威来源排在最前**。
+        ///
+        /// ⚠️ 目录名过滤只要求含 "BeamNG"（早先还要求含 "AppData"，把 D:\BeamNG 这类
+        /// 合法 userpath 整个漏掉了，正是线上「未找到模组目录」的成因）。
+        /// </summary>
         public static List<string> ResolveUserPathRoots()
         {
-            var roots = new List<string> { UserDataDirectory };
+            var roots = new List<string>();
+
+            void Push(string? p)
+            {
+                if (string.IsNullOrWhiteSpace(p)) return;
+                p = p.TrimEnd('\\', '/');
+                foreach (var e in roots)
+                {
+                    if (string.Equals(e, p, StringComparison.OrdinalIgnoreCase)) return;
+                }
+                roots.Add(p);
+            }
+
+            // ① 权威：玩家自己设的
+            Push(ReadConfiguredUserFolder());
+
+            // ② 默认位置（没改过 userpath 的老实人）
+            Push(UserDataDirectory);
+
+            // ③ 兜底扫描：目录名里含 BeamNG 就算候选，再靠 settings 子目录判定
             foreach (var drive in new[] { "C:", "D:", "E:", "F:", "G:" })
             {
                 try
@@ -381,11 +495,8 @@ namespace StartRide.Core
                     foreach (var d in Directory.GetDirectories(drive + "\\"))
                     {
                         var name = Path.GetFileName(d);
-                        if (name.Contains("BeamNG", StringComparison.OrdinalIgnoreCase) &&
-                            name.Contains("AppData", StringComparison.OrdinalIgnoreCase))
-                        {
-                            roots.Add(d);
-                        }
+                        if (name.IndexOf("BeamNG", StringComparison.OrdinalIgnoreCase) >= 0)
+                            Push(d);
                     }
                 }
                 catch { }
@@ -405,13 +516,7 @@ namespace StartRide.Core
         {
             foreach (var r in ResolveUserPathRoots())
             {
-                try
-                {
-                    if (Directory.Exists(Path.Combine(r, "settings"))) return r;
-                    var nested = Path.Combine(r, "current");
-                    if (Directory.Exists(Path.Combine(nested, "settings"))) return nested;
-                }
-                catch { }
+                if (LooksLikeUserPathRoot(r, out var resolved)) return resolved;
             }
             return UserDataDirectory;
         }
@@ -420,72 +525,37 @@ namespace StartRide.Core
 
         public string ResolveSettingsDirectory() => Path.Combine(ResolveUserDataRoot(), "settings");
 
-        public string ResolveModsDirectory()
+        /// <summary>userpath 下某个子目录（mods / replays / screenshots …）的真实位置。</summary>
+        private static string ResolveUserPathChild(string child)
         {
-            var roots = new List<string> { UserDataDirectory };
-            foreach (var drive in new[] { "C:", "D:", "E:", "F:", "G:" })
+            // 先问权威的 userpath：它下面直接挂着 mods / replays
+            string root = ResolveGameUserPathRoot();
+            try
             {
-                try
-                {
-                    foreach (var d in Directory.GetDirectories(drive + "\\"))
-                    {
-                        var name = Path.GetFileName(d);
-                        if (name.Contains("BeamNG", StringComparison.OrdinalIgnoreCase) &&
-                            name.Contains("AppData", StringComparison.OrdinalIgnoreCase))
-                        {
-                            roots.Add(d);
-                        }
-                    }
-                }
-                catch { }
+                var direct = Path.Combine(root, child);
+                if (Directory.Exists(direct)) return direct;
             }
+            catch { }
 
-            foreach (var r in roots)
+            // 再退回「根/current/child」这种老布局
+            foreach (var r in ResolveUserPathRoots())
             {
                 try
                 {
-                    var direct = Path.Combine(r, "mods");
+                    var direct = Path.Combine(r, child);
                     if (Directory.Exists(direct)) return direct;
-                    var nested = Path.Combine(r, "current", "mods");
+                    var nested = Path.Combine(r, "current", child);
                     if (Directory.Exists(nested)) return nested;
                 }
                 catch { }
             }
-            return Path.Combine(UserDataDirectory, "mods");
+
+            // 都没有：返回权威 userpath 下的路径（哪怕还没建出来，语义也是对的）
+            return Path.Combine(root, child);
         }
 
-        public string ResolveReplaysDirectory()
-        {
-            var roots = new List<string> { UserDataDirectory };
-            foreach (var drive in new[] { "C:", "D:", "E:", "F:", "G:" })
-            {
-                try
-                {
-                    foreach (var d in Directory.GetDirectories(drive + "\\"))
-                    {
-                        var name = Path.GetFileName(d);
-                        if (name.Contains("BeamNG", StringComparison.OrdinalIgnoreCase) &&
-                            name.Contains("AppData", StringComparison.OrdinalIgnoreCase))
-                        {
-                            roots.Add(d);
-                        }
-                    }
-                }
-                catch { }
-            }
+        public string ResolveModsDirectory() => ResolveUserPathChild("mods");
 
-            foreach (var r in roots)
-            {
-                try
-                {
-                    var direct = Path.Combine(r, "replays");
-                    if (Directory.Exists(direct)) return direct;
-                    var nested = Path.Combine(r, "current", "replays");
-                    if (Directory.Exists(nested)) return nested;
-                }
-                catch { }
-            }
-            return Path.Combine(UserDataDirectory, "replays");
-        }
+        public string ResolveReplaysDirectory() => ResolveUserPathChild("replays");
     }
 }

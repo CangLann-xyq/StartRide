@@ -1793,6 +1793,14 @@
   <data name="Lobby_SpawnCountFormat" xml:space="preserve"><value>{0} 个出生点</value></data>
   <data name="Lobby_SpawnDefaultOnly" xml:space="preserve"><value>仅默认出生点</value></data>
   <data name="Lobby_CreateRoomButton" xml:space="preserve"><value>创建房间</value></data>
+  <data name="Lobby_CapacitySectionTitle" xml:space="preserve"><value>人数上限</value></data>
+  <data name="Lobby_CapacityHint" xml:space="preserve"><value>含你在内最多能进多少人。房主建房后还能随时调整。</value></data>
+  <data name="Lobby_CapacityValueFormat" xml:space="preserve"><value>{0} 人</value></data>
+  <data name="Lobby_CapacitySummaryFormat" xml:space="preserve"><value>{0} / {1} 人</value></data>
+  <data name="Lobby_CapacityDecreaseButton" xml:space="preserve"><value>减少一人</value></data>
+  <data name="Lobby_CapacityIncreaseButton" xml:space="preserve"><value>增加一人</value></data>
+  <data name="Lobby_CapacitySetFailed" xml:space="preserve"><value>人数上限没改成功，请确认中继连接正常后重试。</value></data>
+  <data name="Lobby_CapacityTooLowHint" xml:space="preserve"><value>不能低于当前在线人数</value></data>
   <data name="Lobby_PickRoomHint" xml:space="preserve"><value>先在上面的列表里挑一个房间</value></data>
   <data name="Lobby_JoinRoomTitleFormat" xml:space="preserve"><value>加入「{0}」</value></data>
   <data name="Lobby_JoinRoomMapFormat" xml:space="preserve"><value>房主地图：{0}</value></data>

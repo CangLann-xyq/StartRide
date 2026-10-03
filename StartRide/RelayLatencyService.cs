@@ -57,9 +57,14 @@ namespace StartRide.Core
             string endpoint = $"{host}:{port}{path}";
 
             var sw = Stopwatch.StartNew();
+            // 这里刻意**不用 using**：TcpClient.ConnectAsync 的 CancellationToken 只能取消“等待”，
+            // 并不中断底层 connect；超时后若靠 using 隐式 Dispose，socket 会以 SocketError 995
+            // （“已中止 I/O 操作”）在连接完成回调里抛异常，而此时 await 已经返回，
+            // 异常无人接管 → 变成 UnobservedTaskException（终结器线程重抛，污染日志）。
+            // 所以改为 finally 里显式关闭，并在关闭前后吞掉中止类异常。
+            var client = new TcpClient();
             try
             {
-                using var client = new TcpClient();
                 using var cts = new CancellationTokenSource(TimeoutMs);
 
                 await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
@@ -113,9 +118,37 @@ namespace StartRide.Core
                     Name = "WebSocket 通道（推荐）",
                     Endpoint = endpoint,
                     Reachable = false,
-                    Detail = ex.Message,
+                    Detail = DescribeSocketFailure(ex),
                 };
             }
+            finally
+            {
+                DisposeQuietly(client);
+            }
+        }
+
+        /// <summary>
+        /// 关掉探测用的 TcpClient，并吞掉“连接被中止”这类必然伴随关闭而来的异常。
+        /// 关键点：把 Dispose 的异常吃掉，否则它会以 UnobservedTaskException 形式
+        /// 从终结器线程重抛出去（日志里那条 SocketException 995 就是它）。
+        /// </summary>
+        private static void DisposeQuietly(TcpClient client)
+        {
+            try { client.Dispose(); }
+            catch (SocketException) { }
+            catch (ObjectDisposedException) { }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// SocketError 995（OperationAborted）是“我们自己主动中止连接”的正常表现，
+        /// 不该原样抛给用户看，翻成人话。
+        /// </summary>
+        private static string DescribeSocketFailure(Exception ex)
+        {
+            if (ex is SocketException se && se.SocketErrorCode == SocketError.OperationAborted)
+                return $"连接超过 {TimeoutMs / 1000} 秒未响应";
+            return ex.Message;
         }
 
         private static async Task<RelayProbeResult> ProbeTcpAsync(AppSettings app)
@@ -125,9 +158,10 @@ namespace StartRide.Core
             string endpoint = $"{host}:{port}";
 
             var sw = Stopwatch.StartNew();
+            // 同 ProbeWebSocketAsync：不用 using，避免超时后 995 异常变成 unobserved。
+            var client = new TcpClient();
             try
             {
-                using var client = new TcpClient();
                 using var cts = new CancellationTokenSource(TimeoutMs);
                 await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
                 return new RelayProbeResult
@@ -156,8 +190,12 @@ namespace StartRide.Core
                     Name = "直连 TCP 通道（兜底）",
                     Endpoint = endpoint,
                     Reachable = false,
-                    Detail = ex.Message + "（云安全组通常不开这个端口，属正常）",
+                    Detail = DescribeSocketFailure(ex) + "（云安全组通常不开这个端口，属正常）",
                 };
+            }
+            finally
+            {
+                DisposeQuietly(client);
             }
         }
     }

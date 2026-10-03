@@ -136,6 +136,21 @@
                 </Style>
               </FrameworkElement.Style>
             </TextBlock>
+
+            <!-- 人数上限：房主定，含自己在内。建房前改的是「待用值」，建房后还能在房间面板里改。 -->
+            <Border Margin="0,14,0,10" Style="{StaticResource RideHairlineStyle}" />
+
+            <DockPanel LastChildFill="False">
+              <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_CapacitySectionTitle}" />
+              <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Accent.Primary}" Text="{Binding LobbyCapacityText}" />
+            </DockPanel>
+            <TextBlock Margin="0,5,0,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_CapacityHint}" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+              <Button MinWidth="52" Height="34" Style="{StaticResource LauncherDialogButtonStyle}" Content="−" ToolTip="{x:Static res:Strings.Lobby_CapacityDecreaseButton}" Command="{Binding DecreaseCapacityCommand}" />
+              <TextBlock Margin="14,0,14,0" VerticalAlignment="Center" MinWidth="52" TextAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding LobbyCapacity}" />
+              <Button MinWidth="52" Height="34" Style="{StaticResource LauncherDialogButtonStyle}" Content="+" ToolTip="{x:Static res:Strings.Lobby_CapacityIncreaseButton}" Command="{Binding IncreaseCapacityCommand}" />
+            </StackPanel>
           </StackPanel>
         </Border>
       </Grid>
@@ -145,7 +160,6 @@
         <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_LobbyMapNote}" />
       </DockPanel>
     </StackPanel>
-
     <!-- ── 建房成功后的房间面板 ───────────────────────────────────────── -->
     <Grid Name="CreatedLobbyLayer" MinHeight="360" Opacity="0" Visibility="Collapsed">
       <UIElement.RenderTransform>
@@ -185,6 +199,37 @@
                 <TextBlock Margin="7,0,0,0" Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LobbySpawnText}" />
               </StackPanel>
             </Border>
+            <Border Style="{StaticResource RideStatChipStyle}" Margin="10,0,0,0">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Lobby_CapacitySectionTitle}" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LobbyCapacitySummary}" />
+              </StackPanel>
+            </Border>
+          </DockPanel>
+        </Border>
+
+        <!-- 房主专属：房间已经建好了，还能在这里调整人数上限（走 set-capacity，不重开房间）。 -->
+        <Border Margin="0,0,0,14">
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type Border}" BasedOn="{StaticResource RideDetailSurfaceStyle}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="True" Binding="{Binding IsLobbyHost}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+          <DockPanel LastChildFill="False">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button MinWidth="48" Height="34" Style="{StaticResource LauncherDialogButtonStyle}" Content="−" ToolTip="{x:Static res:Strings.Lobby_CapacityDecreaseButton}" Command="{Binding DecreaseCapacityCommand}" />
+              <TextBlock Margin="14,0,14,0" VerticalAlignment="Center" MinWidth="46" TextAlignment="Center" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding LobbyCapacity}" />
+              <Button MinWidth="48" Height="34" Style="{StaticResource LauncherDialogButtonStyle}" Content="+" ToolTip="{x:Static res:Strings.Lobby_CapacityIncreaseButton}" Command="{Binding IncreaseCapacityCommand}" />
+            </StackPanel>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_CapacitySectionTitle}" />
+              <TextBlock Margin="0,5,0,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_CapacityHint}" />
+            </StackPanel>
           </DockPanel>
         </Border>
 

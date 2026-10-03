@@ -147,7 +147,11 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		? ""
 		: Path.Combine(GameDirectory, "content", "vehicles");
 
-	public string ModsDirectory { get; }
+	/// <summary>
+	/// 模组目录。**每次读取都重新解析**，不要在构造函数里存一份：
+	/// userpath 可能是在启动器/游戏首次运行之后才被创建出来的，玩家中途切换游戏目录后也要跟着变。
+	/// </summary>
+	public string ModsDirectory => new AppSettings().ResolveModsDirectory();
 
 	public string SelectedSource
 	{
@@ -226,7 +230,6 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		{
 			GameDirectory = AppSettings.DetectGameDirectory();
 		}
-		ModsDirectory = new AppSettings().ResolveModsDirectory();
 		foreach (string s in new[] { "全部", "内置", "模组" })
 		{
 			SourceOptions.Add(s);

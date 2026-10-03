@@ -10,10 +10,18 @@ local IMPACT_MIN       = 40000
 local ROLL_MIN_UPZ     = -0.7
 local ROLL_MIN         = 0.6
 local BURNOUT_MIN      = 1.0
-local TOP_MIN_GS       = 25
-local TOP_STEP         = 8
 
-local COOLDOWN = { jump = 2.5, impact = 2.5, rollover = 3, burnout = 5 }
+-- 极速（topspeed）判定
+-- ⚠️ 这里原来是「只要比历史最高再快 8 km/h 就报一次」的棘轮式做法。
+-- 火箭车直线加速 5 秒，速度单调爬升 25→400 km/h，就会连着报几十次「极速」
+-- ——线上原话「我开这车跑了五秒直线，亮点跳了 20 多个极速」。
+-- 现在改成「里程碑阶梯」：只在跨过 100/150/200/... 这些整数档时各报一次，
+-- 再叠一层冷却 + 单局上限，怎么踩都不会刷屏。
+local TOP_BAR_KMH      = 100    -- 第一个档位：100 km/h
+local TOP_STEP_KMH     = 50     -- 每档 50 km/h：100 / 150 / 200 / 250 …
+local TOP_MAX_PER_RUN  = 8      -- 单局最多报 8 次极速（够覆盖到 450+ km/h）
+
+local COOLDOWN = { jump = 2.5, impact = 2.5, rollover = 3, burnout = 5, topspeed = 12 }
 local COOLDOWN_DEFAULT = 6
 
 local S = nil
@@ -28,6 +36,9 @@ local function newState()
     burnFrom = nil,
     topSpeed = 0,
     topSpeedInit = false,
+    -- 已经报过的最高档位（km/h），下一个要跨的档 = 它 + TOP_STEP_GS
+    topReported = 0,
+    topCount = 0,
     lastDamage = nil,
     lastReport = {},
   }
@@ -119,15 +130,36 @@ local function detectBurnout(st, sample)
   return { type = 'burnout', value = dur, extra = 0, speed = sample.gs }
 end
 
+-- 极速：只在跨过 50 km/h 的整数档时报，且受冷却与单局上限约束。
+--
+-- ⚠️ 判定必须带容差。踩过的坑：档位恰好踩在边界上时，
+--   150/3.6 == 41.666666666666664，但 100/3.6 + 50/3.6 == 41.66666666666667，
+--   差 7.1e-15，于是 gs < nextBar 为真，这一档永远判不到（实测 150 就是漏的）。
+--   所以统一换成 km/h 再比，并给 0.5 km/h 的容差。
 local function detectTopSpeed(st, sample)
   if not st.topSpeedInit then
     st.topSpeedInit = true
     st.topSpeed = sample.gs
     return nil
   end
-  if sample.gs < TOP_MIN_GS then return nil end
-  if sample.gs < st.topSpeed + TOP_STEP then return nil end
-  st.topSpeed = sample.gs
+
+  if sample.gs > st.topSpeed then st.topSpeed = sample.gs end
+
+  local kmh = sample.gs * 3.6
+  if kmh < TOP_BAR_KMH - 2 then return nil end        -- 没到 100 km/h，不算极速
+  if st.topCount >= TOP_MAX_PER_RUN then return nil end
+
+  -- 已报档（km/h）；首次从 100 起算。下一档 = 已报档 + 50
+  local reportedKmh = (st.topReported > 0) and (st.topReported * 3.6) or 0
+  local nextBarKmh = (reportedKmh > 0) and (reportedKmh + TOP_STEP_KMH) or TOP_BAR_KMH
+  if kmh + 0.5 < nextBarKmh then return nil end        -- 0.5 km/h 容差挡住浮点边界
+
+  -- 冷却期内不报，**也不推进档位**：冷却过去后这一档还能补报，
+  -- 不会把中间档悄悄吞掉（150 报了、200 没了）。
+  if not ready(st, 'topspeed') then return nil end
+
+  st.topReported = sample.gs
+  st.topCount = st.topCount + 1
   return { type = 'topspeed', value = sample.gs, extra = 0, speed = sample.gs }
 end
 
@@ -154,6 +186,8 @@ function M.debugState()
   return {
     t = S and S.t or 0,
     topSpeed = S and S.topSpeed or 0,
+    topReported = S and S.topReported or 0,
+    topCount = S and S.topCount or 0,
     airborne = (S and S.airFrom) ~= nil or false,
     roofed = (S and S.roofFrom) ~= nil or false,
   }

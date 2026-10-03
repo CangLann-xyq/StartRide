@@ -3326,6 +3326,16 @@ public static class Strings
 	public static string Lobby_SpawnCountFormat => Get("Lobby_SpawnCountFormat");
 	public static string Lobby_SpawnDefaultOnly => Get("Lobby_SpawnDefaultOnly");
 	public static string Lobby_CreateRoomButton => Get("Lobby_CreateRoomButton");
+
+	/// <summary>房主可设的房间人数上限。</summary>
+	public static string Lobby_CapacitySectionTitle => Get("Lobby_CapacitySectionTitle");
+	public static string Lobby_CapacityHint => Get("Lobby_CapacityHint");
+	public static string Lobby_CapacityValueFormat => Get("Lobby_CapacityValueFormat");
+	public static string Lobby_CapacitySummaryFormat => Get("Lobby_CapacitySummaryFormat");
+	public static string Lobby_CapacityDecreaseButton => Get("Lobby_CapacityDecreaseButton");
+	public static string Lobby_CapacityIncreaseButton => Get("Lobby_CapacityIncreaseButton");
+	public static string Lobby_CapacitySetFailed => Get("Lobby_CapacitySetFailed");
+	public static string Lobby_CapacityTooLowHint => Get("Lobby_CapacityTooLowHint");
 	public static string Lobby_PickRoomHint => Get("Lobby_PickRoomHint");
 	public static string Lobby_JoinRoomTitleFormat => Get("Lobby_JoinRoomTitleFormat");
 	public static string Lobby_JoinRoomMapFormat => Get("Lobby_JoinRoomMapFormat");

@@ -98,6 +98,14 @@ namespace StartRide.Core
             return span < TimeSpan.Zero ? TimeSpan.Zero : span;
         }
 
+        /// <summary>
+        /// 总游玩时长 = 已结算的累计 + 当前这一局（还在跑的话）。
+        /// ⚠️ 两者是**互斥**的，不能重复相加：<see cref="EndSession"/> 会把这一局
+        /// 累加进 <c>TotalPlaytimeSeconds</c> 并清空 <c>RunningSessionStartedAt</c>。
+        /// 所以「有未结算会话」时，累计里必然**不含**这一局，
+        /// 加上 <see cref="GetCurrentSessionLength"/> 正好补齐；反之累计里已经含了，
+        /// 再加就双算。这里的 <c>HasValue</c> 判断就是那个开关。
+        /// </summary>
         public static TimeSpan GetTotalPlaytime(AppSettings settings)
         {
             var total = TimeSpan.FromSeconds(Math.Max(0, settings.TotalPlaytimeSeconds));

@@ -23,6 +23,14 @@ namespace StartRide.Core
 
         public bool IsOpen { get; private set; }
 
+        /// <summary>
+        /// 最近一次「从对端收到任何字节」的时刻（UTC ticks）。
+        /// 收到 pong（0xA）也算 —— 控制帧也是链路活着的证据。
+        /// 上层的空闲看门狗靠它判定「隧道是不是被 nginx 静默半开了」。
+        /// </summary>
+        public long LastInboundUtcTicks => Interlocked.Read(ref _lastInboundTicks);
+        private long _lastInboundTicks;
+
         public event Action<string>? MessageReceived;
         public event Action<string>? Log;
         public event Action<string>? Closed;
@@ -117,6 +125,8 @@ namespace StartRide.Core
                 {
                     int n = await _stream!.ReadAsync(chunk, 0, chunk.Length, token);
                     if (n == 0) { CloseInternal("对端关闭连接"); return; }
+                    // 只要读到了字节，无论后面解析出什么帧，链路就是活的。
+                    Interlocked.Exchange(ref _lastInboundTicks, DateTime.UtcNow.Ticks);
                     lock (_recvBuf) _recvBuf.Write(chunk, 0, n);
 
                     while (true)

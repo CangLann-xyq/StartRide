@@ -100,6 +100,35 @@ namespace StartRide.Core
 
         public bool IsHost { get; private set; }
 
+        /// <summary>
+        /// 房主让人数上限生效：走已有隧道发一条 set-capacity，由中继改房间元数据并广播新快照。
+        /// 为什么不用 HTTP 重开会话：改上限要作用在**当前这条**房间连接上，
+        /// 重新 join 会换掉 playerId，把房主自己的车踢出房间。
+        /// </summary>
+        public bool SetCapacity(int capacity)
+        {
+            if (!IsHost || !_relay.IsConnected) return false;
+
+            int clamped = Math.Max(2, Math.Min(16, capacity));
+            try
+            {
+                _relay.SendLine(JsonSerializer.Serialize(new
+                {
+                    type = "set-capacity",
+                    capacity = clamped,
+                }));
+                State.Capacity = clamped;
+                StateChanged?.Invoke();
+                Log?.Invoke($"已请求把房间人数上限改为 {clamped}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke("修改人数上限失败：" + ex.Message);
+                return false;
+            }
+        }
+
         /// <summary>本房要进的关卡 id（房主 = 自己选的，加入者 = 房主那张图）。</summary>
         public string MapId { get; private set; } = "";
 
@@ -193,12 +222,17 @@ namespace StartRide.Core
         {
             string name = string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName;
 
+            // 人数上限只由房主那一份决定。加入者必须原样带上房主的容量 ——
+            // 中继只在「这条连接被认作房主」时才接受 capacity 覆盖，
+            // 所以加入者带上它不会污染房主的设置，反而能让自己的 UI 立刻显示正确的 x/y。
+            int capacity = room.Capacity > 0 ? room.Capacity : 8;
+
             var meta = new RoomMeta
             {
                 Host = string.IsNullOrWhiteSpace(room.Host)
                     ? (IsHost ? name : "")
                     : room.Host,
-                Capacity = room.Capacity,
+                Capacity = capacity,
                 RoomName = room.Name,
                 Map = room.Map,
             };
@@ -214,7 +248,7 @@ namespace StartRide.Core
                 State.RoomId = room.Id;
                 State.RoomName = room.Name;
                 State.Host = meta.Host;
-                State.Capacity = room.Capacity;
+                State.Capacity = capacity;
                 State.RemoteVehicles = 0;
                 State.VehiclePackets = 0;
                 _loggedFirstInboundVehicle = false;

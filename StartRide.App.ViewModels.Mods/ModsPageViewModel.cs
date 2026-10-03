@@ -259,7 +259,12 @@ public sealed class ModsPageViewModel : ObservableObject
 
 	public bool HasMoreRepositoryPages => !reachedRepositoryEnd && RepositoryMods.Count > 0;
 
-	public string ModsDirectory { get; }
+	/// <summary>
+	/// 模组目录。**每次读取都重新解析**，不要在构造函数里存一份：
+	/// userpath 可能是在启动器/游戏首次运行之后才被创建出来的（内测反馈的「未找到模组目录」），
+	/// 玩家中途切换游戏目录之后也要立刻跟着变。解析本身只读几个 ini，开销可以忽略。
+	/// </summary>
+	public string ModsDirectory => new AppSettings().ResolveModsDirectory();
 
 	public string RepositoryStatusText
 	{
@@ -361,7 +366,6 @@ public sealed class ModsPageViewModel : ObservableObject
 
 	public ModsPageViewModel()
 	{
-		ModsDirectory = new AppSettings().ResolveModsDirectory();
 		foreach (string c in Categories)
 		{
 			CategoryOptions.Add(c);

@@ -47,6 +47,8 @@ local connectBackoff = 1
 local nextConnectTry = 0
 local recvBuffer = ''
 local outBuffer = ''
+-- 断开时置位：下次连上后第一件事是补一条完整 ready，让两端的帧边界重新对齐。
+local sendOutDirty = false
 
 local timeAccum = 0
 local lastSend = 0
@@ -76,6 +78,10 @@ local relayDetail = ''
 local relayRoomId = ''
 local statGameIn, statRelayOut, statRelayIn, statRelayVehicle = 0, 0, 0, 0
 local remotePacketCount = 0
+-- 被当成「自己发的」而丢掉的包数。这个数 >0 且远程车一直是 0，
+-- 基本就能判定是两端 ID 撞了（重名玩家），而不是网络问题。
+local selfPacketCount = 0
+local selfPacketWarned = false
 local spawnFailCount = 0
 local spawnOkCount = 0
 local lastSpawnError = ''
@@ -198,7 +204,12 @@ local function dropConnection(reason)
   connected = false
   connecting = false
   recvBuffer = ''
+  -- ⚠️ 半帧残留必须清干净。如果长度前缀已经发出去、body 只发了一半就断开，
+  -- 那半个 body 会留在对端缓冲里，被当成下一帧的长度前缀 → 后续所有帧错位，
+  -- 表现就是持续刷 'A'/'Z'/'P'/'B'/'N' is an invalid start of a value。
+  -- 清空本地出站缓冲、并让下一次连接从一条完整的 ready 重新开始对齐。
   outBuffer = ''
+  sendOutDirty = true
   if reason then logMsg('连接断开:', reason) end
 end
 
@@ -220,6 +231,15 @@ end
 
 local function flushOut()
   if not tcpSock or not connected then return end
+  -- 刚重连上：先补一条完整 ready（用独立的一次写，确保它排在所有残帧之前），
+  -- 对端一旦收到合法 ready，就知道帧边界从这里重新开始。
+  if sendOutDirty then
+    sendOutDirty = false
+    local okR, encR = pcall(jsonEncode, { type = 'ready', name = playerName, version = MOD_VERSION })
+    if okR and encR and #encR > 0 then
+      outBuffer = ffi.string(ffi.new('uint32_t[1]', #encR), 4) .. encR .. outBuffer
+    end
+  end
   if #outBuffer == 0 then return end
   local ok, sent, err = pcall(function() return tcpSock:send(outBuffer) end)
   if not ok then
@@ -253,12 +273,24 @@ local function connectTCP()
     dropConnection('connect exception')
     connectBackoff = math.min(connectBackoff * 2, MAX_CONNECT_BACKOFF)
   elseif result == 1 then
-    connected = true
-    connecting = false
-    connectRetryCount = 0
-    connectBackoff = 1
-    queuePacket({ type = 'ready', name = playerName, version = MOD_VERSION })
-    logMsg('已连接启动器')
+    -- 非阻塞 connect 返回 1 只说明「这一步没报错」，仍要核对 SO_ERROR，
+    -- 否则对端未监听时会被当成连上（connectTCP 与 checkConnection 必须同一套判据）。
+    local sockErr = nil
+    pcall(function()
+      local so = tcpSock:getoption('error')
+      if so ~= nil then sockErr = so end
+    end)
+    if sockErr == nil or sockErr == 0 then
+      connected = true
+      connecting = false
+      connectRetryCount = 0
+      connectBackoff = 1
+      queuePacket({ type = 'ready', name = playerName, version = MOD_VERSION })
+      logMsg('已连接启动器')
+    else
+      dropConnection('connect refused: ' .. tostring(sockErr))
+      connectBackoff = math.min(connectBackoff * 2, MAX_CONNECT_BACKOFF)
+    end
   elseif err == 'timeout' or err == 'Operation already in progress' then
     
   else
@@ -271,8 +303,18 @@ local function checkConnection()
   if not connecting or not tcpSock then return end
   local ok, r, w = pcall(function() return socket.select(nil, { tcpSock }, 0) end)
   if ok and w and #w > 0 then
-    local pok, peer = pcall(function() return tcpSock:getpeername() end)
-    if pok and peer then
+    -- ⚠️ 「可写」不等于「连上了」。非阻塞 connect 完成时，无论成功还是被拒，
+    -- socket 都会变成可写；如果不查 SO_ERROR，对端根本没监听（启动器还没起桥）时
+    -- 也会被判成连上 → 发 ready → send 失败 → dropConnection → 立刻重连，
+    -- 形成高频震荡。内测诊断包里同一毫秒出现两条「游戏内模组已连接到启动器」
+    -- 以及成片的 'A'/'Z'/'P'/'B'/'N' 解析失败，源头都在这里。
+    local peerOk, peer = pcall(function() return tcpSock:getpeername() end)
+    local sockErr = nil
+    pcall(function()
+      local so = tcpSock:getoption('error')
+      if so ~= nil then sockErr = so end
+    end)
+    if peerOk and peer and (sockErr == nil or sockErr == 0) then
       connected = true
       connecting = false
       connectRetryCount = 0
@@ -280,7 +322,7 @@ local function checkConnection()
       queuePacket({ type = 'ready', name = playerName, version = MOD_VERSION })
       logMsg('已连接启动器 (async)')
     else
-      dropConnection('async connect failed')
+      dropConnection('async connect failed: ' .. tostring(sockErr))
       connectBackoff = math.min(connectBackoff * 2, MAX_CONNECT_BACKOFF)
     end
   elseif timeAccum - connectStartTime > 6 then
@@ -376,7 +418,18 @@ local function queueVETypeAndID(veh, id)
 end
 
 
-local function trySpawn(model, cfg, pos, rot, id, exact)
+--[[
+  生成一台远程玩家的车。
+
+  ⚠️ 这里的错误绝不能再咽掉。旧版把 pcall 的成功/失败和返回值一起判掉后直接
+  return nil，于是「spawnVehicle 返回了 nil」和「根本没收到对方的数据包」在日志
+  里长得一模一样，线上排查只能靠猜。现在把三个信息都记下来：
+    · err  —— pcall 捕获到的 Lua 错误串（真抛异常时才有）
+    · rv   —— spawnVehicle 的返回值（被调用但返回 nil 时能确认它被调过）
+    · 以及调用时的 model / pos，方便回放现场
+  每台车只在第一次尝试时详细记一次（detail=true），重试时只报短句，避免刷屏。
+]]
+local function trySpawn(model, cfg, pos, rot, id, exact, detail)
   local opts = {
     autoEnterVehicle = false,
     vehicleName = 'sr_remote_' .. tostring(id):gsub('[^%w_]', '_'),
@@ -391,6 +444,22 @@ local function trySpawn(model, cfg, pos, rot, id, exact)
     return spawn.spawnVehicle(model, cfg or '', pos, rot, opts)
   end)
   if ok and veh then return veh end
+
+  -- 失败：把真实原因留下，别让日志骗人
+  local why
+  if not ok then
+    why = 'spawnVehicle 抛错: ' .. tostring(veh)
+  elseif veh == nil then
+    why = 'spawnVehicle 返回 nil（车型缺失/配置非法/位置不可用）'
+  else
+    why = 'spawnVehicle 返回非车辆对象: ' .. tostring(veh)
+  end
+  lastSpawnError = tostring(model) .. ' → ' .. why
+  if detail then
+    logMsg('远程车生成失败', tostring(model), 'exact=' .. tostring(exact == true),
+      'pos=' .. string.format('%.1f,%.1f,%.1f', pos.x, pos.y, pos.z),
+      'name=' .. tostring(opts.vehicleName), '|', why)
+  end
   return nil
 end
 
@@ -415,7 +484,7 @@ local function spawnRemote(rec, id, data)
   
   local rot = quat(0, 0, 1, 0) * quat(r[1], r[2], r[3], r[4])
 
-  local veh = trySpawn(model, data.cfg, pos, rot, id)
+  local veh = trySpawn(model, data.cfg, pos, rot, id, false, true)
   if not veh then
     
     logMsg('标准生成失败，改精确放置重试:', tostring(model))
@@ -462,10 +531,21 @@ end
 local function onRemoteVehiclePacket(data)
   local id = data.id
 
-  if not id or id == myId() then return end
-  
-  
-  
+  if not id then return end
+
+  -- 自己发的包要丢掉，但**不能默默丢**：
+  -- 早先这里直接 return，于是「重名导致双方 ID 相同、互相丢弃」这种故障
+  -- 在日志和面板里完全看不出来（远程车包一直是 0，像网络断了一样）。
+  -- 现在记一笔，并且只在第一次提醒，免得 30Hz 刷屏。
+  if id == myId() then
+    selfPacketCount = selfPacketCount + 1
+    if not selfPacketWarned then
+      selfPacketWarned = true
+      logMsg('收到自己的车辆包，已丢弃（本机 ID=' .. tostring(id) .. '）')
+    end
+    return
+  end
+
   if not validPos(data.pos) or not validRot(data.rot) then
     badPacketCount = badPacketCount + 1
     return
@@ -631,6 +711,50 @@ function M.debugRemoteInfo()
   return list
 end
 
+--[[
+  联机诊断快照。给玩家/客服一键导出用，也是离线自检的读取口
+  （模组内部状态全是 local，外部脚本读不到，必须由模组自己吐出来）。
+
+  selfPacketCount > 0 且 remotePacketCount == 0 是最有价值的判据：
+  说明收到了对方的包、但被自己的 ID 过滤掉了 —— 两端 ID 撞了（重名玩家）。
+  早先这条路径是完全静默的，日志里只有「远程车包=0」，像网络没通一样。
+]]
+function M.diagnose()
+  return {
+    version    = MOD_VERSION,
+    myId       = myId(),
+    playerName = playerName,
+    connected  = connected and true or false,
+    roomId     = relayRoomId,
+    roomHost   = roomInfo.host,
+    roomCount  = roomInfo.count,
+    localMap   = localMap,
+    peerMap    = peerMap,
+
+    remotePacketCount = remotePacketCount,
+    selfPacketCount   = selfPacketCount,
+    badPacketCount    = badPacketCount,
+    spawnOkCount      = spawnOkCount,
+    spawnFailCount    = spawnFailCount,
+    lastSpawnError    = lastSpawnError,
+    remoteCount       = countRemote(),
+    veReadyCount      = veReadyCount,
+
+    -- 明确给出结论，免得上层还要自己推
+    idCollision       = (selfPacketCount > 0 and remotePacketCount == 0),
+    verdict           = (function()
+      if not connected then return '没连上启动器本地桥（127.0.0.1:4444）' end
+      if relayRoomId == '' then return '没拿到房间号，中继可能没进房成功' end
+      if selfPacketCount > 0 and remotePacketCount == 0 then
+        return '两端联机 ID 相同，互相丢弃了对方的包（多半是重名玩家）——改昵称或重启启动器'
+      end
+      if remotePacketCount == 0 then return '没收到任何对方的车辆包（对方可能没进图/没装模组）' end
+      if spawnOkCount == 0 then return '收到了对方的包但车没生成成功，看 lastSpawnError' end
+      return 'normal'
+    end)(),
+  }
+end
+
 
 
 
@@ -784,20 +908,81 @@ local function currentLevelId()
   return ''
 end
 
--- 游戏已经开着、而且不在这张图上时，请游戏自己切过去。
+-- 游戏已经开着、而且确实停在**别的**图上时，请游戏自己切过去。
 -- 用引擎自己的 core_loadMapCmd（lua/ge/extensions/core/loadMapCmd.lua）：
--- 它就是命令行 -level 走的那条路 —— 内部会等 mod manager 就绪，
--- 而且发现「已经在这张图上」会自己跳过，所以可以放心先调一次。
+-- 它就是命令行 -level 走的那条路 —— 内部会等 mod manager 就绪。
+--
+-- ⚠️⚠️ 这里以前只看 currentLevelId() ~= 目标图 就切，成了「进地图闪退」的成因：
+--   引擎侧 freeroam_freeroam.startFreeroam 只在 scenetree.MissionGroup 存在、
+--   或 core_gamestate 已登记在加载时才会延迟、避免「边加载边拆」，其余情况直接
+--   startFreeroamHelper → core_levels.startLevel，同时 endActiveGameMode 拆掉
+--   正在加载的那张图 —— 加载中的地图被拆就是死在加载界面。
+--   而 -level 这条路**本来就已经**调过一次 core_loadMapCmd.set，模组再调一次 =
+--   在同一次加载里叠第二次加载。所以必须同时满足三个条件才切：
+--     ① 已经在某个关卡里（currentLevelId 非空，即不在主菜单/加载中）
+--     ② 不在加载过程中（core_gamestate 没在加载）
+--     ③ 当前图确实不是目标图
+--   任何一条不满足就等下一帧，绝不抢先调 core_loadMapCmd。
+local function isLoadingNow()
+  local b = false
+  pcall(function()
+    -- getLoadingStatus(tag) 只认「这个 tag 自己有没有申请过」，传陌生 tag 永远 nil；
+    -- 真正表示「引擎现在正在加载」的是 core_gamestate.loading()。
+    b = core_gamestate ~= nil and core_gamestate.loading ~= nil
+        and core_gamestate.loading() == true
+  end)
+  return b == true
+end
+
+-- 是否已经有加载动作在管线里。
+-- ⚠️ core_gamestate.getLoadingStatus(tag) 只认「这个 tag 自己有没有申请过」，
+--    传一个陌生 tag 永远返回 nil，不能用；core_loadMapCmd 的 args 又是模块 local，
+--    外部摸不到。所以只能靠下面这两个公开信号。
+local function mapLoadPending()
+  local pending = false
+  pcall(function()
+    -- ① mod manager 还没就绪 = 引擎那条 -level 还卡着等挂载，绝对不能插队
+    if core_modmanager and core_modmanager.isReady and not core_modmanager.isReady() then
+      pending = true
+      return
+    end
+    -- ② 正在加载中 = 已经在拆/建图，插一脚就是「边加载边拆」
+    if isLoadingNow() then
+      pending = true
+    end
+  end)
+  return pending
+end
+
 local function ensureMapLoaded()
   if spawnPlan.map == '' or spawnPlan.mapSwitchTried then return end
 
   local cur = currentLevelId()
-  if cur == '' then return end            -- 还没进任何图，等下一帧
+  if cur == '' then return end            -- 还没进任何图（主菜单 / 还在加载），等下一帧
   if string.lower(cur) == string.lower(spawnPlan.map) then
+    spawnPlan.mapSwitchTried = true       -- 已经在对的图上，不用切
+    return
+  end
+
+  -- 目标图在本机存不存在？不存在就别调 —— core_loadMapCmd 只会打一句
+  -- "map not found, you may need to add a mod" 然后什么都不做，白赌一次。
+  local exists = false
+  pcall(function() exists = FS:directoryExists('levels/' .. spawnPlan.map) end)
+  if not exists then
+    if not spawnPlan.mapWarned then
+      spawnPlan.mapWarned = true
+      logMsg('本机没有房间地图 ' .. spawnPlan.map .. '（多半是房主的模组地图），留在当前图 ' .. cur)
+      table.insert(chat, { name = 'system', text = '本机缺少房间地图「' .. spawnPlan.map .. '」，已留在当前地图' })
+      chatScrollToBottom = true
+    end
     spawnPlan.mapSwitchTried = true
     return
   end
 
+  -- ⚠️ 加载管线里已经有活就先别插队（见上面那段注释）
+  if mapLoadPending() then return end
+
+  -- 走到这里：已经在别的图上、图也有、也没在加载 —— 这才是真的需要换图
   spawnPlan.mapSwitchTried = true
   spawnPlan.applied = false               -- 换图之后要重新落地
 
@@ -1785,6 +1970,9 @@ local function panelStatus()
   kvRow('累计收到远程包', tostring(remotePacketCount), remotePacketCount > 0 and C.ok or C.dim)
   kvRow('生成车辆 成功/失败', tostring(spawnOkCount) .. ' / ' .. tostring(spawnFailCount),
     spawnFailCount > 0 and C.warn or C.ok)
+  if remotePacketCount > 0 and spawnOkCount == 0 then
+    im.TextColored(C.danger, '· 收到了对方的包但一辆车都没生成出来 —— 看下面那行原因')
+  end
   
   kvRow('车辆扩展就绪', tostring(veReadyCount), veReadyCount > 0 and C.ok or C.warn)
   kvRow('碰撞保护跳过修正', tostring(skipByCollision), C.dim)
@@ -1792,6 +1980,12 @@ local function panelStatus()
   
   
   kvRow('丢弃脏数据包', tostring(badPacketCount), badPacketCount > 0 and C.warn or C.ok)
+  kvRow('被当成自己的包丢弃', tostring(selfPacketCount),
+    selfPacketCount > 0 and C.danger or C.dim)
+  if selfPacketCount > 0 and remotePacketCount == 0 then
+    im.TextColored(C.danger, '· 两端联机 ID 撞了（多半是重名）。')
+    im.TextColored(C.danger, '  改一个不同的昵称，或重启启动器重新进房。')
+  end
   kvRow('幽灵车辆待清理', tostring(#pendingCleanup), #pendingCleanup > 0 and C.danger or C.ok)
   if lastSpawnError ~= '' then
     im.TextColored(C.warn, '· ' .. lastSpawnError)
