@@ -727,6 +727,157 @@ end
 
 
 
+-- ── 房间配置：地图 + 出生点 ───────────────────────────────────────────────────
+-- 地图走启动器命令行（-level <id>），游戏开出来就已经在房主那张图上了；
+-- 这里只管出生点：把本机选的那个 scenetree 对象找出来，把本地车放上去。
+-- 出生点刻意不走中继：房主落哪里跟别人无关，每个人各选各的（同一张图、不同落点）。
+local spawnPlan = {
+  map = '',
+  spawnPoint = '',
+  applied = false,
+  warned = false,
+  mapWarned = false,
+  -- 只在「游戏本来开着、又不在房间地图上」时用一次：请游戏自己切图
+  mapSwitchTried = false,
+}
+
+local function setSpawnPlan(map, spawnPoint, source)
+  spawnPlan.map = tostring(map or '')
+  spawnPlan.spawnPoint = tostring(spawnPoint or '')
+  spawnPlan.applied = false
+  spawnPlan.warned = false
+  spawnPlan.mapWarned = false
+  spawnPlan.mapSwitchTried = false
+  if spawnPlan.spawnPoint ~= '' then
+    logMsg('出生点已设定: ' .. spawnPlan.spawnPoint .. '  (' .. tostring(source) .. ')')
+  end
+end
+
+-- 启动器在游戏启动前把本房信息写到 userpath 下的 startride/multiplayer.json，
+-- 扩展刚加载、本地桥还没连上时先靠它垫一层，后面的桥消息负责刷新。
+local function readBootstrapConfig()
+  local cfg = nil
+  pcall(function() cfg = jsonReadFile('startride/multiplayer.json') end)
+  if type(cfg) ~= 'table' then
+    pcall(function() cfg = jsonReadFile('current/startride/multiplayer.json') end)
+  end
+  if type(cfg) ~= 'table' then return false end
+
+  if cfg.playerName and cfg.playerName ~= '' then playerName = cfg.playerName end
+  if cfg.roomName and cfg.roomName ~= '' then
+    roomInfo.name = cfg.roomName
+  elseif cfg.roomId then
+    roomInfo.name = cfg.roomId
+  end
+  if (cfg.map and cfg.map ~= '') or (cfg.spawnPoint and cfg.spawnPoint ~= '') then
+    setSpawnPlan(cfg.map, cfg.spawnPoint, 'multiplayer.json')
+  end
+  return true
+end
+
+-- 本机当前加载的关卡 id（getMissionFilename 形如 /levels/west_coast_usa/info.json）
+local function currentLevelId()
+  local f = ''
+  pcall(function() f = getMissionFilename() or '' end)
+  local id = tostring(f):match('levels/([^/]+)/')
+  if id and id ~= '' then return id end
+  return ''
+end
+
+-- 游戏已经开着、而且不在这张图上时，请游戏自己切过去。
+-- 用引擎自己的 core_loadMapCmd（lua/ge/extensions/core/loadMapCmd.lua）：
+-- 它就是命令行 -level 走的那条路 —— 内部会等 mod manager 就绪，
+-- 而且发现「已经在这张图上」会自己跳过，所以可以放心先调一次。
+local function ensureMapLoaded()
+  if spawnPlan.map == '' or spawnPlan.mapSwitchTried then return end
+
+  local cur = currentLevelId()
+  if cur == '' then return end            -- 还没进任何图，等下一帧
+  if string.lower(cur) == string.lower(spawnPlan.map) then
+    spawnPlan.mapSwitchTried = true
+    return
+  end
+
+  spawnPlan.mapSwitchTried = true
+  spawnPlan.applied = false               -- 换图之后要重新落地
+
+  local ok = false
+  pcall(function()
+    extensions.load('core_loadMapCmd')
+    core_loadMapCmd.set({ level = 'levels/' .. spawnPlan.map .. '/info.json' }, true)
+    ok = true
+  end)
+
+  if ok then
+    logMsg('游戏已在运行且不在这张图上，正在切到 ' .. spawnPlan.map)
+    table.insert(chat, { name = 'system', text = '正在进入房间地图「' .. spawnPlan.map .. '」' })
+    chatScrollToBottom = true
+  else
+    logMsg('切换地图失败（core_loadMapCmd 不可用），留在当前地图 ' .. cur)
+  end
+end
+
+-- 把本地车放到选定的出生点上。
+-- 落位姿势照抄游戏自己的「大图快速旅行」(core/levels.lua getSpawnPointPosRot + bigMapMode)：
+--   rot = quat(0,0,1,0) * obj:getRotation()，再 spawn.safeTeleport(veh, pos, rot)。
+-- safeTeleport 内部还会再乘一次 quat(0,0,1,0)，两次 180° 相互抵消，
+-- 所以最终朝向 = 出生点对象自己的朝向，和游戏里快速旅行过去一模一样。
+local function spawnTick()
+  if spawnPlan.spawnPoint == '' and spawnPlan.map == '' then return end
+
+  safeCall('ensureMapLoaded', ensureMapLoaded)
+  if spawnPlan.applied or spawnPlan.spawnPoint == '' then return end
+
+  -- 地图没对上就先别动：这会儿出生点对象还不存在，
+  -- 硬找只会误报「本图没有这个出生点」并把机会用掉。
+  if spawnPlan.map ~= '' then
+    local cur = currentLevelId()
+    if cur == '' or string.lower(cur) ~= string.lower(spawnPlan.map) then
+      return
+    end
+  end
+
+  local veh = be:getPlayerVehicle(0)
+  if not veh then return end
+
+  local obj = nil
+  pcall(function() obj = scenetree.findObject(spawnPlan.spawnPoint) end)
+  if not obj then
+    spawnPlan.applied = true
+    if not spawnPlan.warned then
+      spawnPlan.warned = true
+      logMsg('出生点 ' .. spawnPlan.spawnPoint .. ' 在本图里不存在，按默认位置落地')
+      table.insert(chat, { name = 'system', text = '本图没有出生点「' .. spawnPlan.spawnPoint .. '」，已按默认位置出生' })
+      chatScrollToBottom = true
+    end
+    return
+  end
+
+  local pos, rot = nil, nil
+  pcall(function()
+    pos = obj:getPosition()
+    rot = quat(0, 0, 1, 0) * obj:getRotation()
+  end)
+  if not pos or not rot then return end
+
+  local ok = false
+  pcall(function()
+    if spawn and spawn.safeTeleport then
+      spawn.safeTeleport(veh, pos, rot)
+      ok = true
+    end
+  end)
+  if not ok then
+    -- safeTeleport 不可用时的兜底：直接摆位姿，至少别停在原地
+    pcall(function() veh:setPosRot(pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w) end)
+  end
+
+  spawnPlan.applied = true
+  logMsg('已落到出生点 ' .. spawnPlan.spawnPoint .. (ok and '' or '（safeTeleport 不可用，用了兜底定位）'))
+  table.insert(chat, { name = 'system', text = '已在「' .. spawnPlan.spawnPoint .. '」出生' })
+  chatScrollToBottom = true
+end
+
 local function onPacket(data)
   if type(data) ~= 'table' or not data.type then return end
 
@@ -776,6 +927,9 @@ local function onPacket(data)
 
   
   
+  elseif data.type == 'room-config' then
+    setSpawnPlan(data.map, data.spawnPoint, '启动器')
+
   elseif data.type == 'relay-state' then
     relayState = data.state or 'unknown'
     relayDetail = data.detail or ''
@@ -1869,6 +2023,7 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
   end
 
   if not initialized then return end
+  safeCall('spawnTick', spawnTick)
   safeCall('hlTick', hlTick, dtSim, dtReal)
   safeCall('conflictTick', conflictTick)
   handleKeys()
@@ -1884,17 +2039,7 @@ end
 function M.onExtensionLoaded()
   logMsg('GE 扩展 v' .. MOD_VERSION .. ' 已加载')
   initialized = true
-  pcall(function()
-    local cfg = jsonReadFile('startride/multiplayer.json')
-    if cfg then
-      if cfg.playerName and cfg.playerName ~= '' then playerName = cfg.playerName end
-      if cfg.roomName and cfg.roomName ~= '' then
-        roomInfo.name = cfg.roomName
-      elseif cfg.roomId then
-        roomInfo.name = cfg.roomId
-      end
-    end
-  end)
+  readBootstrapConfig()
   logMsg('玩家昵称:', playerName)
   safeCall('conflictTick', conflictTick)
   connectTCP()

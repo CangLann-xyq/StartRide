@@ -94,6 +94,18 @@ namespace StartRide.Core
 
         public bool AutoLaunchGameOnLobby { get; set; } = true;
 
+        /// <summary>
+        /// 上一次在联机页选的关卡（-level 参数就是它）。
+        /// 房主建房时它就是房间地图；加入者进房时会自动改成房主那张图。
+        /// </summary>
+        public string LobbyMapId { get; set; } = "west_coast_usa";
+
+        /// <summary>
+        /// 上一次选的出生点（scenetree 对象名，例如 spawns_industrial）。
+        /// 房主和加入者各选各的 —— 同一张图，落点可以不同。
+        /// </summary>
+        public string LobbySpawnPoint { get; set; } = "";
+
         /// <summary>启动游戏前确保 Steam 在运行（决定这段游玩时长会不会被 Steam 记账）。</summary>
         public bool EnsureSteamBeforeLaunch { get; set; } = true;
 
@@ -381,7 +393,15 @@ namespace StartRide.Core
             return roots;
         }
 
-        public string ResolveUserDataRoot()
+        /// <summary>
+        /// 游戏真正在用的 userpath 根目录（也就是游戏里 FS 的「/」）。
+        ///
+        /// ⚠️ 不能直接用 <see cref="UserDataDirectory"/>：那只是「没改过时的默认位置」。
+        /// 玩家在 BeamNG 启动器里改过 userFolder 之后，游戏根本不看那里
+        /// —— 本机就是 D:\BeamNG.Drive'sAppDataRoaming，真正读写的是它下面的 current\。
+        /// 判据用「有没有 settings 目录」，和游戏自身的目录布局一致。
+        /// </summary>
+        public static string ResolveGameUserPathRoot()
         {
             foreach (var r in ResolveUserPathRoots())
             {
@@ -395,6 +415,8 @@ namespace StartRide.Core
             }
             return UserDataDirectory;
         }
+
+        public string ResolveUserDataRoot() => ResolveGameUserPathRoot();
 
         public string ResolveSettingsDirectory() => Path.Combine(ResolveUserDataRoot(), "settings");
 

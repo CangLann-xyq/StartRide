@@ -63,18 +63,5 @@
         </Grid>
       </controls:ListPageFrame.ListContent>
     </controls:ListPageFrame>
-    <TextBlock Name="MultiplayerFooterHint" Panel.ZIndex="1" Margin="260,0,24,50" HorizontalAlignment="Center" VerticalAlignment="Bottom" Foreground="{DynamicResource LauncherTextSecondaryBrush}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap">
-      <FrameworkElement.Style>
-        <Style TargetType="{x:Type TextBlock}">
-          <Setter Property="Visibility" Value="Collapsed" />
-          <Style.Triggers>
-            <DataTrigger Value="False" Binding="{Binding IsLobbyStep}">
-              <Setter Property="Visibility" Value="Visible" />
-            </DataTrigger>
-          </Style.Triggers>
-        </Style>
-      </FrameworkElement.Style>
-      <Run Text="{x:Static res:Strings.Multiplayer_LobbyPoweredByTerracotta}" />
-    </TextBlock>
   </Grid>
 </UserControl>

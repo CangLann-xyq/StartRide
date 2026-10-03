@@ -3309,6 +3309,32 @@ public static class Strings
 
 	public static string Lobby_PublicRoomCountLabel => Get("Lobby_PublicRoomCountLabel");
 
+	public static string Lobby_MapSectionTitle => Get("Lobby_MapSectionTitle");
+	public static string Lobby_MapHint => Get("Lobby_MapHint");
+	public static string Lobby_MapListHeader => Get("Lobby_MapListHeader");
+	public static string Lobby_NoSpawnForLevel => Get("Lobby_NoSpawnForLevel");
+	public static string Lobby_LevelNoneFound => Get("Lobby_LevelNoneFound");
+	public static string Lobby_LevelRescanButton => Get("Lobby_LevelRescanButton");
+	public static string Lobby_LevelRefreshHint => Get("Lobby_LevelRefreshHint");
+	public static string Lobby_LevelModTag => Get("Lobby_LevelModTag");
+	public static string Lobby_SpawnSectionTitle => Get("Lobby_SpawnSectionTitle");
+	public static string Lobby_SpawnListHeader => Get("Lobby_SpawnListHeader");
+	public static string Lobby_SpawnHostHint => Get("Lobby_SpawnHostHint");
+	public static string Lobby_SpawnJoinHint => Get("Lobby_SpawnJoinHint");
+	public static string Lobby_SpawnDefaultName => Get("Lobby_SpawnDefaultName");
+	public static string Lobby_SpawnIsDefaultTag => Get("Lobby_SpawnIsDefaultTag");
+	public static string Lobby_SpawnCountFormat => Get("Lobby_SpawnCountFormat");
+	public static string Lobby_SpawnDefaultOnly => Get("Lobby_SpawnDefaultOnly");
+	public static string Lobby_CreateRoomButton => Get("Lobby_CreateRoomButton");
+	public static string Lobby_PickRoomHint => Get("Lobby_PickRoomHint");
+	public static string Lobby_JoinRoomTitleFormat => Get("Lobby_JoinRoomTitleFormat");
+	public static string Lobby_JoinRoomMapFormat => Get("Lobby_JoinRoomMapFormat");
+	public static string Lobby_JoinConfirmButton => Get("Lobby_JoinConfirmButton");
+	public static string Lobby_JoinCancelButton => Get("Lobby_JoinCancelButton");
+	public static string Lobby_JoinedMapLabel => Get("Lobby_JoinedMapLabel");
+	public static string Lobby_JoinedSpawnLabel => Get("Lobby_JoinedSpawnLabel");
+	public static string Lobby_LobbyMapNote => Get("Lobby_LobbyMapNote");
+
 	public static string Account_MultiplayerNicknameLabel => Get("Account_MultiplayerNicknameLabel");
 
 	public static string Replays_ModeReplayFiles => Get("Replays_ModeReplayFiles");

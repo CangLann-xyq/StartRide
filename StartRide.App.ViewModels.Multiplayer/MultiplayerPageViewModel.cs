@@ -157,11 +157,176 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private AsyncRelayCommand<PublicRoomItem?>? joinRoomCommand;
 
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand<PublicRoomItem?>? chooseJoinRoomCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand? cancelJoinRoomChoiceCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private AsyncRelayCommand? confirmJoinRoomCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private AsyncRelayCommand? rescanLobbyLevelsCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand<LevelOptionItem?>? selectLobbyLevelCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand<SpawnOptionItem?>? selectLobbySpawnCommand;
+
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand<SpawnOptionItem?>? selectJoinSpawnCommand;
+
 	public ObservableCollection<MultiplayerSectionItem> Sections { get; }
 
 	public ObservableCollection<PublicRoomItem> PublicRooms { get; } = new ObservableCollection<PublicRoomItem>();
 
 	public ObservableCollection<MultiplayerLobbyPlayerItem> LobbyPlayers { get; } = new ObservableCollection<MultiplayerLobbyPlayerItem>();
+
+	// ── 地图 / 出生位置 ──────────────────────────────────────────────────────
+	// 房主侧：LobbyLevels 选地图，LobbySpawns 选自己落哪。
+	// 加入侧：JoinSpawns 是「房主那张图」里的出生点，加入者各选各的。
+	// 为什么要分两套：加入者的地图是被房主决定的，但他仍要能挑自己的落点，
+	// 两边的可选集合来自不同的地图，混用一套会在切页时互相覆盖。
+
+	public ObservableCollection<LevelOptionItem> LobbyLevels { get; } = new ObservableCollection<LevelOptionItem>();
+
+	public ObservableCollection<SpawnOptionItem> LobbySpawns { get; } = new ObservableCollection<SpawnOptionItem>();
+
+	public ObservableCollection<SpawnOptionItem> JoinSpawns { get; } = new ObservableCollection<SpawnOptionItem>();
+
+	private LevelOptionItem? selectedLobbyLevel;
+	private SpawnOptionItem? selectedLobbySpawn;
+	private SpawnOptionItem? selectedJoinSpawn;
+	private PublicRoomItem? selectedJoinRoom;
+	private Dictionary<string, BeamNgLevel> lobbyLevelLookup =
+		new Dictionary<string, BeamNgLevel>(StringComparer.OrdinalIgnoreCase);
+	private bool lobbyLevelsLoaded;
+
+	/// <summary>房主侧当前选中的地图。</summary>
+	public LevelOptionItem? SelectedLobbyLevel
+	{
+		get => selectedLobbyLevel;
+		set
+		{
+			if (EqualityComparer<LevelOptionItem>.Default.Equals(selectedLobbyLevel, value)) return;
+			OnPropertyChanging("SelectedLobbyLevel");
+			selectedLobbyLevel = value;
+			OnSelectedLobbyLevelChanged(value);
+			OnPropertyChanged("SelectedLobbyLevel");
+		}
+	}
+
+	/// <summary>房主侧当前选中的出生点（也就是自己落地的地方）。</summary>
+	public SpawnOptionItem? SelectedLobbySpawn
+	{
+		get => selectedLobbySpawn;
+		set
+		{
+			if (EqualityComparer<SpawnOptionItem>.Default.Equals(selectedLobbySpawn, value)) return;
+			OnPropertyChanging("SelectedLobbySpawn");
+			selectedLobbySpawn = value;
+			OnSelectedLobbySpawnChanged(value);
+			OnPropertyChanged("SelectedLobbySpawn");
+		}
+	}
+
+	/// <summary>加入侧当前选中的出生点（房主那张图里的，可以和他不一样）。</summary>
+	public SpawnOptionItem? SelectedJoinSpawn
+	{
+		get => selectedJoinSpawn;
+		set
+		{
+			if (EqualityComparer<SpawnOptionItem>.Default.Equals(selectedJoinSpawn, value)) return;
+			OnPropertyChanging("SelectedJoinSpawn");
+			selectedJoinSpawn = value;
+			OnPropertyChanged("SelectedJoinSpawn");
+		}
+	}
+
+	/// <summary>加入侧已挑好、等确认的房间。为 null 时显示房间列表。</summary>
+	public PublicRoomItem? SelectedJoinRoom
+	{
+		get => selectedJoinRoom;
+		set
+		{
+			if (EqualityComparer<PublicRoomItem>.Default.Equals(selectedJoinRoom, value)) return;
+			OnPropertyChanging("SelectedJoinRoom");
+			selectedJoinRoom = value;
+			OnSelectedJoinRoomChanged(value);
+			OnPropertyChanged("SelectedJoinRoom");
+		}
+	}
+
+	public string SelectedLobbyLevelName => SelectedLobbyLevel?.Name ?? Strings.Lobby_LevelNoneFound;
+
+	public string SelectedLobbyLevelDescription => SelectedLobbyLevel?.Description ?? string.Empty;
+
+	public bool HasSelectedLobbyLevelDescription => !string.IsNullOrWhiteSpace(SelectedLobbyLevelDescription);
+
+	public string SelectedLobbyLevelPreview => SelectedLobbyLevel?.PreviewPath ?? string.Empty;
+
+	public bool HasSelectedLobbyLevelPreview => SelectedLobbyLevel?.HasPreview ?? false;
+
+	public string SelectedLobbyLevelMeta => SelectedLobbyLevel?.Meta ?? string.Empty;
+
+	public bool SelectedLobbyLevelIsMod => SelectedLobbyLevel?.IsMod ?? false;
+
+	public string SelectedLobbySpawnName => SelectedLobbySpawn?.Name ?? Strings.Lobby_SpawnDefaultName;
+
+	public bool HasLobbySpawns => LobbySpawns.Count > 0;
+
+	public bool HasJoinSpawns => JoinSpawns.Count > 0;
+
+	/// <summary>加入侧：已经挑好房间，显示确认区。</summary>
+	public bool IsJoinRoomChosen => SelectedJoinRoom != null;
+
+	/// <summary>
+	/// 加入侧：列表里确实有房间可挑。
+	/// 用来收掉「先在上面的列表里挑一个房间」——一个房间都没有时它和空状态是同一句话。
+	/// </summary>
+	public bool HasPublicRooms => PublicRooms.Count > 0;
+
+	public string SelectedJoinRoomTitle => SelectedJoinRoom == null
+		? string.Empty
+		: string.Format(Strings.Lobby_JoinRoomTitleFormat, SelectedJoinRoom.Name);
+
+	public string SelectedJoinRoomMapName => SelectedJoinRoom?.Map ?? string.Empty;
+
+	public string SelectedJoinRoomSpawnName => SelectedJoinSpawn?.Name ?? Strings.Lobby_SpawnDefaultName;
+
+	public string SelectedJoinRoomMeta => SelectedJoinRoom == null
+		? string.Empty
+		: string.Format(Strings.Lobby_JoinRoomMapFormat, SelectedJoinRoom.Map);
+
+	/// <summary>
+	/// 房间面板里显示的「本房地图」。
+	/// 读的是设置而不是 SelectedLobbyLevel：加入者进的图是房主的，和房主页选的那张未必一样，
+	/// 建房/进房成功后 lobbyService 会把最终结果写回设置，这里显示的就是真进的那张。
+	/// </summary>
+	public string LobbyMapText
+	{
+		get
+		{
+			var s = AppState.Current.Settings;
+			if (string.IsNullOrWhiteSpace(s.LobbyMapId)) return "";
+			return BeamNgLevelCatalog.DisplayName(s, s.LobbyMapId);
+		}
+	}
+
+	/// <summary>房间面板里显示的「我的出生位置」。</summary>
+	public string LobbySpawnText
+	{
+		get
+		{
+			var s = AppState.Current.Settings;
+			var level = BeamNgLevelCatalog.Find(s, s.LobbyMapId);
+			var hit = level?.SpawnPoints.Find(p =>
+				string.Equals(p.ObjectName, s.LobbySpawnPoint, StringComparison.OrdinalIgnoreCase));
+			return hit?.Name ?? Strings.Lobby_SpawnDefaultName;
+		}
+	}
 
 	public string SectionTitle
 	{
@@ -637,6 +802,24 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	[ExcludeFromCodeCoverage]
 	public IAsyncRelayCommand<PublicRoomItem?> JoinRoomCommand => joinRoomCommand ?? (joinRoomCommand = new AsyncRelayCommand<PublicRoomItem>(JoinRoomAsync, _ => !IsJoiningLobby));
 
+	/// <summary>在房间列表里点一个房间：不直接进，先亮出「选出生位置」再确认。</summary>
+	public IRelayCommand<PublicRoomItem?> ChooseJoinRoomCommand => chooseJoinRoomCommand ?? (chooseJoinRoomCommand = new RelayCommand<PublicRoomItem>(ChooseJoinRoom, _ => !IsJoiningLobby));
+
+	/// <summary>放弃挑好的房间，回到房间列表。</summary>
+	public IRelayCommand CancelJoinRoomChoiceCommand => cancelJoinRoomChoiceCommand ?? (cancelJoinRoomChoiceCommand = new RelayCommand(CancelJoinRoomChoice));
+
+	/// <summary>带着选好的出生位置真正进房。</summary>
+	public IAsyncRelayCommand ConfirmJoinRoomCommand => confirmJoinRoomCommand ?? (confirmJoinRoomCommand = new AsyncRelayCommand(ConfirmJoinRoomAsync, () => SelectedJoinRoom != null && !IsJoiningLobby));
+
+	/// <summary>重新扫一遍游戏目录里的地图（刚装了 mod 地图时用）。</summary>
+	public IAsyncRelayCommand RescanLobbyLevelsCommand => rescanLobbyLevelsCommand ?? (rescanLobbyLevelsCommand = new AsyncRelayCommand(RescanLobbyLevelsAsync, () => !IsCreatingLobby));
+
+	public IRelayCommand<LevelOptionItem?> SelectLobbyLevelCommand => selectLobbyLevelCommand ?? (selectLobbyLevelCommand = new RelayCommand<LevelOptionItem>(item => { if (item != null) SelectedLobbyLevel = item; }));
+
+	public IRelayCommand<SpawnOptionItem?> SelectLobbySpawnCommand => selectLobbySpawnCommand ?? (selectLobbySpawnCommand = new RelayCommand<SpawnOptionItem>(item => { if (item != null) SelectedLobbySpawn = item; }));
+
+	public IRelayCommand<SpawnOptionItem?> SelectJoinSpawnCommand => selectJoinSpawnCommand ?? (selectJoinSpawnCommand = new RelayCommand<SpawnOptionItem>(item => { if (item != null) SelectedJoinSpawn = item; }));
+
 	public MultiplayerPageViewModel(IMultiplayerLobbyService lobbyService, IClipboardService clipboardService, IUiDispatcher uiDispatcher, IStatusService statusService, IFloatingMessageService floatingMessageService, AccountPageViewModel? accountPage = null, IExternalLinkService? externalLinkService = null, ILogger<MultiplayerPageViewModel>? logger = null)
 	{
 		this.lobbyService = lobbyService;
@@ -655,6 +838,7 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		SelectedSection = Sections[0];
 		lobbyService.SnapshotChanged += OnLobbySnapshotChanged;
 		lobbyService.Stopped += OnLobbyStopped;
+		_ = LoadLobbyLevelsAsync();
 		_ = RefreshRoomsAsync(CancellationToken.None);
 	}
 
@@ -665,17 +849,28 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		RoomsLoadStatus = string.Empty;
 		try
 		{
+			// 房间列表要显示「房主那张图」的名字，先把地图目录准备好（同一份缓存，只会读一次）
+			await LoadLobbyLevelsAsync().ConfigureAwait(true);
+
 			List<Room> rooms = await api.GetRoomsAsync().ConfigureAwait(true);
 			PublicRooms.Clear();
+			SelectedJoinRoom = null;
 
 			foreach (Room room in rooms)
 			{
-				PublicRooms.Add(new PublicRoomItem(room));
+				string mapName = string.Empty;
+				if (!string.IsNullOrWhiteSpace(room.Map) &&
+					lobbyLevelLookup.TryGetValue(room.Map, out var level))
+				{
+					mapName = level.Name;
+				}
+				PublicRooms.Add(new PublicRoomItem(room) { MapName = mapName });
 			}
 			if (PublicRooms.Count == 0)
 			{
 				RoomsLoadStatus = Strings.Multiplayer_Join_NoPublicRooms;
 			}
+			OnPropertyChanged("HasPublicRooms");
 		}
 		catch (Exception exception)
 		{
@@ -964,6 +1159,8 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	private void ApplyLobbySnapshot(MultiplayerLobbySnapshot snapshot)
 	{
 		RoomCode = snapshot.RoomCode;
+		OnPropertyChanged("LobbyMapText");
+		OnPropertyChanged("LobbySpawnText");
 		LobbyOwnerName = snapshot.Players.FirstOrDefault((MultiplayerLobbyPlayer player) => player.Kind == MultiplayerLobbyPlayerKind.Host)?.DisplayName ?? Strings.Multiplayer_LobbyOwnerPlaceholder;
 		LobbyPlayers.Clear();
 		for (int num = 0; num < snapshot.Players.Count; num++)
@@ -986,6 +1183,7 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		IsLobbyHost = false;
 		RoomCode = string.Empty;
 		LobbyPlayers.Clear();
+		CancelJoinRoomChoice();
 	}
 
 	private void ReportFailure(string message)
@@ -1033,6 +1231,251 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 			MultiplayerLobbyCreationFailure.TerracottaProtocolFailed => Strings.Multiplayer_Create_TerracottaProtocolFailed,
 			_ => Strings.Multiplayer_Join_Failed,
 		};
+	}
+
+	// ── 地图 / 出生位置：加载与选择 ─────────────────────────────────────────
+
+	/// <summary>
+	/// 扫一遍游戏目录里的地图（含 mods 里的），填进房主侧的地图列表。
+	/// 读的是游戏自己的 content/levels/*.zip 与 locales 词条，所以要放到后台线程做，
+	/// 否则第一次进联机页会卡住 UI 一两秒。
+	/// </summary>
+	private async Task LoadLobbyLevelsAsync()
+	{
+		if (lobbyLevelsLoaded)
+		{
+			return;
+		}
+		lobbyLevelsLoaded = true;
+
+		var settings = AppState.Current.Settings;
+		List<BeamNgLevel> levels;
+		try
+		{
+			levels = await Task.Run(() => BeamNgLevelCatalog.Load(settings)).ConfigureAwait(true);
+		}
+		catch (Exception exception)
+		{
+			logger.LogWarning(exception, "Failed to enumerate BeamNG levels for the multiplayer page.");
+			levels = new List<BeamNgLevel>();
+		}
+		PopulateLobbyLevels(levels);
+	}
+
+	private void PopulateLobbyLevels(List<BeamNgLevel> levels)
+	{
+		lobbyLevelLookup = new Dictionary<string, BeamNgLevel>(StringComparer.OrdinalIgnoreCase);
+		foreach (var level in levels)
+		{
+			lobbyLevelLookup[level.Id] = level;
+		}
+
+		LobbyLevels.Clear();
+		foreach (var level in levels)
+		{
+			LobbyLevels.Add(new LevelOptionItem(level));
+		}
+		MarkEnds(LobbyLevels);
+
+		var settings = AppState.Current.Settings;
+		string wanted = settings.LobbyMapId ?? string.Empty;
+
+		var pick = LobbyLevels.FirstOrDefault(item => string.Equals(item.Id, wanted, StringComparison.OrdinalIgnoreCase))
+			?? LobbyLevels.FirstOrDefault(item => item.HasSpawnPoints)
+			?? LobbyLevels.FirstOrDefault();
+
+		SelectedLobbyLevel = pick;
+		RebuildLobbySpawns(pick, settings.LobbySpawnPoint);
+	}
+
+	/// <summary>列表首尾行要收掉分隔线，否则卡片上下边会多出一条横线。</summary>
+	private static void MarkEnds(IList<LevelOptionItem> items)
+	{
+		for (int i = 0; i < items.Count; i++)
+		{
+			items[i].IsFirst = i == 0;
+			items[i].IsLast = i == items.Count - 1;
+		}
+	}
+
+	private static void MarkEnds(IList<SpawnOptionItem> items)
+	{
+		for (int i = 0; i < items.Count; i++)
+		{
+			items[i].IsFirst = i == 0;
+			items[i].IsLast = i == items.Count - 1;
+		}
+	}
+
+	/// <summary>把「选中」状态刷到列表项上（ListPageItemButton 的选中底色就靠它）。</summary>
+	private static void SyncSelection(IEnumerable<LevelOptionItem> items, LevelOptionItem? selected)
+	{
+		foreach (var item in items)
+		{
+			item.IsSelected = ReferenceEquals(item, selected);
+		}
+	}
+
+	private static void SyncSelection(IEnumerable<SpawnOptionItem> items, SpawnOptionItem? selected)
+	{
+		foreach (var item in items)
+		{
+			item.IsSelected = ReferenceEquals(item, selected);
+		}
+	}
+
+	private static void SyncSelection(IEnumerable<PublicRoomItem> items, PublicRoomItem? selected)
+	{
+		foreach (var item in items)
+		{
+			item.IsSelected = ReferenceEquals(item, selected);
+		}
+	}
+
+	private void RebuildLobbySpawns(LevelOptionItem? level, string? wanted)
+	{
+		LobbySpawns.Clear();
+
+		if (level != null)
+		{
+			foreach (var point in level.Level.SpawnPoints)
+			{
+				LobbySpawns.Add(new SpawnOptionItem(point));
+			}
+		}
+		MarkEnds(LobbySpawns);
+
+		SelectedLobbySpawn = PickSpawn(LobbySpawns, wanted);
+		OnPropertyChanged("HasLobbySpawns");
+	}
+
+	private void RebuildJoinSpawns(BeamNgLevel? level, string? wanted)
+	{
+		JoinSpawns.Clear();
+
+		if (level != null)
+		{
+			foreach (var point in level.SpawnPoints)
+			{
+				JoinSpawns.Add(new SpawnOptionItem(point));
+			}
+		}
+		MarkEnds(JoinSpawns);
+
+		SelectedJoinSpawn = PickSpawn(JoinSpawns, wanted);
+		OnPropertyChanged("HasJoinSpawns");
+	}
+
+	/// <summary>优先用记忆里的出生点；它不属于这张图（换图了）就退到该图默认出生点。</summary>
+	private static SpawnOptionItem? PickSpawn(IEnumerable<SpawnOptionItem> options, string? wanted)
+	{
+		var list = options as IList<SpawnOptionItem> ?? options.ToList();
+
+		if (!string.IsNullOrWhiteSpace(wanted))
+		{
+			var hit = list.FirstOrDefault(item =>
+				string.Equals(item.ObjectName, wanted, StringComparison.OrdinalIgnoreCase));
+			if (hit != null) return hit;
+		}
+
+		return list.FirstOrDefault(item => item.IsDefault) ?? list.FirstOrDefault();
+	}
+
+	/// <summary>
+	/// 把当前选择写回设置对象（不落盘）。
+	/// 不立刻 Save 的原因：Save 会触发 AppSettings.Saved，让别的页面重读一遍设置；
+	/// 真正落盘交给建房/进房时的 PersistLobbyChoice。
+	/// </summary>
+	private void RememberLobbyChoice()
+	{
+		var settings = AppState.Current.Settings;
+		if (SelectedLobbyLevel != null) settings.LobbyMapId = SelectedLobbyLevel.Id;
+		if (SelectedLobbySpawn != null) settings.LobbySpawnPoint = SelectedLobbySpawn.ObjectName;
+	}
+
+	private void ChooseJoinRoom(PublicRoomItem? room)
+	{
+		if (room == null)
+		{
+			return;
+		}
+
+		SelectedJoinRoom = room;
+
+		// 出生点必须来自房主那张图 —— 拿的是自己的记忆值，但只在房主的图里有意义
+		lobbyLevelLookup.TryGetValue(room.MapId ?? string.Empty, out var level);
+		RebuildJoinSpawns(level, AppState.Current.Settings.LobbySpawnPoint);
+	}
+
+	private void CancelJoinRoomChoice()
+	{
+		SelectedJoinRoom = null;
+		JoinSpawns.Clear();
+		SelectedJoinSpawn = null;
+		OnPropertyChanged("HasJoinSpawns");
+	}
+
+	private async Task ConfirmJoinRoomAsync(CancellationToken cancellationToken)
+	{
+		var room = SelectedJoinRoom;
+		if (room == null)
+		{
+			return;
+		}
+
+		// 先把出生点写进设置：lobbyService.JoinAsync 会读 settings.LobbySpawnPoint，
+		// 并按房主那张图校验（图上没有这个点就退回该图默认点）。
+		AppState.Current.Settings.LobbySpawnPoint = SelectedJoinSpawn?.ObjectName ?? string.Empty;
+
+		await JoinRoomAsync(room, cancellationToken).ConfigureAwait(true);
+	}
+
+	private async Task RescanLobbyLevelsAsync(CancellationToken cancellationToken)
+	{
+		await Task.Yield();
+		BeamNgLevelCatalog.Invalidate();
+		lobbyLevelsLoaded = false;
+		await LoadLobbyLevelsAsync().ConfigureAwait(true);
+	}
+
+	private void OnSelectedLobbyLevelChanged(LevelOptionItem? value)
+	{
+		// 换图了：出生点集合跟着换，记忆的那个点如果不在这张图上会自动退到默认点
+		RebuildLobbySpawns(value, AppState.Current.Settings.LobbySpawnPoint);
+		RememberLobbyChoice();
+		SyncSelection(LobbyLevels, value);
+
+		OnPropertyChanged("SelectedLobbyLevelName");
+		OnPropertyChanged("SelectedLobbyLevelDescription");
+		OnPropertyChanged("HasSelectedLobbyLevelDescription");
+		OnPropertyChanged("SelectedLobbyLevelPreview");
+		OnPropertyChanged("HasSelectedLobbyLevelPreview");
+		OnPropertyChanged("SelectedLobbyLevelMeta");
+		OnPropertyChanged("SelectedLobbyLevelIsMod");
+	}
+
+	private void OnSelectedLobbySpawnChanged(SpawnOptionItem? value)
+	{
+		RememberLobbyChoice();
+		SyncSelection(LobbySpawns, value);
+		OnPropertyChanged("SelectedLobbySpawnName");
+	}
+
+	private void OnSelectedJoinRoomChanged(PublicRoomItem? value)
+	{
+		SyncSelection(PublicRooms, value);
+		OnPropertyChanged("IsJoinRoomChosen");
+		OnPropertyChanged("SelectedJoinRoomTitle");
+		OnPropertyChanged("SelectedJoinRoomMapName");
+		OnPropertyChanged("SelectedJoinRoomMeta");
+		OnPropertyChanged("SelectedJoinRoomSpawnName");
+		ConfirmJoinRoomCommand.NotifyCanExecuteChanged();
+	}
+
+	private void OnSelectedJoinSpawnChanged(SpawnOptionItem? value)
+	{
+		SyncSelection(JoinSpawns, value);
+		OnPropertyChanged("SelectedJoinRoomSpawnName");
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
@@ -1086,12 +1529,15 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	private void OnIsCreatingLobbyChanged(bool value)
 	{
 		CancelLobbyDetectionCommand.NotifyCanExecuteChanged();
+		RescanLobbyLevelsCommand.NotifyCanExecuteChanged();
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]
 	private void OnIsJoiningLobbyChanged(bool value)
 	{
 		OnPropertyChanged("JoinLobbyButtonText");
+		ChooseJoinRoomCommand.NotifyCanExecuteChanged();
+		ConfirmJoinRoomCommand.NotifyCanExecuteChanged();
 	}
 
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "8.4.0.0")]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,6 +79,7 @@ namespace StartRide.Core
                 State.Connected = true;
                 State.LastError = "";
                 PushRelayStateToGame();
+                PushRoomConfigToGame();
                 foreach (var v in _relay.GetCachedVehicles())
                 {
                     try { _bridge.SendJson(v.GetRawText()); } catch { }
@@ -97,6 +99,83 @@ namespace StartRide.Core
         public void StartBridge() => _bridge.Start();
 
         public bool IsHost { get; private set; }
+
+        /// <summary>本房要进的关卡 id（房主 = 自己选的，加入者 = 房主那张图）。</summary>
+        public string MapId { get; private set; } = "";
+
+        /// <summary>本机的出生点对象名。房主和加入者各选各的，所以它不进中继、只发给本地模组。</summary>
+        public string SpawnPoint { get; private set; } = "";
+
+        /// <summary>
+        /// 设定本房的地图与本人出生点，并立刻推给游戏侧模组。
+        /// 为什么走启动器↔模组这条桥、而不走中继：出生点是「每个人自己的」，
+        /// 房主落哪跟加入者无关，塞进中继/数据库只会多一次迁移。
+        /// </summary>
+        public void ConfigureRoom(string? mapId, string? spawnPoint, bool push = true)
+        {
+            MapId = (mapId ?? "").Trim();
+            SpawnPoint = (spawnPoint ?? "").Trim();
+            if (push) PushRoomConfigToGame();
+        }
+
+        private void PushRoomConfigToGame()
+        {
+            if (MapId.Length == 0 && SpawnPoint.Length == 0) return;
+
+            _bridge.Send(new
+            {
+                type = "room-config",
+                map = MapId,
+                spawnPoint = SpawnPoint,
+                roomId = State.RoomId,
+                roomName = State.RoomName,
+            });
+        }
+
+        /// <summary>
+        /// 把本房的地图/出生点写到游戏 userpath 下的 startride/multiplayer.json。
+        /// 用途：游戏还没连上本地桥、扩展刚加载的那一瞬间也能读到，少一次时序博弈。
+        /// （模组 onExtensionLoaded 里读的就是这个文件；桥消息负责后续刷新。）
+        /// </summary>
+        public static void WriteGameBootstrap(string playerName, string roomId, string roomName,
+            string mapId, string spawnPoint)
+        {
+            try
+            {
+                // 必须落在游戏真正读的那个 userpath 上（见 AppSettings.ResolveGameUserPathRoot），
+                // 否则模组 jsonReadFile('startride/multiplayer.json') 永远读不到。
+                string dir = Path.Combine(AppSettings.ResolveGameUserPathRoot(), "startride");
+                Directory.CreateDirectory(dir);
+
+                string json = JsonSerializer.Serialize(new
+                {
+                    playerName = playerName ?? "",
+                    roomId = roomId ?? "",
+                    roomName = roomName ?? "",
+                    map = mapId ?? "",
+                    spawnPoint = spawnPoint ?? "",
+                    writtenAt = DateTimeOffset.Now.ToString("o"),
+                }, new JsonSerializerOptions { WriteIndented = true });
+
+                File.WriteAllText(Path.Combine(dir, "multiplayer.json"), json);
+            }
+            catch
+            {
+            }
+        }
+
+        /// <summary>退出房间后别再让模组以为还在房里。</summary>
+        public static void ClearGameBootstrap()
+        {
+            try
+            {
+                string file = Path.Combine(AppSettings.ResolveGameUserPathRoot(), "startride", "multiplayer.json");
+                if (File.Exists(file)) File.Delete(file);
+            }
+            catch
+            {
+            }
+        }
 
         public async Task<bool> CreateRoomAsync(Room room, string playerName)
         {
@@ -144,7 +223,11 @@ namespace StartRide.Core
                 State.Players.Add(name);
                 State.PlayerCount = 1;
                 PushRelayStateToGame();
-                Log?.Invoke($"已加入房间 {room.Id}（{State.Transport}）");
+                PushRoomConfigToGame();
+                WriteGameBootstrap(name, State.RoomId, State.RoomName, MapId, SpawnPoint);
+                Log?.Invoke($"已加入房间 {room.Id}（{State.Transport}）"
+                    + (MapId.Length > 0 ? $"，地图 {MapId}" : "")
+                    + (SpawnPoint.Length > 0 ? $"，出生点 {SpawnPoint}" : ""));
             }
             else
             {
@@ -178,6 +261,7 @@ namespace StartRide.Core
             State.RoomId = "";
             IsHost = false;
             PushRelayStateToGame();
+            ClearGameBootstrap();
             StateChanged?.Invoke();
         }
 
@@ -187,6 +271,7 @@ namespace StartRide.Core
             Log?.Invoke($"游戏内模组就绪：{playerName} (mod v{version})");
 
             PushRelayStateToGame();
+            PushRoomConfigToGame();
 
             foreach (var v in _relay.GetCachedVehicles())
             {

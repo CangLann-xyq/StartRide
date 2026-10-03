@@ -5,6 +5,26 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/StartRide;component/Views/Settings/SettingsSectionResources.xaml" />
       </ResourceDictionary.MergedDictionaries>
+
+      <!-- 房间行：房主 + 人数 + 房主那张图 -->
+      <DataTemplate x:Key="JoinLobbyRoomItemTemplate" DataType="{x:Type multiplayer:PublicRoomItem}">
+        <controls:ListPageItemButton ItemMargin="0" IconKey="beamng/online" IconWidth="21" IconHeight="21" IconColumnWidth="58" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="9" IconTileCornerRadius="11" Title="{Binding Name}" Subtitle="{Binding HostText}" TrailingText="{Binding PlayerCountText}" IsSelected="{Binding IsSelected}" IsFirstVisible="{Binding IsFirst}" IsLastVisible="{Binding IsLast}" Command="{Binding DataContext.ChooseJoinRoomCommand, RelativeSource={RelativeSource AncestorType={x:Type views:JoinLobbyView}}}" CommandParameter="{Binding}">
+          <controls:ListPageItemButton.TitleTrailingContent>
+            <Border Padding="8,2" CornerRadius="9" Background="{DynamicResource Brush.Field.ReadOnly.Surface}" ToolTip="{Binding MapTooltip}" ToolTipService.ShowDuration="20000">
+              <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12" Text="{Binding Map}" />
+            </Border>
+          </controls:ListPageItemButton.TitleTrailingContent>
+        </controls:ListPageItemButton>
+      </DataTemplate>
+
+      <!-- 我自己的出生位置（房主那张图里的） -->
+      <DataTemplate x:Key="JoinLobbySpawnItemTemplate" DataType="{x:Type multiplayer:SpawnOptionItem}">
+        <controls:ListPageItemButton ItemMargin="0" IconKey="general/general_pin" IconWidth="18" IconHeight="18" IconColumnWidth="44" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="8" IconTileCornerRadius="10" Title="{Binding Name}" Subtitle="{Binding Subtitle}" IsSelected="{Binding IsSelected}" IsFirstVisible="{Binding IsFirst}" IsLastVisible="{Binding IsLast}" Command="{Binding DataContext.SelectJoinSpawnCommand, RelativeSource={RelativeSource AncestorType={x:Type views:JoinLobbyView}}}" CommandParameter="{Binding}">
+          <controls:ListPageItemButton.TitleTrailingContent>
+            <controls:AdaptiveTagList ItemsSource="{Binding LocalTags}" TagBackground="{DynamicResource Brush.Accent.Selection}" TagForeground="{DynamicResource Brush.Accent.Primary}" />
+          </controls:ListPageItemButton.TitleTrailingContent>
+        </controls:ListPageItemButton>
+      </DataTemplate>
     </ResourceDictionary>
   </FrameworkElement.Resources>
 
@@ -27,28 +47,10 @@
       </DockPanel>
     </Border>
 
+    <!-- 房间列表 -->
     <Border Style="{StaticResource RideListSurfaceStyle}" MinHeight="200">
       <Grid>
-        <ItemsControl ItemsSource="{Binding PublicRooms}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Margin="4,4,4,4" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="{x:Type multiplayer:PublicRoomItem}">
-              <controls:ListPageItemButton IconKey="beamng/online" IconWidth="21" IconHeight="21" IconColumnWidth="58" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="9" IconTileCornerRadius="11" ItemMargin="0,2" Title="{Binding Name}" Subtitle="{Binding HostText}" TrailingText="{Binding PlayerCountText}" Command="{Binding DataContext.JoinRoomCommand, RelativeSource={RelativeSource AncestorType={x:Type views:JoinLobbyView}}}" CommandParameter="{Binding}">
-                <controls:ListPageItemButton.TitleTrailingContent>
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Padding="8,2" CornerRadius="9" Background="{DynamicResource Brush.Field.ReadOnly.Surface}">
-                      <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" FontSize="12" Text="{Binding Map}" />
-                    </Border>
-                  </StackPanel>
-                </controls:ListPageItemButton.TitleTrailingContent>
-              </controls:ListPageItemButton>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <ListBox Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" Margin="4,4,4,4" MaxHeight="330" ItemsSource="{Binding PublicRooms}" ItemTemplate="{StaticResource JoinLobbyRoomItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
 
         <TextBlock Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="320" LineHeight="20" Foreground="{DynamicResource Brush.Text.Subtle}" FontSize="12.5" Text="{Binding RoomsLoadStatus}">
           <FrameworkElement.Style>
@@ -67,5 +69,87 @@
         </TextBlock>
       </Grid>
     </Border>
+
+    <!-- 还没挑房间（列表里真有房间时才提示，否则和空状态是同一句话） -->
+    <TextBlock Margin="2,12,2,0" FontSize="12" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_PickRoomHint}">
+      <FrameworkElement.Style>
+        <Style TargetType="{x:Type TextBlock}">
+          <Setter Property="Visibility" Value="Collapsed" />
+          <Style.Triggers>
+            <MultiDataTrigger>
+              <MultiDataTrigger.Conditions>
+                <Condition Value="False" Binding="{Binding IsJoinRoomChosen}" />
+                <Condition Value="True" Binding="{Binding HasPublicRooms}" />
+              </MultiDataTrigger.Conditions>
+              <Setter Property="Visibility" Value="Visible" />
+            </MultiDataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+    </TextBlock>
+
+    <!-- 挑好了：确认 + 选自己的出生位置 -->
+    <StackPanel Margin="0,14,0,0">
+      <FrameworkElement.Style>
+        <Style TargetType="{x:Type StackPanel}">
+          <Setter Property="Visibility" Value="Collapsed" />
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding IsJoinRoomChosen}">
+              <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+
+      <Border Style="{StaticResource RideDetailSurfaceStyle}">
+        <StackPanel>
+          <DockPanel LastChildFill="False">
+            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Lobby_JoinCancelButton}" Command="{Binding CancelJoinRoomChoiceCommand}" />
+            <StackPanel>
+              <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{Binding SelectedJoinRoomTitle}" />
+              <TextBlock Margin="0,5,0,0" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding SelectedJoinRoomMeta}" />
+            </StackPanel>
+          </DockPanel>
+
+          <Border Margin="0,12,0,10" Style="{StaticResource RideHairlineStyle}" />
+
+          <DockPanel LastChildFill="False">
+            <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_SpawnSectionTitle}" />
+            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Accent.Primary}" Text="{Binding SelectedJoinRoomSpawnName}" />
+          </DockPanel>
+          <TextBlock Margin="0,5,0,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_SpawnJoinHint}" />
+
+          <ListBox Margin="0,10,0,0" Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" MaxHeight="300" ItemsSource="{Binding JoinSpawns}" ItemTemplate="{StaticResource JoinLobbySpawnItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
+
+          <TextBlock Margin="2,8,2,0" FontSize="12" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_NoSpawnForLevel}">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Value="False" Binding="{Binding HasJoinSpawns}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Button Margin="0,14,0,0" HorizontalAlignment="Left" MinWidth="168" Content="{x:Static res:Strings.Lobby_JoinConfirmButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding ConfirmJoinRoomCommand}" />
+    </StackPanel>
+
+    <TextBlock Margin="2,12,2,0" FontSize="12" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Danger}" Text="{Binding JoinLobbyStatus}">
+      <FrameworkElement.Style>
+        <Style TargetType="{x:Type TextBlock}">
+          <Setter Property="Visibility" Value="Collapsed" />
+          <Style.Triggers>
+            <DataTrigger Value="True" Binding="{Binding HasJoinLobbyStatus}">
+              <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </FrameworkElement.Style>
+    </TextBlock>
   </StackPanel>
 </UserControl>

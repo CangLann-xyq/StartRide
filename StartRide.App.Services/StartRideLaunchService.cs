@@ -124,7 +124,8 @@ public sealed class StartRideLaunchService : ILaunchService
 		lock (gate)
 		{
 			activeLauncher = launcher;
-			error = launcher.Launch(withMod: appSettings.PreInstallMod);
+			error = launcher.Launch(withMod: appSettings.PreInstallMod,
+				levelId: StartRideMultiplayerRuntime.LobbyLevelOrNull());
 		}
 
 		if (error != null)

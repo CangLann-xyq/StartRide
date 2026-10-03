@@ -109,7 +109,19 @@ namespace StartRide.Core
             }
         }
 
-        public static List<string> BuildLaunchArguments(AppSettings settings)
+        public static List<string> BuildLaunchArguments(AppSettings settings) =>
+            BuildLaunchArguments(settings, null);
+
+        /// <summary>
+        /// 组命令行。
+        ///
+        /// <paramref name="levelId"/> 走 <c>-level &lt;id&gt;</c>：直接进地图、跳过主菜单。
+        /// 引擎侧会拼成 levels/&lt;id&gt;/info.json 交给 core_loadMapCmd（见 lua/ge/main.lua:1495），
+        /// 那条路径会一直等到 mod manager 挂载完 mods 才真正加载，所以 mod 地图也能用。
+        /// ⚠️ 传了 <paramref name="levelId"/> 时，玩家写在「额外启动参数 / 游戏参数」里的 -level 会被顶掉
+        /// —— 联机必须进房间定好的那张图，不能让一条旧参数把地图换走。
+        /// </summary>
+        public static List<string> BuildLaunchArguments(AppSettings settings, string? levelId)
         {
             var args = new List<string>();
 
@@ -151,7 +163,65 @@ namespace StartRide.Core
             AddUserArguments(args, settings.ExtraLaunchArgs);
             AddUserArguments(args, settings.GameArguments);
 
+            if (!string.IsNullOrWhiteSpace(levelId))
+            {
+                // 联机要进的就是房间定好的那张图：玩家自己在「额外启动参数」里写的 -level 让位，
+                // 否则会出现「选了 A 图，却因为旧参数进了 B 图」。
+                RemoveArgument(args, "-level");
+
+                string normalized = NormalizeLevelArgument(levelId!);
+                if (normalized.Length > 0)
+                {
+                    args.Add("-level");
+                    args.Add(normalized);
+                }
+            }
+
             return args;
+        }
+
+        /// <summary>
+        /// 把 UI 选中的关卡名整理成引擎认的 -level 值。
+        ///
+        /// ⚠️ 服务端原话（lua/ge/main.lua:1495）：
+        ///     core_loadMapCmd.set({level = "levels/" .. levelToLoad .. "/info.json"}, true)
+        /// 也就是说 -level 后面只给关卡 id 本身，**结尾不能带斜杠** ——
+        /// 带了会拼成 levels/west_coast_usa//info.json，虽然多半能被文件系统抹平，但没必要赌。
+        /// </summary>
+        public static string NormalizeLevelArgument(string? levelId)
+        {
+            string id = (levelId ?? "").Trim().Trim('"').Replace('\\', '/').Trim('/');
+            if (id.Length == 0) return "";
+            if (id.Contains('/')) id = id.Substring(id.LastIndexOf('/') + 1);
+            if (id.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                id = id.Substring(0, id.Length - 4);
+            return id;
+        }
+
+        /// <summary>
+        /// 从参数表里摘掉某个开关（连同它的值），给「房间地图优先于玩家自定义参数」用。
+        /// 同时认得 <c>-level x</c> 两段式与 <c>-level=x</c> 一段式。
+        /// </summary>
+        private static void RemoveArgument(List<string> args, string name)
+        {
+            for (int i = args.Count - 1; i >= 0; i--)
+            {
+                string a = args[i];
+                if (a.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))
+                {
+                    args.RemoveAt(i);
+                    continue;
+                }
+                if (string.Equals(a, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    // 两段式：连后面的值一起摘；已经是最后一项就只摘自己
+                    if (i + 1 < args.Count && !args[i + 1].StartsWith("-", StringComparison.Ordinal))
+                    {
+                        args.RemoveAt(i + 1);
+                    }
+                    args.RemoveAt(i);
+                }
+            }
         }
 
         public static string NormalizeGraphicsBackend(string? value)
@@ -202,7 +272,10 @@ namespace StartRide.Core
             return result;
         }
 
-        public string? Launch(bool withMod)
+        public string? Launch(bool withMod) => Launch(withMod, null);
+
+        /// <param name="levelId">要直接进入的关卡（联机用：房主 = 自己选的图，加入者 = 房主那张图）。</param>
+        public string? Launch(bool withMod, string? levelId)
         {
             if (withMod)
             {
@@ -244,9 +317,14 @@ namespace StartRide.Core
                     UseShellExecute = false,
                 };
 
-                foreach (var a in BuildLaunchArguments(_settings))
+                foreach (var a in BuildLaunchArguments(_settings, levelId))
                 {
                     psi.ArgumentList.Add(a);
+                }
+
+                if (!string.IsNullOrWhiteSpace(levelId))
+                {
+                    EmitLog("本次直接进入地图：" + levelId + "（-level " + NormalizeLevelArgument(levelId) + "）");
                 }
 
                 // Steam 记账的命门。Steam 启动游戏时会注入 SteamAppId / SteamGameId，

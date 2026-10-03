@@ -1405,8 +1405,8 @@
 <data name="Download_QuiltLibraryNone" xml:space="preserve"><value>不安裝</value></data>
 <data name="Settings_ViewLegalDocumentButton" xml:space="preserve"><value>查看</value></data>
 <data name="Multiplayer_Create_StepCreateLobby" xml:space="preserve"><value>向雲端註冊臨時房間並連上中繼，隨後自動啟動遊戲；把房間碼發給好友即可加入。</value></data>
-<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>點擊下方按鈕，啟動器會自動完成上述全部配置並聯機，無需手動設置。</value></data>
-<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>一鍵創建並聯機</value></data>
+<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>確認後立刻建房並自動啟動遊戲，直接進入你選的地圖。</value></data>
+<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>建立房間</value></data>
 <data name="Settings_OpenSourceLicenseDescription" xml:space="preserve"><value>本軟體依據 GNU 通用公共許可證第 3 版（GPL-3.0-only）發佈。</value></data>
 <data name="Status_BackupRestored" xml:space="preserve"><value>備份已恢復</value></data>
 <data name="Dialog_CreateBackupNameLabel" xml:space="preserve"><value>備份名稱</value></data>
@@ -1753,9 +1753,9 @@
   <data name="Mods_LocalTab" xml:space="preserve"><value>本機模組</value></data>
   <data name="Mods_OpenModsFolderButton" xml:space="preserve"><value>開啟模組資料夾</value></data>
   <data name="Mods_SearchTooltip" xml:space="preserve"><value>搜尋模組（作用於已載入項目）</value></data>
-  <data name="Lobby_CreateHint" xml:space="preserve"><value>開房後把房間碼發給朋友，他們輸碼即可進入</value></data>
+  <data name="Lobby_CreateHint" xml:space="preserve"><value>先決定地圖與出生位置，再把房間碼給朋友。所有人進同一張地圖，各自從自己選的位置出發。</value></data>
   <data name="Lobby_CopyCodeButton" xml:space="preserve"><value>複製房間碼</value></data>
-  <data name="Lobby_JoinHint" xml:space="preserve"><value>選擇公開房間直接進入，無需房主提供房間碼</value></data>
+  <data name="Lobby_JoinHint" xml:space="preserve"><value>選一個房間，再挑你自己想出生的位置</value></data>
   <data name="Lobby_PublicRoomCountLabel" xml:space="preserve"><value>個公開房間</value></data>
   <data name="Account_MultiplayerNicknameLabel" xml:space="preserve"><value>聯機暱稱</value></data>
   <data name="Replays_ModeReplayFiles" xml:space="preserve"><value>回放檔案</value></data>
@@ -1771,4 +1771,29 @@
   <data name="Replays_EmptyHighlightsNote" xml:space="preserve"><value>這份記錄寫在遊戲的回放目錄下（replays/startride），啟動器只讀它，不會上傳任何東西。</value></data>
   <data name="Replays_EmptyHighlightsAction" xml:space="preserve"><value>啟動遊戲去跑一局</value></data>
   <data name="Replays_OpenHighlightsFolderButton" xml:space="preserve"><value>開啟高光目錄</value></data>
+  <data name="Lobby_MapSectionTitle" xml:space="preserve"><value>地圖</value></data>
+  <data name="Lobby_MapHint" xml:space="preserve"><value>開局直接進入這張地圖，不停留在主選單</value></data>
+  <data name="Lobby_MapListHeader" xml:space="preserve"><value>選擇地圖</value></data>
+  <data name="Lobby_NoSpawnForLevel" xml:space="preserve"><value>這張圖沒有可選出生點，依遊戲預設位置出生</value></data>
+  <data name="Lobby_LevelNoneFound" xml:space="preserve"><value>沒掃到可用地圖，請先在「全域設定」確認 BeamNG.drive 目錄</value></data>
+  <data name="Lobby_LevelRescanButton" xml:space="preserve"><value>重新掃描地圖</value></data>
+  <data name="Lobby_LevelRefreshHint" xml:space="preserve"><value>剛裝了 mod 地圖？掃一遍就能看到</value></data>
+  <data name="Lobby_LevelModTag" xml:space="preserve"><value>MOD</value></data>
+  <data name="Lobby_SpawnSectionTitle" xml:space="preserve"><value>出生位置</value></data>
+  <data name="Lobby_SpawnListHeader" xml:space="preserve"><value>選擇出生位置</value></data>
+  <data name="Lobby_SpawnHostHint" xml:space="preserve"><value>你從這裡出發。加入的人可以各選各的，互不影響。</value></data>
+  <data name="Lobby_SpawnJoinHint" xml:space="preserve"><value>房主只決定地圖。你想從哪裡出發，由你自己選。</value></data>
+  <data name="Lobby_SpawnDefaultName" xml:space="preserve"><value>遊戲預設出生點</value></data>
+  <data name="Lobby_SpawnIsDefaultTag" xml:space="preserve"><value>預設</value></data>
+  <data name="Lobby_SpawnCountFormat" xml:space="preserve"><value>{0} 個出生點</value></data>
+  <data name="Lobby_SpawnDefaultOnly" xml:space="preserve"><value>僅預設出生點</value></data>
+  <data name="Lobby_CreateRoomButton" xml:space="preserve"><value>建立房間</value></data>
+  <data name="Lobby_PickRoomHint" xml:space="preserve"><value>先在上面的清單裡挑一個房間</value></data>
+  <data name="Lobby_JoinRoomTitleFormat" xml:space="preserve"><value>加入「{0}」</value></data>
+  <data name="Lobby_JoinRoomMapFormat" xml:space="preserve"><value>房主地圖：{0}</value></data>
+  <data name="Lobby_JoinConfirmButton" xml:space="preserve"><value>加入房間</value></data>
+  <data name="Lobby_JoinCancelButton" xml:space="preserve"><value>取消</value></data>
+  <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>地圖</value></data>
+  <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>我的出生位置</value></data>
+  <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>開局會直接進入這張地圖</value></data>
 </root>

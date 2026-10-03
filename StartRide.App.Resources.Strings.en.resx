@@ -2692,9 +2692,9 @@ The current game folder will be automatically backed up before restoration.</val
 
 <data name="Multiplayer_Create_StepCreateLobby" xml:space="preserve"><value>Register a temporary room to the cloud and connect to the relay, then automatically start the game; send the room code to friends to join.</value></data>
 
-<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>Click the button below, and the launcher will automatically complete all the above configurations and connect online, no manual setup required.</value></data>
+<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>The room is created right away, then the game starts straight into the map you picked.</value></data>
 
-<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>One-click create and connect online</value></data>
+<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>Create room</value></data>
 
 <data name="Settings_OpenSourceLicenseDescription" xml:space="preserve"><value>This software is released under the GNU General Public License version 3 (GPL-3.0-only).</value></data>
 
@@ -3299,9 +3299,9 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Mods_LocalTab" xml:space="preserve"><value>Local mods</value></data>
   <data name="Mods_OpenModsFolderButton" xml:space="preserve"><value>Open mods folder</value></data>
   <data name="Mods_SearchTooltip" xml:space="preserve"><value>Search mods (applies to entries already loaded)</value></data>
-  <data name="Lobby_CreateHint" xml:space="preserve"><value>After creating a room, send the room code to your friends — they just enter it to join</value></data>
+  <data name="Lobby_CreateHint" xml:space="preserve"><value>Pick a map and a spawn point, then share the room code. Everyone loads the same map and starts from their own spawn.</value></data>
   <data name="Lobby_CopyCodeButton" xml:space="preserve"><value>Copy room code</value></data>
-  <data name="Lobby_JoinHint" xml:space="preserve"><value>Pick a public room to join directly — no room code needed</value></data>
+  <data name="Lobby_JoinHint" xml:space="preserve"><value>Pick a room, then choose where you want to spawn</value></data>
   <data name="Lobby_PublicRoomCountLabel" xml:space="preserve"><value>public rooms</value></data>
   <data name="Account_MultiplayerNicknameLabel" xml:space="preserve"><value>Multiplayer nickname</value></data>
   <data name="Replays_ModeReplayFiles" xml:space="preserve"><value>Replay files</value></data>
@@ -3317,4 +3317,29 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Replays_EmptyHighlightsNote" xml:space="preserve"><value>This log lives under the game's replay directory (replays/startride). The launcher only reads it and never uploads anything.</value></data>
   <data name="Replays_EmptyHighlightsAction" xml:space="preserve"><value>Launch the game and drive a session</value></data>
   <data name="Replays_OpenHighlightsFolderButton" xml:space="preserve"><value>Open highlights folder</value></data>
+  <data name="Lobby_MapSectionTitle" xml:space="preserve"><value>Map</value></data>
+  <data name="Lobby_MapHint" xml:space="preserve"><value>The game boots straight into this map, no main menu</value></data>
+  <data name="Lobby_MapListHeader" xml:space="preserve"><value>Choose a map</value></data>
+  <data name="Lobby_NoSpawnForLevel" xml:space="preserve"><value>This map has no spawn points; the game default is used</value></data>
+  <data name="Lobby_LevelNoneFound" xml:space="preserve"><value>No maps found — check the BeamNG.drive folder in Global settings</value></data>
+  <data name="Lobby_LevelRescanButton" xml:space="preserve"><value>Rescan maps</value></data>
+  <data name="Lobby_LevelRefreshHint" xml:space="preserve"><value>Just installed a map mod? Rescan to see it</value></data>
+  <data name="Lobby_LevelModTag" xml:space="preserve"><value>MOD</value></data>
+  <data name="Lobby_SpawnSectionTitle" xml:space="preserve"><value>Spawn point</value></data>
+  <data name="Lobby_SpawnListHeader" xml:space="preserve"><value>Choose a spawn point</value></data>
+  <data name="Lobby_SpawnHostHint" xml:space="preserve"><value>You start here. Joiners pick their own, independently.</value></data>
+  <data name="Lobby_SpawnJoinHint" xml:space="preserve"><value>The host only decides the map. Where you start is up to you.</value></data>
+  <data name="Lobby_SpawnDefaultName" xml:space="preserve"><value>Game default</value></data>
+  <data name="Lobby_SpawnIsDefaultTag" xml:space="preserve"><value>Default</value></data>
+  <data name="Lobby_SpawnCountFormat" xml:space="preserve"><value>{0} spawn points</value></data>
+  <data name="Lobby_SpawnDefaultOnly" xml:space="preserve"><value>Default only</value></data>
+  <data name="Lobby_CreateRoomButton" xml:space="preserve"><value>Create room</value></data>
+  <data name="Lobby_PickRoomHint" xml:space="preserve"><value>Pick a room from the list above</value></data>
+  <data name="Lobby_JoinRoomTitleFormat" xml:space="preserve"><value>Join “{0}”</value></data>
+  <data name="Lobby_JoinRoomMapFormat" xml:space="preserve"><value>Host map: {0}</value></data>
+  <data name="Lobby_JoinConfirmButton" xml:space="preserve"><value>Join room</value></data>
+  <data name="Lobby_JoinCancelButton" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>Map</value></data>
+  <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>My spawn</value></data>
+  <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>The game will boot straight into this map</value></data>
 </root>

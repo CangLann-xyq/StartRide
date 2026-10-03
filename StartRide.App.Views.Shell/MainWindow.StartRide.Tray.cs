@@ -109,7 +109,8 @@ public partial class MainWindow
 				return;
 			}
 
-			string? error = launcher.Launch(withMod: app.PreInstallMod);
+			string? error = launcher.Launch(withMod: app.PreInstallMod,
+				levelId: StartRideMultiplayerRuntime.LobbyLevelOrNull());
 			if (error != null)
 			{
 				StartRideRestoreFromTray();

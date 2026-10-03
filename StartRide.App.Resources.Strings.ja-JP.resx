@@ -1405,8 +1405,8 @@
 <data name="Download_QuiltLibraryNone" xml:space="preserve"><value>インストールしない</value></data>
 <data name="Settings_ViewLegalDocumentButton" xml:space="preserve"><value>表示</value></data>
 <data name="Multiplayer_Create_StepCreateLobby" xml:space="preserve"><value>クラウドに一時ルームを登録してリレーに接続し、自動でゲームを起動します。ルームコードを友達に渡せば参加可能です。</value></data>
-<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>下のボタンをクリックすると、ランチャーが上記の設定と接続を自動で完了し、手動設定は不要です。</value></data>
-<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>ワンクリックで作成して接続</value></data>
+<data name="Multiplayer_Create_OneClickHint" xml:space="preserve"><value>確定するとすぐにルームを作成し、選んだマップへ直接ゲームを起動します。</value></data>
+<data name="Multiplayer_Create_OneClickButton" xml:space="preserve"><value>ルーム作成</value></data>
 <data name="Settings_OpenSourceLicenseDescription" xml:space="preserve"><value>本ソフトウェアはGNU一般公衆利用許諾契約書第3版（GPL-3.0-only）に基づき配布されています。</value></data>
 <data name="Status_BackupRestored" xml:space="preserve"><value>バックアップを復元しました</value></data>
 <data name="Dialog_CreateBackupNameLabel" xml:space="preserve"><value>バックアップ名</value></data>
@@ -1752,9 +1752,9 @@
   <data name="Mods_LocalTab" xml:space="preserve"><value>ローカル MOD</value></data>
   <data name="Mods_OpenModsFolderButton" xml:space="preserve"><value>mods フォルダーを開く</value></data>
   <data name="Mods_SearchTooltip" xml:space="preserve"><value>MOD を検索（読み込み済みの項目が対象）</value></data>
-  <data name="Lobby_CreateHint" xml:space="preserve"><value>ルーム作成後、ルームコードを友達に送れば入力するだけで参加できます</value></data>
+  <data name="Lobby_CreateHint" xml:space="preserve"><value>マップとスポーン位置を決めてからルームコードを共有。全員が同じマップに入り、それぞれが選んだ位置からスタートします。</value></data>
   <data name="Lobby_CopyCodeButton" xml:space="preserve"><value>ルームコードをコピー</value></data>
-  <data name="Lobby_JoinHint" xml:space="preserve"><value>公開ルームを選べばそのまま参加できます。ルームコードは不要です</value></data>
+  <data name="Lobby_JoinHint" xml:space="preserve"><value>ルームを選び、自分のスポーン位置を決めます</value></data>
   <data name="Lobby_PublicRoomCountLabel" xml:space="preserve"><value>件の公開ルーム</value></data>
   <data name="Account_MultiplayerNicknameLabel" xml:space="preserve"><value>マルチプレイ表示名</value></data>
   <data name="Replays_ModeReplayFiles" xml:space="preserve"><value>リプレイファイル</value></data>
@@ -1770,4 +1770,29 @@
   <data name="Replays_EmptyHighlightsNote" xml:space="preserve"><value>この記録はゲームのリプレイディレクトリ（replays/startride）に保存されます。ランチャーは読み取るだけで、何もアップロードしません。</value></data>
   <data name="Replays_EmptyHighlightsAction" xml:space="preserve"><value>ゲームを起動して 1 回走る</value></data>
   <data name="Replays_OpenHighlightsFolderButton" xml:space="preserve"><value>ハイライトフォルダーを開く</value></data>
+  <data name="Lobby_MapSectionTitle" xml:space="preserve"><value>マップ</value></data>
+  <data name="Lobby_MapHint" xml:space="preserve"><value>起動すると直接このマップに入ります（メインメニューなし）</value></data>
+  <data name="Lobby_MapListHeader" xml:space="preserve"><value>マップを選択</value></data>
+  <data name="Lobby_NoSpawnForLevel" xml:space="preserve"><value>このマップにはスポーン地点がなく、ゲーム既定の位置になります</value></data>
+  <data name="Lobby_LevelNoneFound" xml:space="preserve"><value>マップが見つかりません。「全体設定」で BeamNG.drive のフォルダを確認してください</value></data>
+  <data name="Lobby_LevelRescanButton" xml:space="preserve"><value>マップを再スキャン</value></data>
+  <data name="Lobby_LevelRefreshHint" xml:space="preserve"><value>mod マップを入れた直後は再スキャンしてください</value></data>
+  <data name="Lobby_LevelModTag" xml:space="preserve"><value>MOD</value></data>
+  <data name="Lobby_SpawnSectionTitle" xml:space="preserve"><value>スポーン位置</value></data>
+  <data name="Lobby_SpawnListHeader" xml:space="preserve"><value>スポーン位置を選択</value></data>
+  <data name="Lobby_SpawnHostHint" xml:space="preserve"><value>あなたはここから。参加者は各自で選べます。</value></data>
+  <data name="Lobby_SpawnJoinHint" xml:space="preserve"><value>ホストが決めるのはマップだけ。開始位置は自分で選べます。</value></data>
+  <data name="Lobby_SpawnDefaultName" xml:space="preserve"><value>ゲーム既定のスポーン</value></data>
+  <data name="Lobby_SpawnIsDefaultTag" xml:space="preserve"><value>既定</value></data>
+  <data name="Lobby_SpawnCountFormat" xml:space="preserve"><value>スポーン {0} 箇所</value></data>
+  <data name="Lobby_SpawnDefaultOnly" xml:space="preserve"><value>既定のみ</value></data>
+  <data name="Lobby_CreateRoomButton" xml:space="preserve"><value>ルーム作成</value></data>
+  <data name="Lobby_PickRoomHint" xml:space="preserve"><value>上のリストからルームを選んでください</value></data>
+  <data name="Lobby_JoinRoomTitleFormat" xml:space="preserve"><value>「{0}」に参加</value></data>
+  <data name="Lobby_JoinRoomMapFormat" xml:space="preserve"><value>ホストのマップ：{0}</value></data>
+  <data name="Lobby_JoinConfirmButton" xml:space="preserve"><value>参加する</value></data>
+  <data name="Lobby_JoinCancelButton" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>マップ</value></data>
+  <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>自分のスポーン位置</value></data>
+  <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>起動時にこのマップへ直接入ります</value></data>
 </root>
