@@ -24,6 +24,19 @@ public sealed partial class GeneralSettingsViewModel
 	private bool launchCloseToTray;
 	private bool launchAutoInstallMod = true;
 	private bool launchRemoveModOnLeave = true;
+	private bool launchIsolateConflictingMods = true;
+	private bool launchNameTagEnabled = true;
+	// 玩法规则（警匪追逐 / 德比 / 捉迷藏）
+	private int launchCaptureHoldSeconds = 5;
+	private int launchCaptureStillSpeed = 8;
+	private int launchDerbyDamageLimit = 8000;
+	private int launchResetLimit = 3;
+	private int launchResetCooldownSeconds = 10;
+	// 玩法规则（捉迷藏）
+	private int launchHideSeconds = 30;
+	private int launchHideRoundSeconds = 240;
+	private int launchFindRadius = 12;
+	private int launchFindHoldSeconds = 2;
 	private bool launchForceHighPerformanceGpu = true;
 	private bool startupAutoDetectGame = true;
 	private bool startupAutoUpdate = true;
@@ -117,6 +130,143 @@ public sealed partial class GeneralSettingsViewModel
 		get => launchRemoveModOnLeave;
 		set => SetStartRideSetting(ref launchRemoveModOnLeave, value, "LaunchRemoveModOnLeave",
 			app => app.RemoveModOnLeave = value);
+	}
+
+	/// <summary>
+	/// 联机时临时隔离第三方联机模组（BeamMP / BeamLink 等）。
+	/// 开着时进房前把它们置为不启用、退出后原样恢复；关着时只由游戏内模组弹窗提醒。
+	/// </summary>
+	public bool LaunchIsolateConflictingMods
+	{
+		get => launchIsolateConflictingMods;
+		set => SetStartRideSetting(ref launchIsolateConflictingMods, value, "LaunchIsolateConflictingMods",
+			app => app.IsolateConflictingMods = value);
+	}
+
+	/// <summary>
+	/// 联机时在远端玩家车顶显示悬浮名牌（昵称 + 距离），世界坐标常显，随距离渐隐。
+	/// </summary>
+	public bool LaunchNameTagEnabled
+	{
+		get => launchNameTagEnabled;
+		set => SetStartRideSetting(ref launchNameTagEnabled, value, "LaunchNameTagEnabled",
+			app => app.NameTagEnabled = value);
+	}
+
+	// ------------------------------------------------------------------
+	// 玩法规则（警匪追逐 / 德比）
+	// ------------------------------------------------------------------
+
+	/// <summary>警匪追逐：警察要贴住强盗多少秒才算抓住。</summary>
+	public int LaunchCaptureHoldSeconds
+	{
+		get => launchCaptureHoldSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 1, 60);
+			SetStartRideSetting(ref launchCaptureHoldSeconds, clamped, "LaunchCaptureHoldSeconds",
+				app => app.CaptureHoldMs = clamped * 1000);
+		}
+	}
+
+	/// <summary>警匪：强盗低于此速度（km/h）才算「近乎静止」，抓捕才会开始计时。</summary>
+	public int LaunchCaptureStillSpeed
+	{
+		get => launchCaptureStillSpeed;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 60);
+			SetStartRideSetting(ref launchCaptureStillSpeed, clamped, "LaunchCaptureStillSpeed",
+				app => app.CaptureStillSpeed = clamped);
+		}
+	}
+
+	/// <summary>德比：车辆损伤达到这个值就淘汰。</summary>
+	public int LaunchDerbyDamageLimit
+	{
+		get => launchDerbyDamageLimit;
+		set
+		{
+			int clamped = Math.Clamp(value, 1000, 100000);
+			SetStartRideSetting(ref launchDerbyDamageLimit, clamped, "LaunchDerbyDamageLimit",
+				app => app.DerbyDamageLimit = clamped);
+		}
+	}
+
+	/// <summary>德比：每局允许的原地复位次数（0 = 禁止）。</summary>
+	public int LaunchResetLimit
+	{
+		get => launchResetLimit;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 20);
+			SetStartRideSetting(ref launchResetLimit, clamped, "LaunchResetLimit",
+				app => app.ResetLimit = clamped);
+		}
+	}
+
+	/// <summary>德比：两次原地复位之间的冷却（秒）。</summary>
+	public int LaunchResetCooldownSeconds
+	{
+		get => launchResetCooldownSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 120);
+			SetStartRideSetting(ref launchResetCooldownSeconds, clamped, "LaunchResetCooldownSeconds",
+				app => app.ResetCooldownMs = clamped * 1000);
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// 玩法规则（捉迷藏）
+	// ------------------------------------------------------------------
+
+	/// <summary>捉迷藏：躲藏期时长（秒），这段时间搜索者被冻结。</summary>
+	public int LaunchHideSeconds
+	{
+		get => launchHideSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 5, 300);
+			SetStartRideSetting(ref launchHideSeconds, clamped, "LaunchHideSeconds",
+				app => app.HideSeconds = clamped);
+		}
+	}
+
+	/// <summary>捉迷藏：搜索期时长（秒），归零时还有人没被找到则躲藏方获胜。</summary>
+	public int LaunchHideRoundSeconds
+	{
+		get => launchHideRoundSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 30, 1800);
+			SetStartRideSetting(ref launchHideRoundSeconds, clamped, "LaunchHideRoundSeconds",
+				app => app.HideRoundSeconds = clamped);
+		}
+	}
+
+	/// <summary>捉迷藏：发现半径（米），搜索者进入这个范围开始计时。</summary>
+	public int LaunchFindRadius
+	{
+		get => launchFindRadius;
+		set
+		{
+			int clamped = Math.Clamp(value, 2, 100);
+			SetStartRideSetting(ref launchFindRadius, clamped, "LaunchFindRadius",
+				app => app.FindRadius = clamped);
+		}
+	}
+
+	/// <summary>捉迷藏：搜索者要贴住躲藏者多少秒才算找到。</summary>
+	public int LaunchFindHoldSeconds
+	{
+		get => launchFindHoldSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 1, 30);
+			SetStartRideSetting(ref launchFindHoldSeconds, clamped, "LaunchFindHoldSeconds",
+				app => app.FindHoldMs = clamped * 1000);
+		}
 	}
 
 	public bool LaunchForceHighPerformanceGpu
@@ -280,6 +430,17 @@ public sealed partial class GeneralSettingsViewModel
 		launchCloseToTray = app.CloseToTray;
 		launchAutoInstallMod = app.AutoInstallMod;
 		launchRemoveModOnLeave = app.RemoveModOnLeave;
+		launchIsolateConflictingMods = app.IsolateConflictingMods;
+		launchNameTagEnabled = app.NameTagEnabled;
+		launchCaptureHoldSeconds = Math.Clamp(app.CaptureHoldMs / 1000, 1, 60);
+		launchCaptureStillSpeed = Math.Clamp(app.CaptureStillSpeed, 0, 60);
+		launchDerbyDamageLimit = Math.Clamp(app.DerbyDamageLimit, 1000, 100000);
+		launchResetLimit = Math.Clamp(app.ResetLimit, 0, 20);
+		launchResetCooldownSeconds = Math.Clamp(app.ResetCooldownMs / 1000, 0, 120);
+		launchHideSeconds = Math.Clamp(app.HideSeconds, 5, 300);
+		launchHideRoundSeconds = Math.Clamp(app.HideRoundSeconds, 30, 1800);
+		launchFindRadius = Math.Clamp(app.FindRadius, 2, 100);
+		launchFindHoldSeconds = Math.Clamp(app.FindHoldMs / 1000, 1, 30);
 		launchForceHighPerformanceGpu = app.ForceHighPerformanceGpu;
 		startupAutoDetectGame = app.AutoDetectGame;
 		startupAutoUpdate = app.AutoUpdate;
@@ -303,6 +464,17 @@ public sealed partial class GeneralSettingsViewModel
 		OnPropertyChanged("LaunchCloseToTray");
 		OnPropertyChanged("LaunchAutoInstallMod");
 		OnPropertyChanged("LaunchRemoveModOnLeave");
+		OnPropertyChanged("LaunchIsolateConflictingMods");
+		OnPropertyChanged("LaunchNameTagEnabled");
+		OnPropertyChanged("LaunchCaptureHoldSeconds");
+		OnPropertyChanged("LaunchCaptureStillSpeed");
+		OnPropertyChanged("LaunchDerbyDamageLimit");
+		OnPropertyChanged("LaunchResetLimit");
+		OnPropertyChanged("LaunchResetCooldownSeconds");
+		OnPropertyChanged("LaunchHideSeconds");
+		OnPropertyChanged("LaunchHideRoundSeconds");
+		OnPropertyChanged("LaunchFindRadius");
+		OnPropertyChanged("LaunchFindHoldSeconds");
 		OnPropertyChanged("LaunchForceHighPerformanceGpu");
 		OnPropertyChanged("StartupAutoDetectGame");
 		OnPropertyChanged("StartupAutoUpdate");
@@ -346,6 +518,16 @@ public sealed partial class GeneralSettingsViewModel
 	}
 
 	private bool SetStartRideSetting(ref string field, string value, string propertyName, Action<AppSettings> apply)
+	{
+		if (field == value) return false;
+		field = value;
+		OnPropertyChanged(propertyName);
+		PersistStartRide(apply);
+		return true;
+	}
+
+	/// <summary>玩法规则的数值项（抓捕秒数 / 德比阈值 / 复位次数与冷却）用这个重载。</summary>
+	private bool SetStartRideSetting(ref int field, int value, string propertyName, Action<AppSettings> apply)
 	{
 		if (field == value) return false;
 		field = value;

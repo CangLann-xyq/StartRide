@@ -57,7 +57,7 @@ local frameCount = 0
 
 local remoteVehicles = {}
 local mpPlayers = {}
-local roomInfo = { name = '', count = 0, capacity = 0, host = '', closed = false }
+local roomInfo = { name = '', count = 0, capacity = 0, host = '', closed = false, gameMode = '' }
 local chat = {}
 local playerName = 'Player'
 
@@ -67,6 +67,62 @@ local function myId()
   return playerName
 end
 local initialized = false
+
+
+-- ---------------------------------------------------------------------------
+-- 玩法模块（正式玩法的输入限制 / 阶段机 / 出生规划 / HUD）
+-- 单独拆文件，逐个 require。任何一个加载失败都不能拖垮联机主体，
+-- 所以统一走 pcall + nil 兜底。
+-- ---------------------------------------------------------------------------
+local function loadPeer(name)
+  local ok, mod = pcall(require, name)
+  if ok and type(mod) == 'table' then return mod end
+  pcall(function()
+    log('W', 'startride', '[StartRide] 玩法模块 ' .. tostring(name)
+      .. ' 加载失败: ' .. tostring(mod))
+  end)
+  return nil
+end
+
+local SRInput = loadPeer('startrideInput')
+local SRMode  = loadPeer('startrideMode')
+local SRSpawn = loadPeer('startrideSpawn')
+local SRHud   = loadPeer('startrideModeHud')
+-- 捉迷藏是独立模块：它的规则体量（角色/局内阶段/发现判定/出生规划）
+-- 塞进 startrideMode 会把那个文件顶到 Lua 的 local 上限，所以自成一份。
+local SRHide  = loadPeer('startrideHideSeek')
+
+-- 本机已经为本回合广播过出生方案的回合号（一次性，不重算）
+-- ── 出生的记账（全部塞进一个表）────────────────────────────────────────────
+-- ⚠️ 为什么是一个表：和下面 srHide 完全同一个理由 —— 顶层 local 只剩个位数
+--    余量，撞 200 就是整个扩展编译失败。这三个值本来就同属「出生记账」，
+--    分开写只是历史原因。
+local srSpawn = {
+  plannedRound = -1,   -- 本机已广播过出生方案的回合
+  localPlan    = nil,  -- 房主自己算出来的方案（自己收不到自己的广播）
+  appliedRound = -1,   -- 本机已摆放过的回合（失败也不重试，见坑⑦）
+}
+
+-- ── 捉迷藏的桥接记账（全部塞进一个表）────────────────────────────────────────
+-- ⚠️ 为什么是一个表而不是几个 local：
+--    主模组顶层 local 已经顶到 Lua 5.1 的 **200 个上限**，撞线是**编译期**失败
+--    （`too many local variables`），整个扩展不加载 —— 不是运行时报错。
+--    之前在这里加了 6 个散装 local 就直接把模组编挂了，所以统一收进 srHide。
+local srHide = {
+  plannedRound = -1,   -- 本机已广播过出生方案的回合
+  localPlan    = nil,  -- 房主自己算出来的方案（自己收不到自己的广播）
+  appliedRound = -1,   -- 本机已摆放过的回合
+  lastPhase    = '',   -- 上一次广播出去的「阶段/局内阶段」去重键
+  lastFoundKey = '',   -- 上一次广播出去的发现进度去重键
+}
+-- 上一次广播给全房的阶段（变了才广播）
+-- ⚠️ 收进表而不是加新的顶层 local：顶层 local 只剩个位数余量，
+--    撞 200 是编译期失败。derbyDownKey 是「本机淘汰状态」的去重键。
+local srCast = {
+  phase    = '',
+  derbyDown = '',   -- 本机「已被淘汰」是否已广播过（''/'0'/'1'）
+}
+
 
 
 
@@ -193,6 +249,41 @@ local function safeCall(name, fn, ...)
   local ok, err = pcall(fn, ...)
   if not ok then logMsg('ERR', name, tostring(err)) end
   return ok
+end
+
+-- ---------------------------------------------------------------------------
+-- 屏幕上的一条简短提示（玩法里被拒绝的操作、出生失败原因等）
+--
+-- 走 BeamNG 自己的 ScenarioFlashMessage（就是场景里那种中上方短提示），
+-- 拿不到就退回 ui_message，再不行就只写日志 —— 一层层兜底，绝不因为
+-- 提示发不出去就把调用方打断。
+-- ---------------------------------------------------------------------------
+local srToastUntil = 0
+local lastToastText = ''
+local function srToast(text, seconds)
+  local msg = tostring(text or '')
+  if msg == '' then return end
+  local secs = tonumber(seconds) or 3.0
+
+  -- 简单去重：同一条消息 3 秒内不重复弹（按住键会连发）
+  local clk = os.clock()
+  if msg == lastToastText and clk < srToastUntil then return end
+  lastToastText = msg
+  srToastUntil = clk + 3.0
+
+  local shown = false
+  pcall(function()
+    if guihooks ~= nil and guihooks.trigger ~= nil then
+      guihooks.trigger('ScenarioFlashMessage', { msg = msg, seconds = secs })
+      shown = true
+    end
+  end)
+  if not shown then
+    pcall(function()
+      if ui_message ~= nil then ui_message(msg, secs, 'startride') end
+    end)
+  end
+  logMsg('提示:', msg)
 end
 
 
@@ -865,8 +956,44 @@ local spawnPlan = {
   mapSwitchTried = false,
 }
 
-local function setSpawnPlan(map, spawnPoint, source)
-  spawnPlan.map = tostring(map or '')
+-- ── 玩法模式（全房共享）───────────────────────────────────────────────────────
+-- 玩法是「这局怎么玩」的宣告，由房主选定、随房间元数据广播，每个人的值都一样。
+-- 模组侧只做两件事：
+--   ① 把收到的玩法记下来，显示在面板上（让玩家知道自己在玩什么）
+--   ② 按玩法调整自己的**既有**行为（目前只有一条：捉迷藏要求玩家分散出生）
+-- 规则主体（抓人判定、计分、回合）不在这里实现 —— 那属于各玩法自己的逻辑，
+-- 这一版先把「玩法能被宣告、能被看到、能影响出生策略」这条链路打通。
+-- 认不出来的 id 一律当自由驾驶，绝不因为对端用了新玩法就报错。
+local GAME_MODES = {
+  free_drive = { title = '自由驾驶', spawnsApart = false },
+  hide_seek  = { title = '捉迷藏',   spawnsApart = true  },
+  cops_robber= { title = '警察抓强盗', spawnsApart = true },
+  derby      = { title = '德比',     spawnsApart = false },
+  track_day  = { title = '赛道日',   spawnsApart = true  },
+}
+
+local function gameModeInfo(id)
+  local hit = GAME_MODES[tostring(id or '')]
+  if hit then return hit end
+  return GAME_MODES.free_drive
+end
+
+local function setGameMode(id)
+  local mode = tostring(id or '')
+  if mode == '' then mode = 'free_drive' end
+  if mode == roomInfo.gameMode then return end
+
+  local wasKnown = GAME_MODES[roomInfo.gameMode] ~= nil
+  roomInfo.gameMode = mode
+
+  if wasKnown or roomInfo.gameMode == 'free_drive' then
+    logMsg('房间玩法已设定: ' .. gameModeInfo(mode).title .. '  (' .. tostring(mode) .. ')')
+    table.insert(chat, { name = 'system', text = '本房玩法：' .. gameModeInfo(mode).title })
+    chatScrollToBottom = true
+  end
+end
+
+local function setSpawnPlan(map, spawnPoint, source)  spawnPlan.map = tostring(map or '')
   spawnPlan.spawnPoint = tostring(spawnPoint or '')
   spawnPlan.applied = false
   spawnPlan.warned = false
@@ -876,6 +1003,18 @@ local function setSpawnPlan(map, spawnPoint, source)
     logMsg('出生点已设定: ' .. spawnPlan.spawnPoint .. '  (' .. tostring(source) .. ')')
   end
 end
+
+-- 车顶悬浮名牌的运行状态：enabled / maxDistance。
+--
+-- ⚠️ 必须声明在 readBootstrapConfig **之前**！
+--    Lua 的函数体只能引用「在函数定义之前就已声明」的 local。原来这个表写在
+--    1871 行（readBootstrapConfig 定义在 1009 行之后方），于是 1031 行的
+--    `nameTag.enabled = ...` 编译成了**全局访问** → 运行时 nameTag 是 nil →
+--    每次 onExtensionLoaded 都抛
+--      `attempt to index global 'nameTag' (a nil value)`
+--    而且启动器写进 multiplayer.json 的名牌开关**从来没生效过**。
+--    实测证据：beamng.log 里 `job error: [string ".../startride.lua"]:1026`。
+local nameTag = { enabled = true, maxDistance = 300 }
 
 -- 启动器在游戏启动前把本房信息写到 userpath 下的 startride/multiplayer.json，
 -- 扩展刚加载、本地桥还没连上时先靠它垫一层，后面的桥消息负责刷新。
@@ -895,6 +1034,17 @@ local function readBootstrapConfig()
   end
   if (cfg.map and cfg.map ~= '') or (cfg.spawnPoint and cfg.spawnPoint ~= '') then
     setSpawnPlan(cfg.map, cfg.spawnPoint, 'multiplayer.json')
+  end
+  if cfg.gameMode and cfg.gameMode ~= '' then
+    setGameMode(cfg.gameMode)
+  end
+  -- 车顶悬浮名牌（昵称 + 距离）：启动器设置页写进来的开关和最远距离。
+  if type(cfg.nameTagEnabled) == 'boolean' then
+    nameTag.enabled = cfg.nameTagEnabled
+  end
+  local nmd = tonumber(cfg.nameTagMaxDistance)
+  if nmd and nmd > 20 then
+    nameTag.maxDistance = nmd
   end
   return true
 end
@@ -1067,6 +1217,7 @@ local function onPacket(data)
   if type(data) ~= 'table' or not data.type then return end
 
   if data.type == 'vehicle' then
+    if SRMode then pcall(SRMode.notePositions, data) end
     safeCall('onRemoteVehiclePacket', onRemoteVehiclePacket, data)
 
   elseif data.type == 'vehcfg' then
@@ -1114,6 +1265,53 @@ local function onPacket(data)
   
   elseif data.type == 'room-config' then
     setSpawnPlan(data.map, data.spawnPoint, '启动器')
+    if data.gameMode and data.gameMode ~= '' then setGameMode(data.gameMode) end
+
+  elseif data.type == 'game-mode' then
+    if data.gameMode and data.gameMode ~= '' then setGameMode(data.gameMode) end
+
+  elseif data.type == 'mode-phase' then
+    -- 房主推阶段：加入者照跟（自己在权威端就不听）
+    if SRMode then
+      SRMode.applyRemotePhase(data.phase, data.round, data.winner)
+    end
+    -- 捉迷藏是独立状态机，阶段也要喂一份（否则它的 HUD / 输入策略永远停在 lobby）
+    if SRHide then
+      SRHide.applyRemotePhase(data.phase, data.round, data.winner)
+    end
+
+  elseif data.type == 'hide-seek-stage' then
+    -- 房主推「躲藏期 / 搜索期」（running 内部阶段）
+    if SRHide then SRHide.applyRemoteStage(data.stage) end
+
+  elseif data.type == 'hide-seek-found' then
+    -- 房主推发现进度 + 已找到名单（加入者本地不做判定）
+    if SRHide then
+      SRHide.applyRemoteFound(data.target, data.heldMs, data.found)
+      SRHide.applyRemoteFoundList(data.found, data.roles)
+    end
+
+  elseif data.type == 'derby-down' then
+    -- 远端玩家报告「我被撞毁了」：房主替他记账，否则回合永远结算不了
+    if SRMode then
+      local pid = tostring(data.id or data.player or '')
+      -- 没带 id 时退回用昵称匹配（两端 playerName 是同一个来源，够用）
+      if pid == '' and data.playerName then pid = tostring(data.playerName) end
+      SRMode.noteRemoteEliminated(pid)
+    end
+
+  elseif data.type == 'mode-spawn-plan' then
+    -- 房主广播的出生方案：加入者收下，交给摆放层应用
+    if SRMode then SRMode.applySpawnPlan(data) end
+
+  elseif data.type == 'mode-placement' then
+    -- 远端玩家汇报「我已就位」。只有房主需要汇总；加入者不用管。
+    if SRMode and SRMode.isAuthority() then
+      local round = tonumber(data.round) or -1
+      if round == tonumber(SRMode.round()) then
+        SRMode.notePlacement(tostring(data.id or ''), data.ready ~= false)
+      end
+    end
 
   elseif data.type == 'relay-state' then
     relayState = data.state or 'unknown'
@@ -1658,9 +1856,242 @@ local function conflictTick()
   end
 end
 
+-- ============================================================
+--  玩家车顶悬浮名牌（昵称 + 距离）
+--
+--  世界坐标 → 屏幕坐标投影后，在 ImGui 前景绘制层上画一张圆角深色小卡。
+--  只要对方在画面里、且在 nameTag.maxDistance 以内就会画；越远越淡。
+--
+--  ⚠️ Lua 5.1 每个函数最多 60 个 upvalue，超了是**编译期静默失败**（整个扩展不加载）。
+--     所以所有可调参数一律收进 TUNE，函数里只引用 TUNE 这一个上值。
+-- ============================================================
+local TUNE = {
+  liftBase   = 1.6,   -- 名牌基准高度（米）：车顶再往上抬这么多
+  padX       = 7,     -- 卡片左右内边距
+  padY       = 4,     -- 卡片上下内边距
+  lineGap    = 2,     -- 昵称与距离两行之间的间距
+  rounding   = 5,     -- 卡片圆角
+  barW       = 3,     -- 左侧身份色条宽度
+  dotR       = 2.5,   -- 身份色圆点半径
+  fadeStart  = 0.55,  -- 从 maxDistance 的这个比例开始淡出
+  minAlpha   = 0.10,  -- 最远处的最低不透明度
+  maxTags    = 16,    -- 单帧最多画几个（兜底，防极端情况刷屏）
+  fontScale  = 0.86,  -- 卡片内字号缩放
+}
+
+-- 名牌运行时状态 local 已上移到 readBootstrapConfig 之前（见那里的说明）——
+-- 放在这里会被编译成全局访问，导致名牌开关失效并且每次加载抛 job error。
+
+local function nameTagFontScale()
+  local ok, scaled = pcall(function()
+    -- ImGui 有多套隐式缩放重载，名字各不相同，逐个试。
+    im.SetWindowFontScale(TUNE.fontScale)
+    return true
+  end)
+  return ok and scaled or false
+end
+
+-- 世界坐标 → 屏幕像素。返回 nil 表示这个点在相机背后或出画面。
+-- 参照 BeamLink 的做法：用相机的 pos/right/forward/up + 半视场角 + 宽高比做点积投影。
+local function nameTagProject(px, py, pz)
+  local cam = nil
+  pcall(function() cam = core_camera.getPosition() end)
+  if not cam then return nil end
+
+  -- 相机朝向：优先取四元数自己算 right/forward/up，拿不到就退回位置差。
+  local fx, fy, fz, rx, ry, rz, ux, uy, uz = nil, nil, nil, nil, nil, nil, nil, nil, nil
+  pcall(function()
+    local q = core_camera.getQuat()
+    if not q then return end
+    local qx, qy, qz, qw = q.x, q.y, q.z, q.w
+    -- forward = q * (0,1,0)
+    fx = 2 * (qx * qy + qw * qz)
+    fy = 1 - 2 * (qx * qx + qz * qz)
+    fz = 2 * (qy * qz - qw * qx)
+    -- up = q * (0,0,1)
+    ux = 2 * (qx * qz - qw * qy)
+    uy = 2 * (qy * qz + qw * qx)
+    uz = 1 - 2 * (qx * qx + qy * qy)
+    -- right = q * (1,0,0)
+    rx = 1 - 2 * (qy * qy + qz * qz)
+    ry = 2 * (qx * qy - qw * qz)
+    rz = 2 * (qx * qz + qw * qy)
+  end)
+  if not fx then return nil end
+
+  local halfTan, aspect = nil, nil
+  pcall(function()
+    halfTan = math.tan((core_camera.getFovRad() or 1.0) * 0.5)
+  end)
+  pcall(function()
+    local w, h = im.GetWindowClientSizeXY()
+    if w and h and h > 0 then aspect = w / h end
+  end)
+  if not halfTan or halfTan <= 0 then return nil end
+  if not aspect or aspect <= 0 then return nil end
+
+  local vx, vy, vz = px - cam.x, py - cam.y, pz - cam.z
+  local depth = vx * fx + vy * fy + vz * fz
+  if depth <= 0.2 then return nil end
+
+  local ndcX = (vx * rx + vy * ry + vz * rz) / (depth * halfTan * aspect)
+  local ndcY = (vx * ux + vy * uy + vz * uz) / (depth * halfTan)
+  if ndcX < -1.15 or ndcX > 1.15 or ndcY < -1.15 or ndcY > 1.15 then return nil end
+
+  local vpL, vpT, vpW, vpH = 0, 0, 1920, 1080
+  pcall(function()
+    local vp = im.GetMainViewport()
+    if vp then
+      vpL, vpT = vp.Pos.x, vp.Pos.y
+      vpW, vpH = vp.Size.x, vp.Size.y
+    end
+  end)
+  if vpW <= 0 or vpH <= 0 then return nil end
+
+  return vpL + (0.5 + 0.5 * ndcX) * vpW, vpT + (0.5 - 0.5 * ndcY) * vpH
+end
+
+-- 车顶世界坐标（车体包围盒中心 + 抬升），失败则退回车辆原点。
+local function nameTagAnchor(veh)
+  local x, y, z = nil, nil, nil
+  pcall(function()
+    local oobb = veh:getSpawnWorldOOBB()
+    if oobb then
+      local c = oobb:getCenter()
+      if c then x, y, z = c.x, c.y, c.z end
+    end
+  end)
+  if not x then
+    pcall(function()
+      local p = veh:getPosition()
+      if p then x, y, z = p.x, p.y, p.z end
+    end)
+  end
+  if not x then return nil end
+
+  local h = nil
+  pcall(function() h = tonumber(veh:getInitialHeight()) end)
+  local lift = TUNE.liftBase + (h and h * 0.5 or 0.6)
+  return x, y, z + lift
+end
+
+local function drawNameTags()
+  if not (nameTag.enabled and canDraw and initialized) then return end
+  local pv = getPlayerVeh()
+  if not pv then return end
+
+  local myPos = nil
+  pcall(function() myPos = pv:getPosition() end)
+  if not myPos then return end
+
+  local camPos = nil
+  pcall(function() camPos = core_camera.getPosition() end)
+
+  local maxD = nameTag.maxDistance
+  local fadeFrom = maxD * TUNE.fadeStart
+
+  -- 先收集再排序（远的先画、近的盖在上面），避免大车压住小车的名牌。
+  local list = {}
+  for _, rec in pairs(remoteVehicles) do
+    if rec.veh then
+      local ok, ax, ay, az = pcall(nameTagAnchor, rec.veh)
+      if ok and ax then
+        local dx, dy, dz = ax - myPos.x, ay - myPos.y, az - myPos.z
+        local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if dist <= maxD then
+          local sx, sy = nameTagProject(ax, ay, az)
+          if sx then
+            list[#list + 1] = { name = rec.name or '?', dist = dist, sx = sx, sy = sy }
+          end
+        end
+      end
+    end
+  end
+  local n = #list
+  if n == 0 then return end
+  if n > TUNE.maxTags then n = TUNE.maxTags end
+  table.sort(list, function(a, b) return a.dist > b.dist end)
+
+  local opened = false
+  local ok, err = pcall(function()
+    im.SetNextWindowPos(im.ImVec2(0, 0), im.Cond_Always)
+    local vw, vh = 1920, 1080
+    pcall(function()
+      local vp = im.GetMainViewport()
+      if vp then vw, vh = vp.Size.x, vp.Size.y end
+    end)
+    im.SetNextWindowSize(im.ImVec2(vw, vh), im.Cond_Always)
+    if not im.Begin('##sr_nametag',
+        im.BoolPtr(false),
+        im.WindowFlags_NoTitleBar + im.WindowFlags_NoResize + im.WindowFlags_NoScrollbar +
+        im.WindowFlags_NoMove + im.WindowFlags_NoCollapse + im.WindowFlags_NoSavedSettings +
+        im.WindowFlags_NoInputs + im.WindowFlags_NoFocusOnAppearing + im.WindowFlags_NoBringToFrontOnFocus +
+        im.WindowFlags_NoBackground) then
+      im.End()
+      return
+    end
+    opened = true
+
+    local dl = fnGetDrawList()
+    local scaled = nameTagFontScale()
+
+    for i = 1, n do
+      local t = list[i]
+      -- 距离渐隐
+      local alpha = 1
+      if t.dist > fadeFrom then
+        alpha = 1 - (t.dist - fadeFrom) / (maxD - fadeFrom)
+        if alpha < TUNE.minAlpha then alpha = TUNE.minAlpha end
+      end
+
+      local nc = nameColor(t.name)
+      local l1 = t.name
+      local l2 = string.format('%d m', math.floor(t.dist + 0.5))
+      local w1 = im.CalcTextSize(l1).x
+      local w2 = im.CalcTextSize(l2).x
+      local lineH = im.GetTextLineHeight()
+      local innerW = (w1 > w2) and w1 or w2
+      local cardW = innerW + TUNE.padX * 2 + TUNE.barW + TUNE.dotR * 2 + 6
+      local cardH = lineH * 2 + TUNE.lineGap + TUNE.padY * 2
+
+      local x0 = t.sx - cardW * 0.5
+      local y0 = t.sy - cardH
+      local x1, y1 = x0 + cardW, t.sy
+
+      local bg = im.ImVec4(0.06, 0.09, 0.13, 0.82 * alpha)
+      fnAddRectFilled(dl, im.ImVec2(x0, y0), im.ImVec2(x1, y1), colorU32(bg), TUNE.rounding, nil)
+      -- 左侧身份色条（用该玩家昵称哈希出来的颜色，和玩家列表里一致）
+      local bar = im.ImVec4(nc.x, nc.y, nc.z, alpha)
+      fnAddRectFilled(dl, im.ImVec2(x0, y0), im.ImVec2(x0 + TUNE.barW, y1), colorU32(bar), TUNE.rounding, nil)
+      -- 身份色圆点
+      if fnAddCircleFilled then
+        fnAddCircleFilled(dl, im.ImVec2(x0 + TUNE.barW + 4 + TUNE.dotR, y0 + TUNE.padY + lineH * 0.5),
+          TUNE.dotR, colorU32(bar), 16)
+      end
+
+      -- 文字用窗口绘制（TextColored 会跟随字体缩放；前景绘制层拿不到缩放后的字体）
+      local tx = x0 + TUNE.barW + 4 + TUNE.dotR * 2 + 4
+      im.SetCursorScreenPos(im.ImVec2(tx, y0 + TUNE.padY))
+      im.TextColored(im.ImVec4(C.text.x, C.text.y, C.text.z, alpha), l1)
+      im.SetCursorScreenPos(im.ImVec2(tx, y0 + TUNE.padY + lineH + TUNE.lineGap))
+      im.TextColored(im.ImVec4(C.dim.x, C.dim.y, C.dim.z, alpha), l2)
+    end
+
+    if scaled then pcall(function() im.SetWindowFontScale(1.0) end) end
+  end)
+
+  if opened then pcall(function() im.End() end) end
+  if not ok then logMsg('名牌绘制出错:', tostring(err)) end
+end
+
 local function drawHUD()
   local conflict = #conflictList > 0
-  local W, H = 268, conflict and 168 or 126
+  -- ⚠️ 尺寸必须在这里定义：这两个值原来是裸的全局 W / H（永远是 nil），
+  -- 实机每帧报 "bad argument #2 to 'ImVec2' (number expected, got nil)" 刷屏。
+  -- 宽度与其它 HUD 窗（聊天 440 / 玩家列表 268）风格一致；
+  -- 高度按内容行数给：常规 7 行，出现第三方模组告警时多 2 行。
+  local W = 320
+  local H = conflict and 196 or 176
   local opened = false
   local ok, err = pcall(function()
     im.SetNextWindowPos(im.ImVec2(18, 18), im.Cond_FirstUseEver)
@@ -1709,6 +2140,8 @@ local function drawHUD()
     im.TextColored(C.dim, '  车辆')
     im.SameLine()
     im.TextColored(C.ok, tostring(countRemote()))
+    im.SameLine()
+    im.TextColored(C.dim, '  ' .. gameModeInfo(roomInfo.gameMode).title)
 
     im.Dummy(im.ImVec2(10, 4))
     im.SameLine()
@@ -1950,6 +2383,7 @@ local function panelStatus()
   kvRow('房间 ID', relayRoomId ~= '' and relayRoomId or '-')
   kvRow('房主', roomInfo.host ~= '' and roomInfo.host or '-')
   kvRow('人数', tostring(roomInfo.count) .. ' / ' .. tostring(roomInfo.capacity > 0 and roomInfo.capacity or '?'))
+  kvRow('玩法', gameModeInfo(roomInfo.gameMode).title)
   kvRow('远程车辆', tostring(countRemote()) .. ' / ' .. tostring(MAX_REMOTE))
   
   local slMap = localMap ~= '' and (string.match(localMap, '[^/]+$') or localMap) or '-'
@@ -2136,6 +2570,30 @@ local function handleKeys()
   local wantText = false
   pcall(function() wantText = im.GetIO().WantTextInput end)
 
+  -- 玩法中的复位键（Ins）：所有模式都过阶段机的预算/冷却闸口。
+  -- ⚠️ 这里**不**做「是否允许」的判断 —— 判断只在 SRMode.requestReset 里，
+  --    本地再判一遍就会跟阶段机不一致（比如德比的冷却）。
+  --    被拒时把原因原样报给玩家，而不是静默失败。
+  do
+    local ins = false
+    pcall(function() ins = im.IsKeyPressed(im.Key_Insert) end)
+    if not ins and im.Key_Delete ~= nil then
+      pcall(function() ins = im.IsKeyPressed(im.Key_Delete) end)
+    end
+    if ins and not wantText then
+      if SRMode then
+        local ok, reason = SRMode.requestReset()
+        -- requestReset 返回 (true, '') 表示放行 → 交给游戏自己处理复位；
+        -- 返回 (false, 原因) 表示拦下 → 提示原因。
+        if ok == false and reason and reason ~= '' then
+          srToast(reason)
+        elseif type(ok) == 'string' and ok ~= '' then
+          srToast(ok)
+        end
+      end
+    end
+  end
+
   if not wantText then
     local f8 = false
     pcall(function() f8 = im.IsKeyPressed(im.Key_F8) end)
@@ -2167,6 +2625,242 @@ end
 
 
 
+
+-- ============================================================
+-- 玩法出生规划 / 玩法 HUD 的桥接
+-- ============================================================
+
+-- 玩法出生规划：本机是规划者 + 本回合还没出方案 → 算一次，广播给全房。
+-- 方案带上 round 号，加入者收到后按 round 去重应用。
+
+-- 诊断钩子：供启动器诊断面板 / 自动化测试直接驱动摆放层。
+-- 生产中不改变任何行为，只是把内部函数暴露出来方便调用。
+-- ===========================================================================
+-- 玩法出生（规划 + 摆放）—— 薄桥层
+--
+-- 真正的实现在 startrideSpawn.lua 里（proposal / pickMySlot / placeSelf /
+-- buildModePlan / applyModePlan）。搬过去的原因：
+--   ① 它本来就是「出生」这件事的一部分，放那边更合理；
+--   ② 主模组顶层 local 必须给它让位（Lua 5.1 每块 200 个活跃 local，
+--      撞线是编译期 `too many local variables`，整个扩展静默不加载）。
+--
+-- ⚠️ 下面这 4 个函数名**不能改**：onUpdateRaw 里用
+--    safeCall('srModeSpawnApply', applyModeSpawnPlan) 这样按名传入，
+--    名字会写进日志，改了就丢诊断信息。
+-- ===========================================================================
+
+local function syncModeSpawnPlan()
+  if not (SRMode and SRSpawn) then return end
+  SRSpawn.buildModePlan(SRMode)
+end
+
+local function syncHideSeekPlan()
+  if not SRHide then return end
+  SRSpawn.buildHideSeekPlan(SRHide)
+end
+
+local function applyModeSpawnPlan()
+  if not (SRMode and SRSpawn) then return end
+  SRSpawn.applyModePlan(SRMode)
+end
+
+local function applyHideSeekPlan()
+  if not (SRHide and SRSpawn) then return end
+  SRSpawn.applyModePlan(SRHide)
+end
+
+function M.srDebugPlaceSelf(slot, mode, round)
+  if not SRSpawn then return nil end
+  -- 兜底：正常路径下 onExtensionLoaded 已经绑过了；但自动化测试会跳过
+  -- onExtensionLoaded 直接调本函数，所以这里再绑一次（幂等）。
+  if SRSpawn.bindBridge then pcall(SRSpawn.bindBridge, M) end
+  return SRSpawn.placeSelf(slot, mode, round)
+end
+
+function M.srDebugApplyPlan()
+  applyModeSpawnPlan()
+end
+
+function M.srDebugSetName(nm)
+  if type(nm) == 'string' and nm ~= '' then playerName = nm end
+end
+
+function M.srDebugSetMode(md)
+  if type(md) == 'string' and md ~= '' then roomInfo.gameMode = md end
+end
+
+function M.srDebugSpawnState()
+  local st = (SRSpawn and SRSpawn.placeState) and SRSpawn.placeState() or {}
+  return {
+    phase = SRMode and SRMode.phase() or '?',
+    mode  = SRMode and SRMode.mode() or '?',
+    selfId = (function()
+      local id = myId()
+      if id == nil or id == '' then return 'self' end
+      return tostring(id)
+    end)(),
+    name = playerName,
+    level = currentLevelId(),
+    appliedRound = st.appliedRound or srSpawn.appliedRound,
+    hasLocalPlan = srSpawn.localPlan ~= nil,
+  }
+end
+
+-- ---------------------------------------------------------------------------
+-- 阶段音效 / 提示
+--
+-- 每个客户端都按**本机看到的阶段**放提示（房主加入者都走这里），
+-- 用 (phase, round) 做去重键，避免每帧重复放。
+-- 音效走 BeamNG 自己的 event（拿不到就静默跳过，不影响玩法）。
+-- ---------------------------------------------------------------------------
+local srAnnouncedKey = ''
+local function announcePhaseCues()
+  -- 捉迷藏用的是独立状态机：它的阶段也要走到这里放提示/音效。
+  -- 两边互斥（同一个房间只可能是一种玩法），挑「当前玩法对应的那台状态机」。
+  local isHide = (SRHide ~= nil) and (roomInfo.gameMode == 'hide_seek')
+  if isHide then
+    if not SRHide then return end
+  else
+    if not SRMode then return end
+  end
+
+  local ph, round
+  if isHide then
+    ph = SRHide.phase()
+    round = SRHide.round()
+  else
+    ph = SRMode.phase()
+    round = SRMode.round()
+  end
+  local key = tostring(round) .. ':' .. tostring(ph)
+  if key == srAnnouncedKey then return end
+
+  -- lobby / finished 也要记，否则刚好在 lobby 起局时会把 lobby 又播一遍
+  local prevKey = srAnnouncedKey
+  srAnnouncedKey = key
+  if prevKey == '' then return end        -- 首帧只是记一下，不放
+
+  local function playEvent(ev)
+    pcall(function()
+      if core_sound ~= nil and core_sound.playEvent ~= nil then
+        core_sound.playEvent(ev)
+      end
+    end)
+  end
+
+  if ph == 'staging' then
+    srToast('准备就绪，正在分配出生位置…', 4)
+    playEvent('event:>UI>Missions>Info_Open')
+  elseif ph == 'countdown' then
+    playEvent('event:UI_CountdownGo')
+  elseif ph == 'running' then
+    if SRMode and SRMode.mode() == 'cops_robber' then
+      local role = SRMode.selfRole()
+      if role == 'robber' then
+        srToast('你是强盗 —— 跑！', 3)
+      elseif role == 'cop' then
+        srToast('你是警察 —— 追！', 3)
+      else
+        srToast('开始！', 2)
+      end
+    elseif SRMode and SRMode.mode() == 'derby' then
+      srToast('德比开始 —— 撞垮他们！', 3)
+    elseif SRHide and SRHide.mode() == 'hide_seek' then
+      -- 捉迷藏：说清楚「现在该干什么」——躲藏者先跑，搜索者被冻住
+      if SRHide.selfRole() == 'hider' then
+        srToast('你是躲藏者 —— 快找地方藏起来！', 4)
+      elseif SRHide.selfRole() == 'seeker' then
+        srToast('你是搜索者 —— 躲藏期你不能动车，等放行', 4)
+      else
+        srToast('捉迷藏开始！', 3)
+      end
+    else
+      srToast('开始！', 2)
+    end
+    playEvent('event:UI_CountdownGo')
+  elseif ph == 'finished' then
+    local snap = isHide and SRHide.snapshot() or SRMode.snapshot()
+    if isHide and snap then
+      -- 捉迷藏：把 winner 翻译成人话（seeker/hider 是内部 id）
+      local who = (snap.winner == 'seeker' and '搜索方')
+               or (snap.winner == 'hider' and '躲藏方') or ''
+      if who ~= '' then
+        srToast('回合结束 —— ' .. who .. '获胜（找到 '
+          .. tostring(snap.foundCount or 0) .. ' 人）', 6)
+      else
+        srToast('回合结束', 5)
+      end
+    elseif snap and snap.winner and snap.winner ~= '' then
+      srToast('回合结束 —— 胜者：' .. tostring(snap.winner), 6)
+    else
+      srToast('回合结束', 5)
+    end
+    playEvent('event:UI_Checkpoint')
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- 给子模块的窄接口（只读观察 + 发包）
+--
+-- ⚠️ 为什么要「借」而不是让子模块自己去 require：
+--    startrideSpawn.lua 里的出生驱动层需要 roomInfo 的实时内容、以及发包能力；
+--    子模块拿不到主模组的 upvalue，所以主模组主动把「读值」和「发包」
+--    这两个动作以函数形式交出去。这样才能把整层搬到子模块里。
+--
+-- ⚠️ 这些访问器必须定义在 onExtensionLoaded 之前（见下方 M.* 导出），
+--    因为 onExtensionLoaded 里会调 SRSpawn.bindBridge(M)，
+--    而子模块在**调用时**才去读 mod.currentLevelId —— 导出晚于 bindBridge
+--    会导致 "attempt to call a nil value (field 'currentLevelId')"。
+--
+-- ⚠️ 为什么不写成 4 个 `local function xxxRef()`：顶层 local 额度只剩个位数
+--    （见下方 srSpawn / srHide 两处说明），所以统一收进一个表：
+--    表本身只占 1 个 local。
+-- ---------------------------------------------------------------------------
+local srRef = {
+  roomInfo       = function() return roomInfo end,
+  myId           = function() return myId() end,
+  playerName     = function() return playerName end,
+  currentLevelId = function() return currentLevelId() end,
+}
+
+-- 玩法 HUD：把阶段机的快照 + 雷达几何算好后交给 HUD 模块画。
+local function drawModeHud()
+  if not SRHud then return end
+
+  -- 捉迷藏走 SRHide 的快照，其余玩法走 SRMode 的。
+  -- 两边的 mode() 都取自同一个 roomInfo.gameMode，所以不会打架。
+  local snap, extra = nil, { winnerName = '' }
+  local isHide = (SRHide ~= nil) and (SRHide.mode() == 'hide_seek')
+  if isHide then
+    snap = SRHide.snapshot()
+  elseif SRMode then
+    snap = SRMode.snapshot()
+  end
+  if type(snap) ~= 'table' then return end
+
+  -- 结算停留时长（HUD 用来做淡入淡出）
+  if isHide then
+    snap.finishAgeMs = SRHide.phaseAgeMs()
+  elseif SRMode then
+    snap.finishAgeMs = SRMode.phaseAgeMs()
+  else
+    snap.finishAgeMs = 0
+  end
+
+  -- 警察雷达：只算 XY 平面距离与方位角
+  if snap.mode == 'cops_robber' and snap.role == 'cop' and snap.phase == 'running' then
+    local dist, bearing = SRMode.robberBearing()
+    snap.robberDist = dist
+    snap.robberBearing = bearing
+  end
+
+  -- 强盗端：最近的警察威胁（距离/方位/强度/已被贴住多久）
+  if snap.mode == 'cops_robber' and snap.role == 'robber' then
+    snap.threat = SRMode.robberThreat()
+  end
+
+  SRHud.render(snap, extra)
+end
 
 local function onUpdateRaw(dtReal, dtSim, dtRaw)
   frameCount = frameCount + 1
@@ -2220,21 +2914,192 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
   safeCall('spawnTick', spawnTick)
   safeCall('hlTick', hlTick, dtSim, dtReal)
   safeCall('conflictTick', conflictTick)
+
+  -- 玩法：阶段机先跑（算出本帧的输入限制意图），输入层再按意图下发。
+  -- 顺序不能反 —— 反了输入限制永远慢一帧。
+  if SRMode then safeCall('srModeTick', SRMode.tick, dtReal, {
+    gameMode = roomInfo.gameMode,
+    connected = connected,
+    relayState = relayState,
+    host = roomInfo.host,
+    selfId = myId(),
+    playerName = playerName,
+    players = mpPlayers,
+    closed = roomInfo.closed,
+  }) end
+  if SRInput then
+    local pol = nil
+    if SRMode then pol = SRMode.inputPolicy() end
+    if type(pol) == 'table' then
+      safeCall('srInputPolicy', SRInput.setPolicy, pol)
+    else
+      safeCall('srInputPolicy', SRInput.setPolicy, { roundActive = false, running = false })
+    end
+    safeCall('srInputTick', SRInput.tick, dtReal)
+  end
+
+  -- 捉迷藏：独立状态机先跑（它自己判角色/阶段/发现），输入策略随后覆盖。
+  -- ⚠️ 顺序：警匪的 inputPolicy 先下发，捉迷藏再覆盖 —— 两者互斥（mode 不同），
+  --    但同一帧里先设后覆盖能保证「不论先后都不会残留上一帧的策略」。
+  if SRHide then
+    safeCall('srHideTick', SRHide.tick, dtReal, {
+      gameMode = roomInfo.gameMode,
+      connected = connected,
+      relayState = relayState,
+      host = roomInfo.host,
+      selfId = myId(),
+      playerName = playerName,
+      players = mpPlayers,
+      closed = roomInfo.closed,
+    })
+    if roomInfo.gameMode == 'hide_seek' and SRInput then
+      local hpol = SRHide.inputPolicy()
+      if type(hpol) == 'table' then
+        safeCall('srInputPolicyHide', SRInput.setPolicy, hpol)
+      end
+    end
+  end
+
+  -- 玩法出生布局：本机是规划者、且本回合还没出方案时，算一次并广播。
+  -- 规划是「一次性」的，算完缓存；后续快照不会重算（见 startrideSpawn 坑⑥）。
+  if SRMode and SRSpawn then
+    safeCall('srModeSpawnPlan', syncModeSpawnPlan)
+  end
+  if SRHide then
+    safeCall('srHideSpawnPlan', syncHideSeekPlan)
+  end
+
+  -- 玩法出生摆放：把方案里属于**我自己**的那个槽位落到车上。
+  -- 必须在规划之后 —— 同一帧房主先算出方案，紧接着就能用上。
+  if SRMode then
+    safeCall('srModeSpawnApply', applyModeSpawnPlan)
+  end
+  if SRHide then
+    safeCall('srHideSpawnApply', applyHideSeekPlan)
+  end
+
+  -- 房主把阶段推给全房（只在阶段真的变了时发一次）
+  if SRMode and SRMode.isAuthority() then
+    local ph = SRMode.phase()
+    if ph ~= srCast.phase then
+      srCast.phase = ph
+      safeCall('srModePhaseCast', function()
+        queuePacket({ type = 'mode-phase', phase = ph, round = SRMode.round(),
+                      winner = SRMode.snapshot().winner })
+        flushOut()
+      end)
+    end
+  end
+
+  -- 德比：本机被撞毁 → 广播一次（房主与加入者都要发）
+  --
+  -- 为什么要发：房主靠「roster 里只剩 1 人」结算，而 S.eliminated 原本只写本机
+  -- 那一格 → 房主永远不知道别人被撞了 → **回合永远不结束**。这里补上。
+  -- 去重键只在本机状态真的翻转时变，所以一局只发一两个包。
+  if SRMode and roomInfo.gameMode == 'derby' then
+    safeCall('srDerbyDownCast', function()
+      local k = SRMode.eliminatedKey and SRMode.eliminatedKey() or '0'
+      if k == '1' and k ~= srCast.derbyDown then
+        queuePacket({ type = 'derby-down', id = myId(), playerName = playerName })
+        flushOut()
+      end
+      srCast.derbyDown = k
+    end)
+  else
+    srCast.derbyDown = ''
+  end
+
+  -- 捉迷藏：房主推「阶段 + 局内阶段 + 发现进度」
+  -- 三个阶段用一个 srHide.lastPhase 记，避免重复包；发现进度用
+  -- target:foundCount:秒数 当 key，进度每变 0.1 秒才发一次（不逐帧刷）。
+  if SRHide and SRHide.isAuthority() and roomInfo.gameMode == 'hide_seek' then
+    safeCall('srHideCast', function()
+      local ph = SRHide.phase()
+      local st = SRHide.stage()
+      local key = ph .. '/' .. tostring(st)
+      if key ~= srHide.lastPhase then
+        srHide.lastPhase = key
+        local snap = SRHide.snapshot()
+        queuePacket({ type = 'mode-phase', phase = ph, round = SRHide.round(),
+                      winner = snap.winner })
+        if ph == 'running' then
+          queuePacket({ type = 'hide-seek-stage', stage = st })
+        end
+        flushOut()
+      end
+
+      -- 发现进度：只在搜索期、且真的有进度时发
+      if ph == 'running' and st == 'seek' then
+        local snap = SRHide.snapshot()
+        local foundList = {}
+        for pid in pairs(SRHide.found() or {}) do foundList[#foundList + 1] = pid end
+        table.sort(foundList)
+        local fkey = tostring(snap.findTarget or '') .. ':'
+          .. tostring(#foundList) .. ':'
+          .. string.format('%.1f', (tonumber(snap.findMs) or 0) / 100)
+        if fkey ~= srHide.lastFoundKey then
+          srHide.lastFoundKey = fkey
+          queuePacket({
+            type = 'hide-seek-found',
+            target = snap.findTarget,
+            heldMs = snap.findMs,
+            found = foundList,
+            roles = snap.roles,
+          })
+          flushOut()
+        end
+      end
+    end)
+  end
+
+  -- 阶段音效 / 提示：每个客户端各自按「本机看到的阶段」放，房主加入者都走这里。
+  -- 用 srAnnounced 去重，避免帧里反复放。
+  if SRMode then
+    safeCall('srModeAnnounce', announcePhaseCues)
+  end
+
   handleKeys()
   if panelOpen[0] then drawPanel() end
   if hudOn[0] then drawHUD() end
   if playerListOpen[0] then drawPlayerList() end
   if chatOpen[0] then drawChat() end
+  safeCall('drawNameTags', drawNameTags)
+
+  -- 玩法 HUD（角色卡 / 抓捕条 / 雷达 / 结算画面）
+  if SRMode and SRHud then safeCall('srModeHud', drawModeHud) end
 end
 
 
 
+
+-- ===========================================================================
+-- 导出给 startrideSpawn.lua 的出生驱动层（bindBridge 之后它按名回调这些）
+--
+-- ⚠️ 必须写在 onExtensionLoaded **之前**：onExtensionLoaded 里会
+--    SRSpawn.bindBridge(M)，子模块随后调 mod.currentLevelId()。
+--    顺序写反 → "attempt to call a nil value (field 'currentLevelId')"
+--    → 出生摆放被静默跳过。
+-- ===========================================================================
+M.roomInfo       = srRef.roomInfo
+M.myId           = srRef.myId
+M.playerName     = srRef.playerName
+M.currentLevelId = srRef.currentLevelId
+M.queuePacket    = queuePacket
+M.flushOut       = flushOut
+M.logMsg         = logMsg
 
 function M.onExtensionLoaded()
   logMsg('GE 扩展 v' .. MOD_VERSION .. ' 已加载')
   initialized = true
   readBootstrapConfig()
   logMsg('玩家昵称:', playerName)
+
+  -- 立刻把「出生的驱动层」绑上：loadPeer 可能因为打包问题返回 nil，
+  -- 所以这里必须容错（pcall + 判空），不能让它把整个加载流程带崩。
+  if SRSpawn and SRSpawn.bindBridge then
+    pcall(SRSpawn.bindBridge, M)
+  end
+
   safeCall('conflictTick', conflictTick)
   connectTCP()
 end
@@ -2249,6 +3114,9 @@ end
 
 function M.onExtensionUnloaded()
   pcall(hlEndSession, 'unload')
+  -- 卸载时一定要放行按键并还原地图传送猴补丁，否则玩家回到自由驾驶后
+  -- 传送/复位永久失效（BeamLink 踩过这个坑）。
+  if SRInput then pcall(SRInput.disableAll) end
   for _, rec in pairs(remoteVehicles) do despawnRemote(rec) end
   remoteVehicles = {}
   dropConnection('扩展卸载')

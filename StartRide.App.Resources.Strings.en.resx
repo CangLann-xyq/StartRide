@@ -3047,6 +3047,32 @@ The current game folder will be automatically backed up before restoration.</val
 <data name="Settings_LaunchAutoInstallModHint" xml:space="preserve"><value>Installs a copy on every launch, even when not playing online. Ignored while the option below is enabled</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveLabel" xml:space="preserve"><value>Remove the online module after leaving a room</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveHint" xml:space="preserve"><value>Deletes it from the game mods folder when you leave or close a room, and installs it again the next time you host or join; if the game is still running, cleanup waits until it exits</value></data>
+<data name="Settings_LaunchIsolateModsLabel" xml:space="preserve"><value>Isolate other multiplayer mods while playing online</value></data>
+<data name="Settings_LaunchIsolateModsHint" xml:space="preserve"><value>Temporarily disables third-party multiplayer mods (BeamMP, BeamLink, etc.) before hosting or joining, and restores them after the game exits; only the enabled flag is changed - your mod files are never deleted or moved</value></data>
+<data name="Settings_LaunchNameTagLabel" xml:space="preserve"><value>Show player name tags above cars while online</value></data>
+<data name="Settings_LaunchNameTagHint" xml:space="preserve"><value>Floats each other player's nickname and distance above their car, visible wherever you drive; the tag fades out as the distance grows</value></data>
+<data name="Settings_ModeRulesLabel" xml:space="preserve"><value>Game Mode Rules</value></data>
+<data name="Settings_ModeRulesHint" xml:space="preserve"><value>Judging parameters for Cops &amp; Robbers and Derby, applied when the host creates the room</value></data>
+<data name="Settings_CaptureHoldLabel" xml:space="preserve"><value>Capture hold (seconds)</value></data>
+<data name="Settings_CaptureHoldHint" xml:space="preserve"><value>A cop must stay close to the robber this long to make the arrest; breaking contact resets the timer</value></data>
+<data name="Settings_CaptureStillSpeedLabel" xml:space="preserve"><value>Robber "nearly stopped" threshold (km/h)</value></data>
+<data name="Settings_CaptureStillSpeedHint" xml:space="preserve"><value>The robber only counts as stopped below this speed; cops must be close while the robber is slow to start the arrest timer</value></data>
+<data name="Settings_DerbyDamageLabel" xml:space="preserve"><value>Derby elimination damage</value></data>
+<data name="Settings_DerbyDamageHint" xml:space="preserve"><value>A vehicle is eliminated once its total damage reaches this value; the last one standing wins</value></data>
+<data name="Settings_ResetLimitLabel" xml:space="preserve"><value>Derby resets per round</value></data>
+<data name="Settings_ResetLimitHint" xml:space="preserve"><value>How many times Ins-repair may be used each round; 0 disables it</value></data>
+<data name="Settings_ResetCooldownLabel" xml:space="preserve"><value>Reset cooldown (seconds)</value></data>
+<data name="Settings_ResetCooldownHint" xml:space="preserve"><value>Minimum wait between two in-place resets</value></data>
+<data name="Settings_HideSeekRulesLabel" xml:space="preserve"><value>Hide &amp; Seek Rules</value></data>
+<data name="Settings_HideSeekRulesHint" xml:space="preserve"><value>One seeker, everyone else hides; applied when the host creates the room</value></data>
+<data name="Settings_HideSecondsLabel" xml:space="preserve"><value>Hiding phase (seconds)</value></data>
+<data name="Settings_HideSecondsHint" xml:space="preserve"><value>The seeker's vehicle is frozen for this long while hiders scatter</value></data>
+<data name="Settings_HideRoundSecondsLabel" xml:space="preserve"><value>Seeking phase (seconds)</value></data>
+<data name="Settings_HideRoundSecondsHint" xml:space="preserve"><value>If anyone is still unfound when this runs out, the hiders win</value></data>
+<data name="Settings_FindRadiusLabel" xml:space="preserve"><value>Spot radius (metres)</value></data>
+<data name="Settings_FindRadiusHint" xml:space="preserve"><value>The seeker must get this close before detection starts; larger makes hiding harder</value></data>
+<data name="Settings_FindHoldLabel" xml:space="preserve"><value>Spot hold (seconds)</value></data>
+<data name="Settings_FindHoldHint" xml:space="preserve"><value>The seeker must stay this close to a hider to find them; breaking contact resets it</value></data>
 
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>Force use of dedicated graphics card</value></data>
 
@@ -3350,4 +3376,11 @@ The current game folder will be automatically backed up before restoration.</val
   <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>Map</value></data>
   <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>My spawn</value></data>
   <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>The game will boot straight into this map</value></data>
+  <data name="Lobby_GameModeSectionTitle" xml:space="preserve"><value>Game mode</value></data>
+  <data name="Lobby_GameModeHint" xml:space="preserve"><value>Decides how this session is played. The host picks it, and everyone who joins follows.</value></data>
+  <data name="Lobby_GameModeHostNote" xml:space="preserve"><value>The host decides the mode; you follow it automatically</value></data>
+  <data name="Lobby_GameModeNoneFound" xml:space="preserve"><value>Free drive</value></data>
+  <data name="Lobby_GameModeSetFailed" xml:space="preserve"><value>Could not change the game mode. Check the relay connection and try again.</value></data>
+  <data name="Lobby_GameModeRevisionMismatchFormat" xml:space="preserve"><value>Mode "{0}" uses ruleset {1}, yours is {2} — the rules may not match.</value></data>
+  <data name="Lobby_JoinedGameModeLabel" xml:space="preserve"><value>Mode</value></data>
 </root>

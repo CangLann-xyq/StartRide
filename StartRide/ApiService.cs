@@ -341,7 +341,12 @@ namespace StartRide.Core
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
+        /// <summary>玩法模式 id（见 LobbyGameModeCatalog）。旧字段，保留兼容。</summary>
         public string Mode { get; set; } = "freeroam";
+        /// <summary>本房玩法模式 id。是房间的权威宣告，加入者据此显示玩法。</summary>
+        public string GameMode { get; set; } = "free_drive";
+        /// <summary>玩法规则版本号；两端不一致时说明对端是旧版规则。</summary>
+        public int GameModeRevision { get; set; } = 1;
         public string Map { get; set; } = "west_coast_usa";
         public string Host { get; set; } = "";
         public string? HostIp { get; set; }

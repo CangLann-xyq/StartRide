@@ -1585,6 +1585,32 @@
 <data name="Settings_LaunchAutoInstallModHint" xml:space="preserve"><value>開啟後每次啟動遊戲都會裝一份聯機模組（不聯機也在）。與下方選項同時開啟時本項不生效</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveLabel" xml:space="preserve"><value>退出聯機後自動移除聯機模組</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveHint" xml:space="preserve"><value>退出／解散房間後把模組從遊戲 mods 目錄移除，下次開房或進房再自動裝回；遊戲仍在執行時會等它結束再清理</value></data>
+<data name="Settings_LaunchIsolateModsLabel" xml:space="preserve"><value>聯機時隔離其他聯機模組</value></data>
+<data name="Settings_LaunchIsolateModsHint" xml:space="preserve"><value>開房或進房前，把 BeamMP、BeamLink 等第三方聯機模組暫時停用，遊戲結束後自動還原；只改啟用狀態，不會刪除或移動你的模組檔案</value></data>
+<data name="Settings_LaunchNameTagLabel" xml:space="preserve"><value>聯機時顯示玩家車頂名牌</value></data>
+<data name="Settings_LaunchNameTagHint" xml:space="preserve"><value>在每個其他玩家的車頂懸浮顯示他的暱稱和與你的距離，開到哪裡都能看到，距離越遠越淡</value></data>
+<data name="Settings_ModeRulesLabel" xml:space="preserve"><value>玩法規則</value></data>
+<data name="Settings_ModeRulesHint" xml:space="preserve"><value>警察抓強盜與德比的判定參數，房主開房時生效</value></data>
+<data name="Settings_CaptureHoldLabel" xml:space="preserve"><value>抓捕需要貼住（秒）</value></data>
+<data name="Settings_CaptureHoldHint" xml:space="preserve"><value>警察連續貼住強盜這麼久才算抓到，中途鬆開就重新計時</value></data>
+<data name="Settings_CaptureStillSpeedLabel" xml:space="preserve"><value>強盜「近乎靜止」門檻（km/h）</value></data>
+<data name="Settings_CaptureStillSpeedHint" xml:space="preserve"><value>強盜速度低於這個值才算停下，警察貼近才會開始計時；高速逃跑時路過警察不算被抓</value></data>
+<data name="Settings_DerbyDamageLabel" xml:space="preserve"><value>德比淘汰車損</value></data>
+<data name="Settings_DerbyDamageHint" xml:space="preserve"><value>車輛累計損傷達到這個數值即被淘汰，最後一個沒淘汰的獲勝</value></data>
+<data name="Settings_ResetLimitLabel" xml:space="preserve"><value>德比原地復位次數</value></data>
+<data name="Settings_ResetLimitHint" xml:space="preserve"><value>每局允許按 Ins 復位幾次，填 0 表示禁止復位</value></data>
+<data name="Settings_ResetCooldownLabel" xml:space="preserve"><value>復位冷卻（秒）</value></data>
+<data name="Settings_ResetCooldownHint" xml:space="preserve"><value>兩次原地復位之間至少要等這麼久</value></data>
+<data name="Settings_HideSeekRulesLabel" xml:space="preserve"><value>捉迷藏規則</value></data>
+<data name="Settings_HideSeekRulesHint" xml:space="preserve"><value>一人搜尋、其餘人躲藏，房主開房時生效</value></data>
+<data name="Settings_HideSecondsLabel" xml:space="preserve"><value>躲藏期（秒）</value></data>
+<data name="Settings_HideSecondsHint" xml:space="preserve"><value>開局這段時間搜尋者不能動車，躲藏者趁機四散藏好</value></data>
+<data name="Settings_HideRoundSecondsLabel" xml:space="preserve"><value>搜尋期（秒）</value></data>
+<data name="Settings_HideRoundSecondsHint" xml:space="preserve"><value>這段時間結束時還有人沒被找到，就算躲藏方獲勝</value></data>
+<data name="Settings_FindRadiusLabel" xml:space="preserve"><value>發現半徑（公尺）</value></data>
+<data name="Settings_FindRadiusHint" xml:space="preserve"><value>搜尋者靠近到這麼近才開始計時，越大越容易抓到人</value></data>
+<data name="Settings_FindHoldLabel" xml:space="preserve"><value>發現需要貼住（秒）</value></data>
+<data name="Settings_FindHoldHint" xml:space="preserve"><value>搜尋者連續貼住躲藏者這麼久才算找到，中途跑開就重新計時</value></data>
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>強制使用獨立顯示卡</value></data>
 <data name="Settings_LaunchForceGpuHint" xml:space="preserve"><value>追加 -highperformancegpu，筆記型電腦上避免跑到核顯</value></data>
 <data name="Settings_LaunchGfxLabel" xml:space="preserve"><value>渲染後端</value></data>
@@ -1804,4 +1830,11 @@
   <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>地圖</value></data>
   <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>我的出生位置</value></data>
   <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>開局會直接進入這張地圖</value></data>
+  <data name="Lobby_GameModeSectionTitle" xml:space="preserve"><value>玩法模式</value></data>
+  <data name="Lobby_GameModeHint" xml:space="preserve"><value>決定這局怎麼玩。房主選定，加入的人進房後看到的就是它。</value></data>
+  <data name="Lobby_GameModeHostNote" xml:space="preserve"><value>玩法由房主決定，進房後自動跟隨</value></data>
+  <data name="Lobby_GameModeNoneFound" xml:space="preserve"><value>自由駕駛</value></data>
+  <data name="Lobby_GameModeSetFailed" xml:space="preserve"><value>玩法沒改成功，請確認中繼連線正常後重試。</value></data>
+  <data name="Lobby_GameModeRevisionMismatchFormat" xml:space="preserve"><value>玩法「{0}」規則版本為 {1}，本機是 {2}，可能與其他人的規則不一致</value></data>
+  <data name="Lobby_JoinedGameModeLabel" xml:space="preserve"><value>玩法</value></data>
 </root>

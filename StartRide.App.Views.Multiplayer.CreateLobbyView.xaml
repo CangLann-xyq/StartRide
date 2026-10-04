@@ -23,6 +23,15 @@
           </controls:ListPageItemButton.TitleTrailingContent>
         </controls:ListPageItemButton>
       </DataTemplate>
+
+      <!-- 玩法行：名字 + 一句话说明；分队/回合制这类规则挂在后面的胶囊上 -->
+      <DataTemplate x:Key="CreateLobbyGameModeItemTemplate" DataType="{x:Type multiplayer:GameModeOptionItem}">
+        <controls:ListPageItemButton ItemMargin="0" IconKey="{Binding IconKey}" IconWidth="19" IconHeight="19" IconColumnWidth="46" IconMargin="8,0,0,0" IconTileBackground="#12FFFFFF" IconTileBorderBrush="#1FFFFFFF" IconTileBorderThickness="1" IconTilePadding="8" IconTileCornerRadius="10" Title="{Binding Name}" Subtitle="{Binding Subtitle}" IsSelected="{Binding IsSelected}" IsFirstVisible="{Binding IsFirst}" IsLastVisible="{Binding IsLast}" Command="{Binding DataContext.SelectLobbyGameModeCommand, RelativeSource={RelativeSource AncestorType={x:Type views:CreateLobbyView}}}" CommandParameter="{Binding}">
+          <controls:ListPageItemButton.TitleTrailingContent>
+            <controls:AdaptiveTagList ItemsSource="{Binding LocalTags}" TagBackground="{DynamicResource Brush.Accent.Selection}" TagForeground="{DynamicResource Brush.Accent.Primary}" />
+          </controls:ListPageItemButton.TitleTrailingContent>
+        </controls:ListPageItemButton>
+      </DataTemplate>
     </ResourceDictionary>
   </FrameworkElement.Resources>
 
@@ -41,9 +50,11 @@
 
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" MinWidth="380" />
+          <ColumnDefinition Width="*" MinWidth="340" />
           <ColumnDefinition Width="14" />
-          <ColumnDefinition Width="360" />
+          <ColumnDefinition Width="300" />
+          <ColumnDefinition Width="14" />
+          <ColumnDefinition Width="330" />
         </Grid.ColumnDefinitions>
 
         <!-- 地图 -->
@@ -111,8 +122,36 @@
           </StackPanel>
         </Border>
 
-        <!-- 出生位置 -->
+        <!-- 玩法模式 -->
         <Border Grid.Column="2" Style="{StaticResource RideDetailSurfaceStyle}">
+          <StackPanel>
+            <DockPanel LastChildFill="False">
+              <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_GameModeSectionTitle}" />
+              <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Brush.Accent.Primary}" Text="{Binding SelectedLobbyGameModeName}" />
+            </DockPanel>
+            <TextBlock Margin="0,5,0,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_GameModeHint}" />
+
+            <Border Margin="0,12,0,10" Style="{StaticResource RideHairlineStyle}" />
+
+            <ListBox Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" MaxHeight="400" ItemsSource="{Binding LobbyGameModes}" ItemTemplate="{StaticResource CreateLobbyGameModeItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
+
+            <TextBlock Margin="2,10,2,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding SelectedLobbyGameModeDetail}">
+              <FrameworkElement.Style>
+                <Style TargetType="{x:Type TextBlock}">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Value="True" Binding="{Binding HasSelectedLobbyGameModeDetail}">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </FrameworkElement.Style>
+            </TextBlock>
+          </StackPanel>
+        </Border>
+
+        <!-- 出生位置 -->
+        <Border Grid.Column="4" Style="{StaticResource RideDetailSurfaceStyle}">
           <StackPanel>
             <DockPanel LastChildFill="False">
               <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_SpawnSectionTitle}" />
@@ -195,6 +234,12 @@
             </Border>
             <Border Style="{StaticResource RideStatChipStyle}" Margin="10,0,0,0">
               <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Lobby_JoinedGameModeLabel}" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LobbyGameModeText}" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource RideStatChipStyle}" Margin="10,0,0,0">
+              <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource RideStatChipLabelStyle}" Text="{x:Static res:Strings.Lobby_JoinedSpawnLabel}" />
                 <TextBlock Margin="7,0,0,0" Style="{StaticResource RideStatChipValueStyle}" Text="{Binding LobbySpawnText}" />
               </StackPanel>
@@ -207,6 +252,20 @@
             </Border>
           </DockPanel>
         </Border>
+
+        <!-- 玩法规则版本对不上时把话说清楚：不阻断联机，只提示可能规则不一致。 -->
+        <TextBlock Margin="2,0,0,12" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{Binding LobbyGameModeRevisionNote}">
+          <FrameworkElement.Style>
+            <Style TargetType="{x:Type TextBlock}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Value="True" Binding="{Binding HasLobbyGameModeRevisionNote}">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </FrameworkElement.Style>
+        </TextBlock>
 
         <!-- 房主专属：房间已经建好了，还能在这里调整人数上限（走 set-capacity，不重开房间）。 -->
         <Border Margin="0,0,0,14">

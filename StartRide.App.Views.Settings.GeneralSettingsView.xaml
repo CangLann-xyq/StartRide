@@ -238,6 +238,146 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchIsolateModsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchIsolateModsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchIsolateConflictingMods, Mode=TwoWay}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_LaunchNameTagLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchNameTagHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchNameTagEnabled, Mode=TwoWay}" />
+          </Grid>
+
+          <!-- 玩法规则：警察抓强盗 / 德比的判定参数（由 Lua 玩法模块读取） -->
+          <TextBlock Margin="0,20,0,0" Text="{x:Static res:Strings.Settings_ModeRulesLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_ModeRulesHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_CaptureHoldLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_CaptureHoldHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchCaptureHoldSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_CaptureStillSpeedLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_CaptureStillSpeedHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchCaptureStillSpeed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_DerbyDamageLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_DerbyDamageHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchDerbyDamageLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_ResetLimitLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ResetLimitHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchResetLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_ResetCooldownLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ResetCooldownHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchResetCooldownSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <!-- 捉迷藏：躲藏期 / 搜索期 / 发现判定（由 startrideHideSeek.lua 读取） -->
+          <TextBlock Margin="0,20,0,0" Text="{x:Static res:Strings.Settings_HideSeekRulesLabel}" Style="{StaticResource SettingsFieldLabelStyle}" />
+          <TextBlock Margin="0,6,0,0" Text="{x:Static res:Strings.Settings_HideSeekRulesHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_HideSecondsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_HideSecondsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchHideSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_HideRoundSecondsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_HideRoundSecondsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchHideRoundSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_FindRadiusLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_FindRadiusHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchFindRadius, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{x:Static res:Strings.Settings_FindHoldLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+              <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_FindHoldHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+            </StackPanel>
+            <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchFindHoldSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          </Grid>
+
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
               <TextBlock Text="{x:Static res:Strings.Settings_LaunchForceGpuLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
               <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_LaunchForceGpuHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
             </StackPanel>

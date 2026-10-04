@@ -1585,6 +1585,32 @@
 <data name="Settings_LaunchAutoInstallModHint" xml:space="preserve"><value>起動のたびに常にインストールします（マルチプレイ以外でも）。下の項目が有効なときは無効です</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveLabel" xml:space="preserve"><value>退出後にマルチプレイヤーモジュールを自動削除</value></data>
 <data name="Settings_LaunchRemoveModOnLeaveHint" xml:space="preserve"><value>ルーム退出・解散時に mods フォルダから削除し、次回の作成／参加時に再インストールします。ゲーム起動中は終了後に削除します</value></data>
+<data name="Settings_LaunchIsolateModsLabel" xml:space="preserve"><value>オンライン時に他のマルチプレイヤーモジュールを隔離</value></data>
+<data name="Settings_LaunchIsolateModsHint" xml:space="preserve"><value>ルーム作成・参加の前に BeamMP や BeamLink などのサードパーティ製マルチプレイヤーモジュールを一時的に無効化し、ゲーム終了後に元に戻します。変更するのは有効フラグのみで、モジュールのファイルは削除も移動もされません</value></data>
+<data name="Settings_LaunchNameTagLabel" xml:space="preserve"><value>オンライン時に車上へプレイヤー名を表示</value></data>
+<data name="Settings_LaunchNameTagHint" xml:space="preserve"><value>他のプレイヤーの車の上にニックネームと自分からの距離を浮かせて表示します。どこへ走っても見え、距離が離れるほど薄くなります</value></data>
+<data name="Settings_ModeRulesLabel" xml:space="preserve"><value>ゲームモード設定</value></data>
+<data name="Settings_ModeRulesHint" xml:space="preserve"><value>警察と強盗・デモリッションダービーの判定パラメータ（ホストの部屋作成時に適用）</value></data>
+<data name="Settings_CaptureHoldLabel" xml:space="preserve"><value>逮捕の密着時間（秒）</value></data>
+<data name="Settings_CaptureHoldHint" xml:space="preserve"><value>警察が強盗にこの時間密着し続けると逮捕成立。離れると計測はリセットされます</value></data>
+<data name="Settings_CaptureStillSpeedLabel" xml:space="preserve"><value>強盗の「ほぼ停止」しきい値（km/h）</value></data>
+<data name="Settings_CaptureStillSpeedHint" xml:space="preserve"><value>強盗の速度がこれを下回って初めて停止とみなされ、警察が密着すると計測が始まります。高速で走り抜けるだけでは逮捕されません</value></data>
+<data name="Settings_DerbyDamageLabel" xml:space="preserve"><value>ダービー脱落ダメージ</value></data>
+<data name="Settings_DerbyDamageHint" xml:space="preserve"><value>累計ダメージがこの値に達した車両は脱落。最後まで残った車両の勝ちです</value></data>
+<data name="Settings_ResetLimitLabel" xml:space="preserve"><value>ダービーのリセット回数</value></data>
+<data name="Settings_ResetLimitHint" xml:space="preserve"><value>1ラウンドで Ins リセットを使える回数。0 で使用不可</value></data>
+<data name="Settings_ResetCooldownLabel" xml:space="preserve"><value>リセットのクールダウン（秒）</value></data>
+<data name="Settings_ResetCooldownHint" xml:space="preserve"><value>2回のリセットの間に必要な待ち時間</value></data>
+<data name="Settings_HideSeekRulesLabel" xml:space="preserve"><value>かくれんぼルール</value></data>
+<data name="Settings_HideSeekRulesHint" xml:space="preserve"><value>1人が鬼、残りが隠れる。ホストが部屋を作るときに適用</value></data>
+<data name="Settings_HideSecondsLabel" xml:space="preserve"><value>隠れる時間（秒）</value></data>
+<data name="Settings_HideSecondsHint" xml:space="preserve"><value>この間、鬼は車を動かせません。隠れる側は散らばって隠れましょう</value></data>
+<data name="Settings_HideRoundSecondsLabel" xml:space="preserve"><value>探す時間（秒）</value></data>
+<data name="Settings_HideRoundSecondsHint" xml:space="preserve"><value>この時間が切れた時点で見つかっていない人がいれば、隠れる側の勝ち</value></data>
+<data name="Settings_FindRadiusLabel" xml:space="preserve"><value>発見半径（メートル）</value></data>
+<data name="Settings_FindRadiusHint" xml:space="preserve"><value>鬼がここまで近づくと判定が始まります。大きいほど見つけやすい</value></data>
+<data name="Settings_FindHoldLabel" xml:space="preserve"><value>発見に必要な時間（秒）</value></data>
+<data name="Settings_FindHoldHint" xml:space="preserve"><value>鬼がこの時間ずっと近くにいると発見。離れるとやり直し</value></data>
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>独立GPUを強制使用</value></data>
 <data name="Settings_LaunchForceGpuHint" xml:space="preserve"><value>-highperformancegpu を追加し、ノートパソコンで内蔵GPUに切り替わるのを防止</value></data>
 <data name="Settings_LaunchGfxLabel" xml:space="preserve"><value>レンダリングバックエンド</value></data>
@@ -1803,4 +1829,11 @@
   <data name="Lobby_JoinedMapLabel" xml:space="preserve"><value>マップ</value></data>
   <data name="Lobby_JoinedSpawnLabel" xml:space="preserve"><value>自分のスポーン位置</value></data>
   <data name="Lobby_LobbyMapNote" xml:space="preserve"><value>起動時にこのマップへ直接入ります</value></data>
+  <data name="Lobby_GameModeSectionTitle" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="Lobby_GameModeHint" xml:space="preserve"><value>このセッションの遊び方を決めます。ホストが選び、参加者はそれに従います。</value></data>
+  <data name="Lobby_GameModeHostNote" xml:space="preserve"><value>モードはホストが決めます。参加者は自動で従います</value></data>
+  <data name="Lobby_GameModeNoneFound" xml:space="preserve"><value>フリードライブ</value></data>
+  <data name="Lobby_GameModeSetFailed" xml:space="preserve"><value>モードを変更できませんでした。中継サーバーへの接続を確認してください。</value></data>
+  <data name="Lobby_GameModeRevisionMismatchFormat" xml:space="preserve"><value>モード「{0}」のルール版は {1}、こちらは {2} です。ルールが一致しない可能性があります。</value></data>
+  <data name="Lobby_JoinedGameModeLabel" xml:space="preserve"><value>モード</value></data>
 </root>

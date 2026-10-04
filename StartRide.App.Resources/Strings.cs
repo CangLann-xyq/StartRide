@@ -3036,6 +3036,56 @@ public static class Strings
 
 	public static string Settings_LaunchRemoveModOnLeaveHint => Get("Settings_LaunchRemoveModOnLeaveHint");
 
+	public static string Settings_LaunchIsolateModsLabel => Get("Settings_LaunchIsolateModsLabel");
+
+	public static string Settings_LaunchIsolateModsHint => Get("Settings_LaunchIsolateModsHint");
+
+	public static string Settings_LaunchNameTagLabel => Get("Settings_LaunchNameTagLabel");
+
+	public static string Settings_LaunchNameTagHint => Get("Settings_LaunchNameTagHint");
+
+	public static string Settings_ModeRulesLabel => Get("Settings_ModeRulesLabel");
+
+	public static string Settings_ModeRulesHint => Get("Settings_ModeRulesHint");
+
+	public static string Settings_CaptureHoldLabel => Get("Settings_CaptureHoldLabel");
+	public static string Settings_CaptureHoldHint => Get("Settings_CaptureHoldHint");
+
+	public static string Settings_CaptureStillSpeedLabel => Get("Settings_CaptureStillSpeedLabel");
+	public static string Settings_CaptureStillSpeedHint => Get("Settings_CaptureStillSpeedHint");
+
+	public static string Settings_DerbyDamageLabel => Get("Settings_DerbyDamageLabel");
+
+	public static string Settings_DerbyDamageHint => Get("Settings_DerbyDamageHint");
+
+	public static string Settings_ResetLimitLabel => Get("Settings_ResetLimitLabel");
+
+	public static string Settings_ResetLimitHint => Get("Settings_ResetLimitHint");
+
+	public static string Settings_ResetCooldownLabel => Get("Settings_ResetCooldownLabel");
+
+	public static string Settings_ResetCooldownHint => Get("Settings_ResetCooldownHint");
+
+	public static string Settings_HideSeekRulesLabel => Get("Settings_HideSeekRulesLabel");
+
+	public static string Settings_HideSeekRulesHint => Get("Settings_HideSeekRulesHint");
+
+	public static string Settings_HideSecondsLabel => Get("Settings_HideSecondsLabel");
+
+	public static string Settings_HideSecondsHint => Get("Settings_HideSecondsHint");
+
+	public static string Settings_HideRoundSecondsLabel => Get("Settings_HideRoundSecondsLabel");
+
+	public static string Settings_HideRoundSecondsHint => Get("Settings_HideRoundSecondsHint");
+
+	public static string Settings_FindRadiusLabel => Get("Settings_FindRadiusLabel");
+
+	public static string Settings_FindRadiusHint => Get("Settings_FindRadiusHint");
+
+	public static string Settings_FindHoldLabel => Get("Settings_FindHoldLabel");
+
+	public static string Settings_FindHoldHint => Get("Settings_FindHoldHint");
+
 	public static string Settings_LaunchForceGpuLabel => Get("Settings_LaunchForceGpuLabel");
 
 	public static string Settings_LaunchForceGpuHint => Get("Settings_LaunchForceGpuHint");
@@ -3344,6 +3394,20 @@ public static class Strings
 	public static string Lobby_JoinedMapLabel => Get("Lobby_JoinedMapLabel");
 	public static string Lobby_JoinedSpawnLabel => Get("Lobby_JoinedSpawnLabel");
 	public static string Lobby_LobbyMapNote => Get("Lobby_LobbyMapNote");
+
+	public static string Lobby_GameModeSectionTitle => Get("Lobby_GameModeSectionTitle");
+
+	public static string Lobby_GameModeHint => Get("Lobby_GameModeHint");
+
+	public static string Lobby_GameModeHostNote => Get("Lobby_GameModeHostNote");
+
+	public static string Lobby_GameModeNoneFound => Get("Lobby_GameModeNoneFound");
+
+	public static string Lobby_GameModeSetFailed => Get("Lobby_GameModeSetFailed");
+
+	public static string Lobby_GameModeRevisionMismatchFormat => Get("Lobby_GameModeRevisionMismatchFormat");
+
+	public static string Lobby_JoinedGameModeLabel => Get("Lobby_JoinedGameModeLabel");
 
 	public static string Account_MultiplayerNicknameLabel => Get("Account_MultiplayerNicknameLabel");
 

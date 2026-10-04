@@ -18,6 +18,21 @@ namespace StartRide.Core
 
         private const string StampEntry = "scripts/startride/build.stamp";
 
+        /// <summary>GE 扩展在模组包内的目录（require 按这里解析）。</summary>
+        private const string GeExtensionsDir = "lua/ge/extensions";
+
+        /// <summary>
+        /// Mods\ 下这些文件是「入口桥」，各有专门的打包落点，不算兄弟模块。
+        /// startride_mod.lua → lua/ge/extensions/startride.lua（改名，扩展入口）
+        /// startrideVE.lua   → lua/vehicle/extensions/...（车辆侧，两个落点）
+        /// startrideHL.lua   → lua/vehicle/extensions/auto/...（车辆侧）
+        /// </summary>
+        private static readonly HashSet<string> BridgeStems =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "startride_mod", "startrideVE", "startrideHL"
+            };
+
         private readonly AppSettings _settings;
 
         public ModInstaller(AppSettings settings) => _settings = settings;
@@ -26,6 +41,36 @@ namespace StartRide.Core
 
         private static string SourceDirectory =>
             Path.Combine(AppContext.BaseDirectory, "Mods");
+
+        /// <summary>
+        /// 列出需要随包分发的「兄弟 Lua 模块」（Mods\*.lua 里除 3 个入口桥之外的全部）。
+        ///
+        /// startride_mod.lua 运行时用 loadPeer('startrideMode') 这样按名 require，
+        /// require 会去 lua/ge/extensions/ 找同名文件 —— 所以这些模块必须一起进包，
+        /// 而且落点必须是 &lt;GeExtensionsDir&gt;/&lt;名字&gt;.lua。
+        ///
+        /// ⚠️ 漏掉任何一个都不会报错：loadPeer 内部是 pcall + nil 兜底，
+        /// 失败只写一条日志，玩法直接静默失效。所以这里「宁可全带上」。
+        /// </summary>
+        private static List<(string Name, string Path)> EnumeratePeerModules()
+        {
+            var list = new List<(string, string)>();
+            try
+            {
+                string dir = SourceDirectory;
+                if (!Directory.Exists(dir)) return list;
+
+                foreach (var path in Directory.GetFiles(dir, "*.lua"))
+                {
+                    string stem = Path.GetFileNameWithoutExtension(path);
+                    if (BridgeStems.Contains(stem)) continue;
+                    list.Add((stem, path));
+                }
+                list.Sort((a, b) => string.Compare(a.Item1, b.Item1, StringComparison.OrdinalIgnoreCase));
+            }
+            catch { }
+            return list;
+        }
 
         public string ModsDirectory => _settings.ResolveModsDirectory();
         public string InstalledPackagePath => Path.Combine(ModsDirectory, ModPackageName);
@@ -46,7 +91,7 @@ namespace StartRide.Core
 
                     return string.Equals(
                         ReadStamp(InstalledPackagePath),
-                        ComputeSourceStamp(ge, ve, hl),
+                        ComputeSourceStamp(),
                         StringComparison.OrdinalIgnoreCase);
                 }
                 catch
@@ -115,7 +160,7 @@ namespace StartRide.Core
                 if (!File.Exists(ve)) return $"找不到模组源文件：{ve}";
                 if (!File.Exists(hl)) return $"找不到模组源文件：{hl}";
 
-                string stamp = ComputeSourceStamp(ge, ve, hl);
+                string stamp = ComputeSourceStamp();
 
                 if (File.Exists(InstalledPackagePath) &&
                     string.Equals(ReadStamp(InstalledPackagePath), stamp, StringComparison.OrdinalIgnoreCase))
@@ -145,6 +190,9 @@ namespace StartRide.Core
                 string tmp = InstalledPackagePath + ".tmp";
                 if (File.Exists(tmp)) File.Delete(tmp);
 
+                // 兄弟模块计数（作用域外也要用，用于安装日志）
+                int peerCount = 0;
+
                 using (var fs = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write))
                 using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
                 {
@@ -153,6 +201,14 @@ namespace StartRide.Core
                     AddFile(zip, "lua/vehicle/extensions/auto/startrideVE.lua", ve);
                     AddFile(zip, "lua/vehicle/extensions/startride/startrideVE.lua", ve);
                     AddFile(zip, "lua/vehicle/extensions/auto/startrideHL.lua", hl);
+
+                    // 兄弟模块：startride_mod.lua 用 loadPeer 按名 require 它们，
+                    // 必须落在 lua/ge/extensions/ 下且同名，否则静默失效。
+                    foreach (var (name, path) in EnumeratePeerModules())
+                    {
+                        AddFile(zip, GeExtensionsDir + "/" + name + ".lua", path);
+                        peerCount++;
+                    }
                     AddText(zip, "mod_info/startride/info.json", infoJson);
                     AddText(zip, "scripts/startride/modScript.lua",
                             "setExtensionUnloadMode(\"startride\", \"manual\")");
@@ -175,7 +231,7 @@ namespace StartRide.Core
 
                 ClearPendingRemoval();
 
-                Log?.Invoke($"联机模组已安装：{InstalledPackagePath}");
+                Log?.Invoke($"联机模组已安装：{InstalledPackagePath}（含 {peerCount} 个玩法模块）");
                 return null;
             }
             catch (Exception ex)
@@ -282,13 +338,29 @@ namespace StartRide.Core
             return list;
         }
 
-        private static string ComputeSourceStamp(string ge, string ve, string hl)
+        /// <summary>
+        /// 对「实际会打进 zip 的全部文件」算指纹。
+        ///
+        /// ⚠️ 必须覆盖兄弟模块：只算 3 个入口桥的话，新增一个玩法模块
+        /// （如 startrideHideSeek.lua）指纹不变 → IsUpToDate 误判为最新 →
+        /// Install 直接 return → 新模块永远进不去游戏。
+        /// </summary>
+        private static string ComputeSourceStamp()
         {
             using var sha = SHA256.Create();
             using var ms = new MemoryStream();
 
-            foreach (var path in new[] { ge, ve, hl })
+            var files = new List<string>
             {
+                Path.Combine(SourceDirectory, "startride_mod.lua"),
+                Path.Combine(SourceDirectory, "startrideVE.lua"),
+                Path.Combine(SourceDirectory, "startrideHL.lua"),
+            };
+            foreach (var (_, path) in EnumeratePeerModules()) files.Add(path);
+
+            foreach (var path in files)
+            {
+                if (!File.Exists(path)) continue;
                 var info = new FileInfo(path);
                 var header = Encoding.UTF8.GetBytes(info.Name + ":" + info.Length + "\n");
                 ms.Write(header, 0, header.Length);

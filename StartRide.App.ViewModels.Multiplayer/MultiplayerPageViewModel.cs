@@ -184,6 +184,9 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
 	private RelayCommand? decreaseCapacityCommand;
 
+	[GeneratedCode("CommunityToolkit.Mvvm.SourceGenerators.RelayCommandGenerator", "8.4.0.0")]
+	private RelayCommand<GameModeOptionItem?>? selectLobbyGameModeCommand;
+
 	public ObservableCollection<MultiplayerSectionItem> Sections { get; }
 
 	public ObservableCollection<PublicRoomItem> PublicRooms { get; } = new ObservableCollection<PublicRoomItem>();
@@ -201,6 +204,74 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	public ObservableCollection<SpawnOptionItem> LobbySpawns { get; } = new ObservableCollection<SpawnOptionItem>();
 
 	public ObservableCollection<SpawnOptionItem> JoinSpawns { get; } = new ObservableCollection<SpawnOptionItem>();
+
+	// ── 玩法模式 ───────────────────────────────────────────────────────────
+	// 房主在设置层选玩法，进房后还能在房间面板里改（走 set-game-mode，不重开房间）。
+	// 加入者不能改，只能看到房主选的那个 —— 从大厅列表和中继快照两路读回来。
+	// 玩法是「全房共享」的一个值，所以它进中继元数据，和地图同一个待遇；
+	// 而出生点是「每人自己的」，所以它不走中继 —— 这个区别是有意的。
+
+	public ObservableCollection<GameModeOptionItem> LobbyGameModes { get; } = new ObservableCollection<GameModeOptionItem>();
+
+	private GameModeOptionItem? selectedLobbyGameMode;
+
+	/// <summary>房主侧当前选中的玩法。</summary>
+	public GameModeOptionItem? SelectedLobbyGameMode
+	{
+		get => selectedLobbyGameMode;
+		set
+		{
+			if (EqualityComparer<GameModeOptionItem>.Default.Equals(selectedLobbyGameMode, value)) return;
+			OnPropertyChanging("SelectedLobbyGameMode");
+			selectedLobbyGameMode = value;
+			OnSelectedLobbyGameModeChanged(value);
+			OnPropertyChanged("SelectedLobbyGameMode");
+		}
+	}
+
+	public string SelectedLobbyGameModeName => SelectedLobbyGameMode?.Name ?? Strings.Lobby_GameModeNoneFound;
+
+	public string SelectedLobbyGameModeDetail => SelectedLobbyGameMode?.Detail ?? string.Empty;
+
+	public bool HasSelectedLobbyGameModeDetail => !string.IsNullOrWhiteSpace(SelectedLobbyGameModeDetail);
+
+	public bool HasSelectedLobbyGameModeTags => SelectedLobbyGameMode?.HasTags ?? false;
+
+	/// <summary>
+	/// 房间面板里显示的「本房玩法」。
+	/// 读的是 lobbyService 的会话状态而不是 SelectedLobbyGameMode：加入者看到的是房主那个，
+	/// 和自己这页选中的未必一样。拿不到服务实现时退回本机记忆值，至少不会空着。
+	/// </summary>
+	public string LobbyGameModeText
+	{
+		get
+		{
+			if (lobbyService is IStartRideLobbyGameMode gm && gm.GameModeId.Length > 0)
+			{
+				return LobbyGameModeCatalog.DisplayName(gm.GameModeId);
+			}
+			return LobbyGameModeCatalog.DisplayName(AppState.Current.Settings.LobbyGameMode);
+		}
+	}
+
+	/// <summary>
+	/// 本房玩法规则的新旧提示。
+	/// 规则版本对不上说明对端是旧版启动器 —— 这时不阻断联机，只把话说清楚，
+	/// 免得玩家以为是别的问题（历史上"看不见对方"大量是版本不一致造成的）。
+	/// </summary>
+	public string LobbyGameModeRevisionNote
+	{
+		get
+		{
+			if (lobbyService is not IStartRideLobbyGameMode gm) return string.Empty;
+			if (gm.GameModeRevision <= 0) return string.Empty;
+			var mine = LobbyGameModeCatalog.Normalize(SelectedLobbyGameMode?.Id ?? AppState.Current.Settings.LobbyGameMode);
+			if (gm.GameModeRevision == mine.Revision) return string.Empty;
+			return string.Format(Strings.Lobby_GameModeRevisionMismatchFormat, gm.GameModeId, gm.GameModeRevision, mine.Revision);
+		}
+	}
+
+	public bool HasLobbyGameModeRevisionNote => LobbyGameModeRevisionNote.Length > 0;
 
 	// ── 人数上限（只有房主能改）────────────────────────────────────────────
 	// 建房前在设置层选，建房后还能在房间面板里改（走 set-capacity，不用重开房间）。
@@ -252,6 +323,94 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		IncreaseCapacityCommand.NotifyCanExecuteChanged();
 		DecreaseCapacityCommand.NotifyCanExecuteChanged();
+	}
+
+	/// <summary>
+	/// 落地一次玩法修改。
+	/// 建房**前**：只写进设置，建房时随 RoomMeta 一起带出去。
+	/// 建房**后**（房主 + 已在房里）：同时发一条 set-game-mode 让中继立刻生效。
+	/// 加入者点了也只会改自己本机的"下次建房默认值"，房里的玩法由房主决定。
+	/// </summary>
+	private void ApplyGameMode(string? modeId)
+	{
+		var mode = LobbyGameModeCatalog.Normalize(modeId);
+
+		var item = LobbyGameModes.FirstOrDefault(m =>
+			string.Equals(m.Id, mode.Id, StringComparison.OrdinalIgnoreCase));
+		SelectedLobbyGameMode = item;
+
+		try
+		{
+			AppState.Current.Settings.LobbyGameMode = mode.Id;
+			AppState.Current.Settings.Save();
+		}
+		catch (Exception exception)
+		{
+			logger.LogWarning(exception, "Failed to persist the multiplayer lobby game mode.");
+		}
+
+		if (IsLobbyHost && IsLobbyStep && lobbyService is IStartRideLobbyGameMode gm)
+		{
+			if (!gm.SetGameMode(mode.Id))
+			{
+				ReportFailure(Strings.Lobby_GameModeSetFailed);
+			}
+		}
+
+		OnPropertyChanged(nameof(LobbyGameModeText));
+		OnPropertyChanged(nameof(LobbyGameModeRevisionNote));
+		OnPropertyChanged(nameof(HasLobbyGameModeRevisionNote));
+	}
+
+	/// <summary>
+	/// 把玩法目录填进列表，并把选择恢复到设置里记住的那一项。
+	/// 玩法是纯静态目录（不像地图要读游戏文件），所以同步填，不用后台线程。
+	/// </summary>
+	private void PopulateLobbyGameModes()
+	{
+		LobbyGameModes.Clear();
+		foreach (var mode in LobbyGameModeCatalog.All)
+		{
+			LobbyGameModes.Add(new GameModeOptionItem(mode));
+		}
+		for (int i = 0; i < LobbyGameModes.Count; i++)
+		{
+			LobbyGameModes[i].IsFirst = i == 0;
+			LobbyGameModes[i].IsLast = i == LobbyGameModes.Count - 1;
+		}
+
+		var wanted = LobbyGameModeCatalog.Normalize(AppState.Current.Settings.LobbyGameMode);
+		var pick = LobbyGameModes.FirstOrDefault(m =>
+			string.Equals(m.Id, wanted.Id, StringComparison.OrdinalIgnoreCase))
+			?? LobbyGameModes.FirstOrDefault();
+
+		if (pick != null)
+		{
+			selectedLobbyGameMode = pick;
+			OnPropertyChanged(nameof(SelectedLobbyGameMode));
+			OnPropertyChanged(nameof(SelectedLobbyGameModeName));
+			OnPropertyChanged(nameof(SelectedLobbyGameModeDetail));
+			OnPropertyChanged(nameof(HasSelectedLobbyGameModeDetail));
+			OnPropertyChanged(nameof(HasSelectedLobbyGameModeTags));
+			SyncSelection(LobbyGameModes, pick);
+		}
+	}
+
+	private static void SyncSelection(IEnumerable<GameModeOptionItem> items, GameModeOptionItem? selected)
+	{
+		foreach (var item in items)
+		{
+			item.IsSelected = ReferenceEquals(item, selected);
+		}
+	}
+
+	private void OnSelectedLobbyGameModeChanged(GameModeOptionItem? value)
+	{
+		SyncSelection(LobbyGameModes, value);
+		OnPropertyChanged(nameof(SelectedLobbyGameModeName));
+		OnPropertyChanged(nameof(SelectedLobbyGameModeDetail));
+		OnPropertyChanged(nameof(HasSelectedLobbyGameModeDetail));
+		OnPropertyChanged(nameof(HasSelectedLobbyGameModeTags));
 	}
 
 	private bool CanIncreaseCapacityExecute() => CanIncreaseCapacity;
@@ -923,6 +1082,9 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	/// <summary>房主把人数上限 -1。</summary>
 	public IRelayCommand DecreaseCapacityCommand => decreaseCapacityCommand ?? (decreaseCapacityCommand = new RelayCommand(DecreaseCapacity, CanDecreaseCapacityExecute));
 
+	/// <summary>在玩法列表里点一项：选中它，房主在房里时同时下发到中继。</summary>
+	public IRelayCommand<GameModeOptionItem?> SelectLobbyGameModeCommand => selectLobbyGameModeCommand ?? (selectLobbyGameModeCommand = new RelayCommand<GameModeOptionItem>(item => { if (item != null) ApplyGameMode(item.Id); }));
+
 	public MultiplayerPageViewModel(IMultiplayerLobbyService lobbyService, IClipboardService clipboardService, IUiDispatcher uiDispatcher, IStatusService statusService, IFloatingMessageService floatingMessageService, AccountPageViewModel? accountPage = null, IExternalLinkService? externalLinkService = null, ILogger<MultiplayerPageViewModel>? logger = null)
 	{
 		this.lobbyService = lobbyService;
@@ -941,6 +1103,8 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		SelectedSection = Sections[0];
 		// 沿用上次建房选的人数上限
 		lobbyCapacity = Math.Max(CapacityMin, Math.Min(CapacityMax, AppState.Current.Settings.LobbyCapacity));
+		// 玩法是静态目录，直接填；选择沿用上次建房选的那个
+		PopulateLobbyGameModes();
 		lobbyService.SnapshotChanged += OnLobbySnapshotChanged;
 		lobbyService.Stopped += OnLobbyStopped;
 		_ = LoadLobbyLevelsAsync();
@@ -1267,6 +1431,18 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 		OnPropertyChanged("LobbyMapText");
 		OnPropertyChanged("LobbySpawnText");
 		OnPropertyChanged(nameof(LobbyCapacitySummary));
+		// 玩法以服务侧会话状态为准（加入者读到的是房主那个）：刷新房间面板上的显示，
+		// 顺带把玩法选择跟着对齐，这样房间面板与设置层看到的永远是同一个玩法。
+		OnPropertyChanged(nameof(LobbyGameModeText));
+		OnPropertyChanged(nameof(LobbyGameModeRevisionNote));
+		OnPropertyChanged(nameof(HasLobbyGameModeRevisionNote));
+		if (lobbyService is IStartRideLobbyGameMode gm && gm.GameModeId.Length > 0
+			&& !string.Equals(SelectedLobbyGameMode?.Id, gm.GameModeId, StringComparison.OrdinalIgnoreCase))
+		{
+			SelectedLobbyGameMode = LobbyGameModes.FirstOrDefault(item =>
+				string.Equals(item.Id, gm.GameModeId, StringComparison.OrdinalIgnoreCase))
+				?? SelectedLobbyGameMode;
+		}
 		// 中继快照带回了权威上限时，把房主的本地选择同步过来，
 		// 这样房间面板上的 +/- 与实际生效值始终一致（加入者也会看到房主设的数）。
 		if (lobbyService is IStartRideLobbyCapacity cap && cap.Capacity > 0 && cap.Capacity != LobbyCapacity)

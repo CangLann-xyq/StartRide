@@ -19,6 +19,13 @@ namespace StartRide.Core
         public int Capacity { get; set; }
         public int RemoteVehicles { get; set; }
         public int VehiclePackets { get; set; }
+
+        /// <summary>本房玩法模式 id（房主那份权威，加入者来自中继快照）。</summary>
+        public string GameMode { get; set; } = "";
+
+        /// <summary>玩法规则版本号，用来发现对端是旧版规则。</summary>
+        public int GameModeRevision { get; set; } = 1;
+
         public string LastError { get; set; } = "";
         public List<string> Players { get; } = new();
     }
@@ -132,6 +139,47 @@ namespace StartRide.Core
         /// <summary>本房要进的关卡 id（房主 = 自己选的，加入者 = 房主那张图）。</summary>
         public string MapId { get; private set; } = "";
 
+        /// <summary>
+        /// 本房玩法模式 id。
+        /// 房主建房时定下并随房间元数据广播；加入者从中继快照读回，
+        /// 所以两边拿到的永远是同一个值（而不是各自本机记住的那个）。
+        /// </summary>
+        public string GameModeId { get; private set; } = "";
+
+        /// <summary>
+        /// 房主改玩法。走已有隧道发 set-game-mode，由中继改房间元数据并广播新快照 ——
+        /// 和人数上限同一套路数：不改连接、不重开房间、也不用把玩家踢出房。
+        /// </summary>
+        public bool SetGameMode(string modeId)
+        {
+            if (!IsHost || !_relay.IsConnected) return false;
+
+            string normalized = LobbyGameModeCatalog.Normalize(modeId).Id;
+            int revision = LobbyGameModeCatalog.Normalize(modeId).Revision;
+
+            try
+            {
+                _relay.SendLine(JsonSerializer.Serialize(new
+                {
+                    type = "set-game-mode",
+                    gameMode = normalized,
+                    gameModeRevision = revision,
+                }));
+                State.GameMode = normalized;
+                State.GameModeRevision = revision;
+                GameModeId = normalized;
+                PushGameModeToGame();
+                StateChanged?.Invoke();
+                Log?.Invoke($"已请求把房间玩法改为「{LobbyGameModeCatalog.DisplayName(normalized)}」");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke("修改玩法失败：" + ex.Message);
+                return false;
+            }
+        }
+
         /// <summary>本机的出生点对象名。房主和加入者各选各的，所以它不进中继、只发给本地模组。</summary>
         public string SpawnPoint { get; private set; } = "";
 
@@ -139,25 +187,41 @@ namespace StartRide.Core
         /// 设定本房的地图与本人出生点，并立刻推给游戏侧模组。
         /// 为什么走启动器↔模组这条桥、而不走中继：出生点是「每个人自己的」，
         /// 房主落哪跟加入者无关，塞进中继/数据库只会多一次迁移。
+        /// 玩法不一样：它是**全房共享**的，所以既进房间元数据、也推给本地模组。
         /// </summary>
-        public void ConfigureRoom(string? mapId, string? spawnPoint, bool push = true)
+        public void ConfigureRoom(string? mapId, string? spawnPoint, string? gameMode = null, bool push = true)
         {
             MapId = (mapId ?? "").Trim();
             SpawnPoint = (spawnPoint ?? "").Trim();
+            if (gameMode != null) GameModeId = LobbyGameModeCatalog.Normalize(gameMode).Id;
             if (push) PushRoomConfigToGame();
         }
 
         private void PushRoomConfigToGame()
         {
-            if (MapId.Length == 0 && SpawnPoint.Length == 0) return;
+            if (MapId.Length == 0 && SpawnPoint.Length == 0 && GameModeId.Length == 0) return;
 
             _bridge.Send(new
             {
                 type = "room-config",
                 map = MapId,
                 spawnPoint = SpawnPoint,
+                gameMode = GameModeId,
                 roomId = State.RoomId,
                 roomName = State.RoomName,
+            });
+        }
+
+        /// <summary>
+        /// 玩法变了单独推一条，不必连带重发地图/出生点
+        /// （重发 room-config 会让模组把出生点计划重置一遍，玩家被重复传送一次）。
+        /// </summary>
+        private void PushGameModeToGame()
+        {
+            _bridge.Send(new
+            {
+                type = "game-mode",
+                gameMode = GameModeId,
             });
         }
 
@@ -167,7 +231,7 @@ namespace StartRide.Core
         /// （模组 onExtensionLoaded 里读的就是这个文件；桥消息负责后续刷新。）
         /// </summary>
         public static void WriteGameBootstrap(string playerName, string roomId, string roomName,
-            string mapId, string spawnPoint)
+            string mapId, string spawnPoint, string gameMode = "")
         {
             try
             {
@@ -183,6 +247,25 @@ namespace StartRide.Core
                     roomName = roomName ?? "",
                     map = mapId ?? "",
                     spawnPoint = spawnPoint ?? "",
+                    gameMode = LobbyGameModeCatalog.Normalize(gameMode).Id,
+                    gameModeRevision = LobbyGameModeCatalog.Normalize(gameMode).Revision,
+                    // 车顶悬浮名牌（昵称 + 距离）：模组每帧读这两项决定画不画、画多远。
+                    nameTagEnabled = AppSettings.Current.NameTagEnabled,
+                    nameTagMaxDistance = AppSettings.Current.NameTagMaxDistance,
+                    // 玩法规则（警匪 / 德比 / 捉迷藏）：模组 startrideMode.lua 读前两项、
+                    // startrideHideSeek.lua 读后四项。
+                    modeRules = new
+                    {
+                        captureHoldMs = AppSettings.Current.CaptureHoldMs,
+                        captureStillSpeed = AppSettings.Current.CaptureStillSpeed,
+                        derbyDamageLimit = AppSettings.Current.DerbyDamageLimit,
+                        resetLimit = AppSettings.Current.ResetLimit,
+                        resetCooldownMs = AppSettings.Current.ResetCooldownMs,
+                        hideSeconds = AppSettings.Current.HideSeconds,
+                        hideRoundSeconds = AppSettings.Current.HideRoundSeconds,
+                        findRadius = AppSettings.Current.FindRadius,
+                        findHoldMs = AppSettings.Current.FindHoldMs,
+                    },
                     writtenAt = DateTimeOffset.Now.ToString("o"),
                 }, new JsonSerializerOptions { WriteIndented = true });
 
@@ -235,6 +318,12 @@ namespace StartRide.Core
                 Capacity = capacity,
                 RoomName = room.Name,
                 Map = room.Map,
+
+                // 房主：带上自己选的那份玩法，中继会把首次出现的那份当作权威值。
+                // 加入者：带上从大厅读到的房主玩法，只为了让 UI 立刻显示正确的值 ——
+                // 中继只在房主那条连接上接受覆盖，所以不会改写房主的设定。
+                GameMode = LobbyGameModeCatalog.Normalize(room.GameMode).Id,
+                GameModeRevision = LobbyGameModeCatalog.Normalize(room.GameMode).Revision,
             };
 
             bool ok = await _relay.JoinAsync(room.Id, name, meta);
@@ -249,6 +338,9 @@ namespace StartRide.Core
                 State.RoomName = room.Name;
                 State.Host = meta.Host;
                 State.Capacity = capacity;
+                State.GameMode = meta.GameMode;
+                State.GameModeRevision = meta.GameModeRevision;
+                GameModeId = meta.GameMode;
                 State.RemoteVehicles = 0;
                 State.VehiclePackets = 0;
                 _loggedFirstInboundVehicle = false;
@@ -258,9 +350,10 @@ namespace StartRide.Core
                 State.PlayerCount = 1;
                 PushRelayStateToGame();
                 PushRoomConfigToGame();
-                WriteGameBootstrap(name, State.RoomId, State.RoomName, MapId, SpawnPoint);
+                WriteGameBootstrap(name, State.RoomId, State.RoomName, MapId, SpawnPoint, GameModeId);
                 Log?.Invoke($"已加入房间 {room.Id}（{State.Transport}）"
                     + (MapId.Length > 0 ? $"，地图 {MapId}" : "")
+                    + (GameModeId.Length > 0 ? $"，玩法 {LobbyGameModeCatalog.DisplayName(GameModeId)}" : "")
                     + (SpawnPoint.Length > 0 ? $"，出生点 {SpawnPoint}" : ""));
             }
             else
@@ -456,6 +549,26 @@ namespace StartRide.Core
 
             if (packet.TryGetProperty("capacity", out var cap) && cap.TryGetInt32(out int cp))
                 State.Capacity = cp;
+
+            // 玩法以中继快照为准：房主改完，全房这一份都会跟着变。
+            // ⚠️ 只在拿到非空值时覆盖本机值 —— 老中继不认 gameMode 字段就不会回传它，
+            //    这时必须保留本机已定的玩法，否则加入者会被"清空"成默认玩法。
+            if (packet.TryGetProperty("gameMode", out var gm) && gm.GetString() is { Length: > 0 } gmv)
+            {
+                string normalized = LobbyGameModeCatalog.Normalize(gmv).Id;
+                if (!string.Equals(State.GameMode, normalized, StringComparison.Ordinal))
+                {
+                    State.GameMode = normalized;
+                    GameModeId = normalized;
+                    PushGameModeToGame();
+                }
+            }
+            if (packet.TryGetProperty("gameModeRevision", out var gr) && gr.TryGetInt32(out int grv)
+                && grv > 0)
+            {
+                State.GameModeRevision = grv;
+            }
+
             if (packet.TryGetProperty("host", out var h) && h.GetString() is { Length: > 0 } hv)
                 State.Host = hv;
             if (packet.TryGetProperty("roomName", out var rn) && rn.GetString() is { Length: > 0 } rv)

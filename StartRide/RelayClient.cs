@@ -38,6 +38,27 @@ namespace StartRide.Core
         public string CurrentRoomId { get; private set; } = "";
         public string LastError { get; private set; } = "";
 
+        /// <summary>
+        /// 本次连接实际走的通道（直连 / 中继隧道 / 未知）。
+        /// 由 <see cref="Transport"/> 解析而来，给界面显示「直连」还是「中继」。
+        /// </summary>
+        public RelayPath PathKind => RelayConnectionPolicy.ParseTransport(Transport);
+
+        /// <summary>
+        /// 连接所处的阶段。连接过程中会变，界面靠它显示「正在连接 / 直连 / 中继 / 失败」。
+        /// </summary>
+        public RelayConnectStage ConnectStage { get; private set; } = RelayConnectStage.Idle;
+
+        /// <summary>阶段变化时通知界面。参数是变化后的阶段。</summary>
+        public event Action<RelayConnectStage>? ConnectStageChanged;
+
+        private void SetStage(RelayConnectStage stage)
+        {
+            if (ConnectStage == stage) return;
+            ConnectStage = stage;
+            try { ConnectStageChanged?.Invoke(stage); } catch { }
+        }
+
         public string PlayerId { get; private set; } = "";
 
         public string PlayerName { get; private set; } = "";
@@ -89,11 +110,19 @@ namespace StartRide.Core
                 capacity = meta.Capacity,
                 roomName = meta.RoomName,
 
+                // 玩法随房间元数据一起走：中继把首次出现的值当权威值，广播给所有人。
+                // 加入者也带上自己读到的值，但中继只在「房主」那条连接上接受覆盖，
+                // 所以不会污染房主的设定（和 capacity 同一套约定）。
+                gameMode = meta.GameMode,
+                gameModeRevision = meta.GameModeRevision,
+
                 version = BuildInfo.Version,
                 token,
             });
 
             var attempts = BuildAttempts();
+
+            SetStage(RelayConnectStage.Connecting);
 
             foreach (var attempt in attempts)
             {
@@ -102,7 +131,9 @@ namespace StartRide.Core
                     await attempt();
                     if (!IsConnected) continue;
 
-                    Log?.Invoke($"中继已连接（{Transport}）");
+                    // 连上后才知道实际走的是哪条：直连=Direct，隧道=Relay。
+                    SetStage(PathKind == RelayPath.Direct ? RelayConnectStage.Direct : RelayConnectStage.Relay);
+                    Log?.Invoke($"中继已连接（{RelayConnectionPolicy.DisplayName(PathKind)} / {Transport}）");
                     LastError = "";
                     StartWatchdog();
                     ConnectionChanged?.Invoke(true, "");
@@ -116,6 +147,7 @@ namespace StartRide.Core
                 }
             }
 
+            SetStage(RelayConnectStage.Failed);
             LastError = string.IsNullOrEmpty(LastError) ? "中继不可用" : LastError;
             Log?.Invoke("中继连接失败：" + LastError);
             ConnectionChanged?.Invoke(false, LastError);
@@ -262,6 +294,7 @@ namespace StartRide.Core
 
             CleanupTransport();
             IsConnected = false;
+            SetStage(RelayConnectStage.Idle);
             CurrentRoomId = "";
             _joinLine = "";
             cts?.Dispose();
@@ -272,11 +305,30 @@ namespace StartRide.Core
         private List<Func<Task>> BuildAttempts()
         {
             var attempts = new List<Func<Task>>();
-            if (_settings.PreferWebSocket)
+
+            // 通道顺序交给 RelayConnectionPolicy 决定，不再在这里硬编码两条分支：
+            //   - 官方节点才允许直连（第三方地址只走隧道，不为它开放任意端口）；
+            //   - 顺序按玩家偏好排，但两条都会试，先成功者胜。
+            // directPortKnownOpen 传 true：TCP 端口能不能通只有试过才知道，
+            // 这里不做预探测（预探测本身就要连一次，等于多花 8 秒超时）。
+            var order = RelayConnectionPolicy.OrderPaths(
+                _settings.PreferWebSocket, _settings.RelayHost, directPortKnownOpen: true);
+
+            foreach (var path in order)
+            {
+                if (path == RelayPath.Direct)
+                    attempts.Add(() => ConnectTcpAsync(_joinLine));
+                else if (path == RelayPath.Relay)
+                    attempts.Add(() => ConnectWebSocketAsync(_joinLine));
+            }
+
+            // 兜底：策略若因任何原因给出空顺序，至少保证有两条默认路可走。
+            if (attempts.Count == 0)
+            {
+                attempts.Add(() => ConnectTcpAsync(_joinLine));
                 attempts.Add(() => ConnectWebSocketAsync(_joinLine));
-            attempts.Add(() => ConnectTcpAsync(_joinLine));
-            if (!_settings.PreferWebSocket)
-                attempts.Add(() => ConnectWebSocketAsync(_joinLine));
+            }
+
             return attempts;
         }
 
@@ -349,6 +401,7 @@ namespace StartRide.Core
                 while (!_stopping && !_roomClosed && !cts.IsCancellationRequested && !IsConnected)
                 {
                     _reconnectAttempts++;
+                    SetStage(RelayConnectStage.Connecting);
                     try { await Task.Delay(delayMs, cts.Token).ConfigureAwait(false); }
                     catch (OperationCanceledException) { return; }
                     if (_stopping || _roomClosed) return;
@@ -364,8 +417,9 @@ namespace StartRide.Core
 
                             _reconnectAttempts = 0;
                             LastError = "";
+                            SetStage(PathKind == RelayPath.Direct ? RelayConnectStage.Direct : RelayConnectStage.Relay);
                             StartWatchdog();
-                            Log?.Invoke($"中继已自动重连（{Transport}）");
+                            Log?.Invoke($"中继已自动重连（{RelayConnectionPolicy.DisplayName(PathKind)} / {Transport}）");
                             ConnectionChanged?.Invoke(true, "连接已恢复");
                             Reconnected?.Invoke(Transport);
                             return;
@@ -396,6 +450,7 @@ namespace StartRide.Core
             _stream = null;
             _tcp = null;
             IsConnected = false;
+            Transport = "";
         }
 
         public void SendLine(string json)
@@ -575,5 +630,11 @@ namespace StartRide.Core
         public int Capacity { get; set; } = 8;
         public string RoomName { get; set; } = "";
         public string Map { get; set; } = "";
+
+        /// <summary>本房玩法模式 id。房主那份是权威值，中继原样带着广播。</summary>
+        public string GameMode { get; set; } = "";
+
+        /// <summary>玩法规则版本号，用来发现对端是旧版规则。</summary>
+        public int GameModeRevision { get; set; } = 1;
     }
 }

@@ -20,6 +20,79 @@ namespace StartRide.Core
 
         public bool RemoveModOnLeave { get; set; } = true;
 
+        /// <summary>
+        /// 联机时是否临时隔离第三方联机模组（BeamMP / BeamLink 等）。
+        ///
+        /// 开着时：进联机前把 mods/db.json 里非 StartRide 的模组 active 置 false，
+        /// 退出游戏后按日志原样恢复 —— 只改 active 字段，绝不动模组文件。
+        /// 关掉时：行为和以前一样，只由游戏内模组检测并弹窗提醒。
+        /// </summary>
+        public bool IsolateConflictingMods { get; set; } = true;
+
+        /// <summary>
+        /// 联机时是否在每个远端玩家的车顶显示悬浮名牌（昵称 + 距离）。
+        ///
+        /// 由 Lua 模组在游戏内绘制；启动器只负责把开关和显示距离写进
+        /// <userpath>/startride/multiplayer.json，模组每帧读配置决定画不画。
+        /// </summary>
+        public bool NameTagEnabled { get; set; } = true;
+
+        /// <summary>
+        /// 悬浮名牌的最远显示距离（米）。超出后不再绘制，接近时逐渐淡出。
+        /// </summary>
+        public int NameTagMaxDistance { get; set; } = 300;
+
+        // ------------------------------------------------------------------
+        // 玩法规则（警匪追逐 / 德比 / 捉迷藏）。由 Lua 玩法模块读取，启动器只负责写入。
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// 警匪追逐：警察要贴住强盗多少毫秒才算抓住。
+        /// </summary>
+        public int CaptureHoldMs { get; set; } = 5000;
+
+        /// <summary>
+        /// 警匪追逐：强盗速度低于这个值（米/秒）才算「近乎静止」。
+        /// 抓捕需要「警察贴近」+「强盗近乎静止」两个条件同时成立，
+        /// 否则强盗高速路过警察身边也会涨抓捕进度。
+        /// </summary>
+        public int CaptureStillSpeed { get; set; } = 8;
+
+        /// <summary>
+        /// 德比：车辆累计损伤达到这个值就淘汰。
+        /// </summary>
+        public int DerbyDamageLimit { get; set; } = 8000;
+
+        /// <summary>
+        /// 德比：每局允许的原地复位次数。0 = 不允许复位。
+        /// </summary>
+        public int ResetLimit { get; set; } = 3;
+
+        /// <summary>
+        /// 德比：两次原地复位之间的冷却（毫秒）。
+        /// </summary>
+        public int ResetCooldownMs { get; set; } = 10000;
+
+        /// <summary>
+        /// 捉迷藏：躲藏期时长（秒）。这段时间搜索者被冻结，躲藏者四散藏好。
+        /// </summary>
+        public int HideSeconds { get; set; } = 30;
+
+        /// <summary>
+        /// 捉迷藏：搜索期时长（秒）。归零时还有人没被找到 → 躲藏方获胜。
+        /// </summary>
+        public int HideRoundSeconds { get; set; } = 240;
+
+        /// <summary>
+        /// 捉迷藏：发现半径（米）。搜索者的车进入躲藏者这个范围内开始计时。
+        /// </summary>
+        public int FindRadius { get; set; } = 12;
+
+        /// <summary>
+        /// 捉迷藏：搜索者要贴住躲藏者多少毫秒才算找到。
+        /// </summary>
+        public int FindHoldMs { get; set; } = 2000;
+
         [JsonIgnore]
         public bool PreInstallMod => AutoInstallMod && !RemoveModOnLeave;
 
@@ -113,6 +186,13 @@ namespace StartRide.Core
         /// 扇形广播能撑住的规模（车包是 O(n²) 放大，再多会把中继出口压垮）。
         /// </summary>
         public int LobbyCapacity { get; set; } = 8;
+
+        /// <summary>
+        /// 房主选的玩法模式 id（见 LobbyGameModeCatalog）。
+        /// 房主这一份随房间元数据发到中继并广播，加入者据此显示「本房玩法」。
+        /// 认不出来的值一律由 LobbyGameModeCatalog.Normalize 退回默认玩法，不会炸。
+        /// </summary>
+        public string LobbyGameMode { get; set; } = LobbyGameModeCatalog.DefaultId;
 
         /// <summary>启动游戏前确保 Steam 在运行（决定这段游玩时长会不会被 Steam 记账）。</summary>
         public bool EnsureSteamBeforeLaunch { get; set; } = true;

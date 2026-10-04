@@ -27,7 +27,24 @@ public interface IStartRideLobbyCapacity
 	bool SetCapacity(int capacity);
 }
 
-public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRideLobbyCapacity, IDisposable
+/// <summary>
+/// 「房主可定玩法模式」这条能力的入口，和人数上限同一个理由：
+/// <see cref="IMultiplayerLobbyService"/> 在第三方 DLL 里，加方法要动二进制，
+/// 所以应用侧另开一个小接口，页面按需探测 —— 拿不到就退化成「不支持改玩法」。
+/// </summary>
+public interface IStartRideLobbyGameMode
+{
+	/// <summary>本房玩法模式 id（权威值来自中继快照，房主的本地选择是它的来源）。</summary>
+	string GameModeId { get; }
+
+	/// <summary>玩法规则版本号。</summary>
+	int GameModeRevision { get; }
+
+	/// <summary>房主改玩法；非房主或未连接返回 false。</summary>
+	bool SetGameMode(string modeId);
+}
+
+public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRideLobbyCapacity, IStartRideLobbyGameMode, IDisposable
 {
 	private readonly AppSettings settings = AppState.Current.Settings;
 
@@ -98,6 +115,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		string mapId = ResolveMapId(settings.LobbyMapId);
 		string spawnPoint = ResolveSpawnPoint(mapId, settings.LobbySpawnPoint);
 		int capacity = ClampCapacity(settings.LobbyCapacity);
+		var mode = LobbyGameModeCatalog.Normalize(settings.LobbyGameMode);
 
 		var code = NewRoomCode();
 		var room = new Room
@@ -107,6 +125,8 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			Host = playerName,
 			Map = mapId,
 			Mode = "freeroam",
+			GameMode = mode.Id,
+			GameModeRevision = mode.Revision,
 			Capacity = capacity,
 			Players = 1,
 			Live = true,
@@ -119,7 +139,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		cancellationToken.ThrowIfCancellationRequested();
 
 		// 必须在入房之前设定：入房成功时那条桥消息就带着地图与出生点一起发出去
-		session.ConfigureRoom(mapId, spawnPoint, push: false);
+		session.ConfigureRoom(mapId, spawnPoint, mode.Id, push: false);
 
 		bool connected = await session.CreateRoomAsync(room, playerName).ConfigureAwait(false);
 		if (!connected)
@@ -129,11 +149,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 				"连不上联机中继（" + DescribeError(session.State.LastError) + "）");
 		}
 
-		PersistLobbyChoice(mapId, spawnPoint);
-		MultiplayerSession.WriteGameBootstrap(playerName, code, roomName, mapId, spawnPoint);
+		PersistLobbyChoice(mapId, spawnPoint, mode.Id);
+		MultiplayerSession.WriteGameBootstrap(playerName, code, roomName, mapId, spawnPoint, mode.Id);
 		StartRideMultiplayerRuntime.RoomMapId = mapId;
 
-		PluginLog($"房主已选地图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}，人数上限 {capacity}");
+		PluginLog($"房主已选地图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），玩法 {mode.Title}，出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}，人数上限 {capacity}");
 
 		try
 		{
@@ -183,7 +203,14 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		string mapId = ResolveMapId(room.Map);
 		string spawnPoint = ResolveSpawnPoint(mapId, settings.LobbySpawnPoint);
 
-		session.ConfigureRoom(mapId, spawnPoint, push: false);
+		// 玩法也是房主那份为准。大厅列表没带上玩法时（老房主 / 登记失败），
+		// 退回本机记住的值，至少不会显示成空白；中继快照随后会把它纠正过来。
+		string modeId = LobbyGameModeCatalog.IsKnown(room.GameMode)
+			? LobbyGameModeCatalog.Normalize(room.GameMode).Id
+			: LobbyGameModeCatalog.Normalize(settings.LobbyGameMode).Id;
+		room.GameMode = modeId;
+
+		session.ConfigureRoom(mapId, spawnPoint, modeId, push: false);
 
 		bool connected = await session.JoinRoomAsync(room, this.playerName).ConfigureAwait(false);
 		if (!connected)
@@ -195,11 +222,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 
 		roomName = room.Name;
 
-		PersistLobbyChoice(mapId, spawnPoint);
-		MultiplayerSession.WriteGameBootstrap(this.playerName, room.Id, roomName, mapId, spawnPoint);
+		PersistLobbyChoice(mapId, spawnPoint, modeId);
+		MultiplayerSession.WriteGameBootstrap(this.playerName, room.Id, roomName, mapId, spawnPoint, modeId);
 		StartRideMultiplayerRuntime.RoomMapId = mapId;
 
-		PluginLog($"已进入房主的图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），我的出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}");
+		PluginLog($"已进入房主的图 {mapId}（{BeamNgLevelCatalog.DisplayName(settings, mapId)}），玩法 {LobbyGameModeCatalog.DisplayName(modeId)}，我的出生点 {(spawnPoint.Length > 0 ? spawnPoint : "游戏默认")}");
 
 		try
 		{
@@ -251,6 +278,51 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 
 	/// <summary>人数上限合法区间，与中继 relay-broadcast.js 的 CAPACITY_MIN/MAX 保持一致。</summary>
 	private static int ClampCapacity(int value) => Math.Max(2, Math.Min(16, value));
+
+	/// <summary>本房玩法。权威值来自中继快照；快照还没有时读本机记住的那个。</summary>
+	public string GameModeId =>
+		LobbyGameModeCatalog.IsKnown(session.State.GameMode)
+			? session.State.GameMode
+			: LobbyGameModeCatalog.Normalize(settings.LobbyGameMode).Id;
+
+	public int GameModeRevision =>
+		session.State.GameModeRevision > 0
+			? session.State.GameModeRevision
+			: LobbyGameModeCatalog.Normalize(settings.LobbyGameMode).Revision;
+
+	/// <summary>
+	/// 房主改玩法。走当前隧道发 set-game-mode，中继改元数据后广播新快照，
+	/// 启动器不用重连、房主的车也不会掉 —— 与 SetCapacity 完全同一条路数。
+	/// </summary>
+	public bool SetGameMode(string modeId)
+	{
+		if (!isHost)
+		{
+			return false;
+		}
+
+		var mode = LobbyGameModeCatalog.Normalize(modeId);
+		if (!session.SetGameMode(mode.Id))
+		{
+			PluginLog("修改玩法失败：当前不在房里或中继未连接");
+			return false;
+		}
+
+		// 记住这次选择，下次建房直接沿用
+		try
+		{
+			settings.LobbyGameMode = mode.Id;
+			settings.Save();
+		}
+		catch (Exception exception)
+		{
+			PluginLog("记住玩法选择失败：" + exception.Message);
+		}
+
+		PluginLog("玩法已改为 " + mode.Title);
+		RaiseSnapshotChanged(Publish(MultiplayerLobbyState.Active));
+		return true;
+	}
 
 	public async Task StopAsync(CancellationToken cancellationToken = default)
 	{		string code = current?.RoomCode ?? "";
@@ -442,6 +514,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 
 			await RepairGameConfigAsync().ConfigureAwait(false);
 
+			// 进联机前隔离第三方联机模组：把 mods/db.json 里非 StartRide 的模组
+			// 临时置为不启用，避免对方的远程车实现和我们的抢同一批对象。
+			// 只动 active 字段、只写日志，恢复挂在全局的 AnyGameExited 上（见 AttachModIsolation）。
+			IsolateConflictingMods();
+
 			string? error = launcher.Launch(withMod: false, levelId: mapId);
 			PluginLog(error == null
 				? "已自动启动 BeamNG.drive 并直接进入房间地图"
@@ -452,6 +529,68 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			PluginLog("自动启动游戏异常：" + exception.Message);
 		}
 	}
+
+	/// <summary>
+	/// 隔离第三方联机模组。设置关掉时什么都不做。
+	/// 任何异常都在服务内部被吞掉 —— 隔离失败最多是「带着冲突进游戏」，
+	/// 不能让联机开不起来。
+	/// </summary>
+	private void IsolateConflictingMods()
+	{
+		try
+		{
+			if (!settings.IsolateConflictingMods)
+			{
+				PluginLog("模组隔离：设置已关闭，保持原样");
+				return;
+			}
+
+			var isolation = new ModIsolationService(settings);
+			isolation.Log += PluginLog;
+
+			var isolated = isolation.Isolate();
+			if (isolated.Count > 0)
+			{
+				PluginLog($"模组隔离：已临时关闭 {isolated.Count} 个第三方模组（{string.Join("、", isolated.Take(5))}…）");
+				EnsureModIsolationRestoreHook();
+			}
+		}
+		catch (Exception exception)
+		{
+			PluginLog("模组隔离异常（不影响联机）：" + exception.Message);
+		}
+	}
+
+	/// <summary>
+	/// 把「退出后恢复模组」挂到 <see cref="GameLauncher.AnyGameExited"/> 上一次。
+	///
+	/// ⚠️ 必须挂**全局静态事件**而不是这个服务实例的事件：主页/实例页/托盘
+	/// 各自会 new 自己的 GameLauncher，实例级事件收不到别人起的局结束
+	/// （Steam 时长回读踩过同一个坑）。挂了就不再重复挂。
+	/// </summary>
+	private void EnsureModIsolationRestoreHook()
+	{
+		if (_modIsolationRestoreHooked) return;
+		_modIsolationRestoreHooked = true;
+
+		GameLauncher.AnyGameExited += () =>
+		{
+			try
+			{
+				var isolation = new ModIsolationService(settings);
+				isolation.Log += PluginLog;
+				var restored = isolation.Restore();
+				if (restored.Count > 0)
+					PluginLog($"模组隔离：游戏退出，已恢复 {restored.Count} 个模组");
+			}
+			catch (Exception exception)
+			{
+				PluginLog("模组恢复异常：" + exception.Message);
+			}
+		};
+	}
+
+	private bool _modIsolationRestoreHooked;
 
 	/// <summary>
 	/// 按房间码在大厅列表里找房间（要拿到房主那张图）。
@@ -534,13 +673,14 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		return pick.ObjectName;
 	}
 
-	/// <summary>把这一局选的地图/出生点记到设置里，下次建房直接沿用。</summary>
-	private void PersistLobbyChoice(string mapId, string spawnPoint)
+	/// <summary>把这一局选的地图/出生点/玩法记到设置里，下次建房直接沿用。</summary>
+	private void PersistLobbyChoice(string mapId, string spawnPoint, string gameMode = "")
 	{
 		try
 		{
 			settings.LobbyMapId = mapId;
 			settings.LobbySpawnPoint = spawnPoint;
+			if (gameMode.Length > 0) settings.LobbyGameMode = LobbyGameModeCatalog.Normalize(gameMode).Id;
 			settings.Save();
 		}
 		catch (Exception exception)
@@ -828,6 +968,8 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 				lastError = state.LastError,
 				map = session.MapId,
 				spawnPoint = session.SpawnPoint,
+				gameMode = session.GameModeId,
+				gameModeRevision = state.GameModeRevision,
 				updatedAt = DateTimeOffset.Now.ToString("o"),
 			};
 
