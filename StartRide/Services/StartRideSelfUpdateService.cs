@@ -223,7 +223,8 @@ namespace StartRide.Services
             {
                 Uri uri = new Uri(url, UriKind.Absolute);
                 string host = uri.Host.ToLowerInvariant();
-                return host.EndsWith("windseek.cloud", StringComparison.Ordinal)
+                return host.EndsWith("cloudfurhub.cn", StringComparison.Ordinal)
+                    || host.EndsWith("windseek.cloud", StringComparison.Ordinal)
                     || host.EndsWith("startride.top", StringComparison.Ordinal);
             }
             catch

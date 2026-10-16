@@ -52,7 +52,7 @@ namespace StartRide.Core
     {
         private const string BaseUrl = "https://www.beamng.com/resources/";
 
-        private const string RelayBase = "https://windseek.cloud/api/startride/repo";
+        private const string RelayBase = "https://cloudfurhub.cn/api/startride/repo";
 
         private static volatile bool directBeamNgReachable;
 

@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace StartRide.Core
 {
@@ -306,8 +307,12 @@ namespace StartRide.Core
             string text = File.ReadAllText(DbPath, new UTF8Encoding(false));
             var utf8NoBom = new UTF8Encoding(false);
 
-            string from = enable ? "\"active\":false" : "\"active\":true";
-            string to = enable ? "\"active\":true" : "\"active\":false";
+            // 只换布尔字面量本身 —— 冒号后有没有空格都能认。
+            // BeamNG 自己写的是紧凑写法 `"active":false`，但文件一旦被别的工具
+            // （或 .NET 的 WriteIndented）重排过就会变成 `"active": false`，
+            // 老写法在这种情况下会一条也匹配不上（隔离/恢复静默失效）。
+            string from = enable ? "false" : "true";
+            string to = enable ? "true" : "false";
 
             // 收集 (start, end, newText)，统一从后往前应用，避免偏移失效。
             var edits = new List<(int Start, int End, string New)>();
@@ -315,17 +320,33 @@ namespace StartRide.Core
             {
                 if (string.IsNullOrEmpty(key)) continue;
 
+                // 先按 BeamNG 自己的紧凑写法定位；找不到再容忍 `"key": {`。
+                // ⚠️ 不兼容后一种的话，这个模组会被**静默跳过** ——
+                //    玩家看到的现象就是「模组禁用不稳定，有的就是关不掉」。
                 string marker = "\"" + key + "\":{";
                 int i = text.IndexOf(marker, StringComparison.Ordinal);
-                if (i < 0) continue;
+                int braceAt;
+                if (i >= 0)
+                {
+                    braceAt = i + marker.Length - 1;
+                }
+                else
+                {
+                    var keyMatch = Regex.Match(text, "\"" + Regex.Escape(key) + "\"\\s*:\\s*\\{");
+                    if (!keyMatch.Success) continue;
+                    i = keyMatch.Index;
+                    braceAt = keyMatch.Index + keyMatch.Length - 1;
+                }
 
-                int end = FindObjectEnd(text, i + marker.Length - 1);
+                int end = FindObjectEnd(text, braceAt);
                 if (end < 0) continue;
 
                 string seg = text.Substring(i, end - i);
-                int at = seg.IndexOf(from, StringComparison.Ordinal);
-                if (at < 0) continue;
-
+                // 只认「"active" 键 + 可空白 + 冒号 + 可空白 + 布尔字面量」，
+                // 且字面量后面不能再跟字母数字（避免误匹配 "activex" / "trueish"）。
+                var match = Regex.Match(seg, "\"active\"\\s*:\\s*" + from + "(?![A-Za-z0-9_])");
+                if (!match.Success) continue;
+                int at = match.Index + match.Length - from.Length;
                 string segNew = seg.Remove(at, from.Length).Insert(at, to);
                 edits.Add((i, end, segNew));
             }

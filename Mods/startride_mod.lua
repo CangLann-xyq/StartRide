@@ -61,6 +61,35 @@ local roomInfo = { name = '', count = 0, capacity = 0, host = '', closed = false
 local chat = {}
 local playerName = 'Player'
 
+local lod = {
+  at = -100,
+  interval = 0.25,
+  nearDist2 = 90 * 90,
+  midDist2 = 260 * 260,
+  nearPerClient = 24,
+  nearMin = 2,
+  nearMax = 5,
+  midMul = 3,
+  midMax = 12,
+  list = {},
+  near = 0,
+  mid = 0,
+  far = 0,
+  mem = {
+    at = -100,
+    availMB = nil,
+    level = 0,
+    probe = nil,
+    was = 0,
+    shrinkAt = -100,
+    shrinkGap = 5,
+    keepCars = 3,
+    floorMB = 1400,
+    criticalMB = 600,
+    readGap = 1.5,
+  },
+}
+
 local playerId = nil
 local function myId()
   if playerId and playerId ~= '' then return playerId end
@@ -121,6 +150,7 @@ local srHide = {
 local srCast = {
   phase    = '',
   derbyDown = '',   -- 本机「已被淘汰」是否已广播过（''/'0'/'1'）
+  scoreReset = false, -- 积分需要清账（会话结束/换房间），由 HUD 帧统一执行
 }
 
 
@@ -132,7 +162,7 @@ local srCast = {
 local relayState = 'unknown'
 local relayDetail = ''
 local relayRoomId = ''
-local statGameIn, statRelayOut, statRelayIn, statRelayVehicle = 0, 0, 0, 0
+local statGameIn, statRelayOut, statRelayIn, statRelayVehicle, statGameOut = 0, 0, 0, 0, 0
 local remotePacketCount = 0
 -- 被当成「自己发的」而丢掉的包数。这个数 >0 且远程车一直是 0，
 -- 基本就能判定是两端 ID 撞了（重名玩家），而不是网络问题。
@@ -445,6 +475,8 @@ local function despawnRemote(rec)
   local veh = rec.veh
   rec.veh = nil
   rec.veReady = nil
+  rec.lodTier = nil
+  rec.mbAt = nil
   if not veh then return end
   pcall(function() veh:delete() end)
   
@@ -670,6 +702,9 @@ local function onRemoteVehiclePacket(data)
   end
 
   rec.lastSeen = timeAccum
+  rec.px = data.pos[1]
+  rec.py = data.pos[2]
+  rec.pz = data.pos[3]
   if data.name then rec.name = data.name end
   
   if data.model and data.model ~= '' and rec.model ~= data.model then rec.model = data.model end
@@ -677,6 +712,7 @@ local function onRemoteVehiclePacket(data)
   
   
   if not rec.veh then
+    if lod.mem.level >= 2 then return end
     if timeAccum >= rec.nextTryAt and (timeAccum - lastSpawnTryAt) >= MIN_SPAWN_GAP then
       lastSpawnTryAt = timeAccum
       local okSpawn = spawnRemote(rec, id, data)
@@ -694,6 +730,12 @@ local function onRemoteVehiclePacket(data)
     end
     if not rec.veh then return end
   end
+
+  local gap = 0
+  if rec.lodTier == 0 then gap = 0.3
+  elseif rec.lodTier == 1 then gap = 0.1 end
+  if gap > 0 and (timeAccum - (rec.mbAt or -100)) < gap then return end
+  rec.mbAt = timeAccum
 
   local ok, js = pcall(jsonEncode, {
     pos = data.pos,
@@ -855,9 +897,170 @@ local function getPlayerVeh()
   return nil
 end
 
+lod.memRead = function()
+  if lod.mem.probe == nil then
+    lod.mem.probe = false
+    pcall(function()
+      ffi.cdef[[
+        typedef struct {
+          uint32_t dwLength;
+          uint32_t dwMemoryLoad;
+          uint64_t ullTotalPhys;
+          uint64_t ullAvailPhys;
+          uint64_t ullTotalPageFile;
+          uint64_t ullAvailPageFile;
+          uint64_t ullTotalVirtual;
+          uint64_t ullAvailVirtual;
+          uint64_t ullAvailExtendedVirtual;
+        } SRMEMSTATUSEX;
+        int32_t GlobalMemoryStatusEx(SRMEMSTATUSEX *lpBuffer);
+      ]]
+      lod.mem.probe = ffi.load('kernel32')
+    end)
+  end
+  if not lod.mem.probe then return nil end
+  local out = nil
+  pcall(function()
+    local st = ffi.new('SRMEMSTATUSEX')
+    st.dwLength = ffi.sizeof(st)
+    if lod.mem.probe.GlobalMemoryStatusEx(st) ~= 0 then
+      out = tonumber(st.ullAvailPhys) / 1048576
+    end
+  end)
+  return out
+end
+
+lod.memTick = function()
+  if timeAccum - lod.mem.at < lod.mem.readGap then return end
+  lod.mem.at = timeAccum
+  local mb = lod.memRead()
+  lod.mem.availMB = mb
+  local lv = 0
+  if mb then
+    if mb < lod.mem.criticalMB then lv = 2
+    elseif mb < lod.mem.floorMB then lv = 1 end
+  end
+  if lv == lod.mem.level then return end
+  local was = lod.mem.level
+  lod.mem.level = lv
+  lod.mem.was = was
+  local text = nil
+  if lv == 2 then
+    text = '内存危急：暂停生成新车辆，并回收最远的远程车'
+  elseif lv == 1 then
+    text = '内存吃紧：远处车辆已降为简化模拟'
+  elseif was >= 1 then
+    text = '内存已恢复，远程车回到满档模拟'
+  end
+  if text then
+    table.insert(chat, { name = 'system', text = text })
+    chatScrollToBottom = true
+    logMsg('内存阀值 ' .. tostring(lv) .. '（可用 ' ..
+      string.format('%.0f', mb or -1) .. ' MB）')
+  end
+end
+
+lod.memBudget = function(near, mid)
+  if lod.mem.level >= 1 then
+    near = 1
+    mid = math.max(1, math.floor(mid / 2))
+  end
+  if lod.mem.level >= 2 then mid = 1 end
+  return near, mid
+end
+
+lod.budget = function(n)
+  local near = math.ceil(lod.nearPerClient / n)
+  if near < lod.nearMin then near = lod.nearMin end
+  if near > lod.nearMax then near = lod.nearMax end
+  local mid = near * lod.midMul
+  if mid > lod.midMax then mid = lod.midMax end
+  return near, mid
+end
+
+lod.pick = function(d2, rank, near, mid, cur)
+  local t = 0
+  if rank <= near and d2 <= lod.nearDist2 then
+    t = 2
+  elseif rank <= mid and d2 <= lod.midDist2 then
+    t = 1
+  end
+  if cur then
+    if cur == 2 and t == 1 and d2 <= lod.nearDist2 * 1.25 then
+      t = 2
+    elseif cur >= 1 and t == 0 and d2 <= lod.midDist2 * 1.25 then
+      t = cur
+    end
+  end
+  return t
+end
+
+local function lodTick()
+  lod.memTick()
+  if timeAccum - lod.at < lod.interval then return end
+  lod.at = timeAccum
+
+  local veh = getPlayerVeh()
+  if not veh then return end
+  local mx, my, mz = nil, nil, nil
+  pcall(function()
+    local p = veh:getPosition()
+    mx, my, mz = p.x, p.y, p.z
+  end)
+  if not mx then return end
+
+  local list = lod.list
+  for i = #list, 1, -1 do list[i] = nil end
+  for id, rec in pairs(remoteVehicles) do
+    if rec.veh and rec.veReady and rec.px then
+      local dx, dy, dz = rec.px - mx, rec.py - my, rec.pz - mz
+      list[#list + 1] = { id = id, d2 = dx * dx + dy * dy + dz * dz }
+    end
+  end
+
+  local n = #list
+  if n == 0 then
+    lod.near, lod.mid, lod.far = 0, 0, 0
+    return
+  end
+  table.sort(list, function(a, b) return a.d2 < b.d2 end)
+
+  local near, mid = lod.memBudget(lod.budget(n))
+
+  if lod.mem.level >= 2 and n > lod.mem.keepCars
+    and (timeAccum - lod.mem.shrinkAt) > lod.mem.shrinkGap then
+    lod.mem.shrinkAt = timeAccum
+    local victim = remoteVehicles[list[n].id]
+    if victim and victim.veh then
+      despawnRemote(victim)
+      logMsg('内存危急：回收最远的远程车 ' .. tostring(victim.name))
+    end
+  end
+
+  local cn, cm, cf = 0, 0, 0
+  for i = 1, n do
+    local e = list[i]
+    local rec = remoteVehicles[e.id]
+    if rec and rec.veh then
+      local cur = rec.lodTier
+      local t = lod.pick(e.d2, i, near, mid, cur)
+      if cur ~= t then
+        rec.lodTier = t
+        pcall(function() rec.veh:queueLuaCommand('startrideVE.setLodTier(' .. t .. ')') end)
+      end
+      if t == 2 then cn = cn + 1
+      elseif t == 1 then cm = cm + 1
+      else cf = cf + 1 end
+    end
+  end
+  lod.near, lod.mid, lod.far = cn, cm, cf
+end
+
 local function sendLocalVehicle()
   local veh = getPlayerVeh()
   if not veh then return end
+
+  lodTick()
 
   local pos, rot, vel, jbeam = nil, nil, nil, nil
   pcall(function() pos = veh:getPosition() end)
@@ -1251,6 +1454,8 @@ local function onPacket(data)
 
   elseif data.type == 'room-closed' then
     roomInfo.closed = true
+    -- 会话结束 -> 积分清账（这里只打标记，真正 reset 在 HUD 帧里做）
+    srCast.scoreReset = true
     table.insert(chat, { name = 'system', text = '房主已关闭房间，联机已结束' })
     chatScrollToBottom = true
     for id, rec in pairs(remoteVehicles) do
@@ -1291,6 +1496,24 @@ local function onPacket(data)
       SRHide.applyRemoteFoundList(data.found, data.roles)
     end
 
+  elseif data.type == 'hide-seek-skill' then
+    if SRHide then SRHide.applyRemoteSkill(data.id, data.skill) end
+
+  elseif data.type == 'mode-sync' then
+    if SRMode then SRMode.applyHostSync(data) end
+
+  elseif data.type == 'mode-impact' then
+    if SRMode then
+      SRMode.noteRemoteImpact(data.id, data.target, data.damage, data.speed)
+    end
+
+  elseif data.type == 'derby-damage' then
+    if SRMode then
+      local pid = tostring(data.id or '')
+      if pid == '' and data.playerName then pid = tostring(data.playerName) end
+      SRMode.noteRemoteDamage(pid, data.damage)
+    end
+
   elseif data.type == 'derby-down' then
     -- 远端玩家报告「我被撞毁了」：房主替他记账，否则回合永远结算不了
     if SRMode then
@@ -1316,7 +1539,10 @@ local function onPacket(data)
   elseif data.type == 'relay-state' then
     relayState = data.state or 'unknown'
     relayDetail = data.detail or ''
-    if data.roomId then relayRoomId = data.roomId end
+    if data.roomId and data.roomId ~= relayRoomId then
+      relayRoomId = data.roomId
+      srCast.scoreReset = true
+    end
 
     if data.playerId and data.playerId ~= '' and data.playerId ~= playerId then
       playerId = data.playerId
@@ -1333,6 +1559,7 @@ local function onPacket(data)
     statRelayOut = tonumber(data.relayOut) or 0
     statRelayIn = tonumber(data.relayIn) or 0
     statRelayVehicle = tonumber(data.relayVehicle) or 0
+    statGameOut = tonumber(data.gameOut) or 0
     if data.relayConnected ~= nil then
       relayState = (tonumber(data.relayConnected) == 1) and 'connected' or 'disconnected'
     end
@@ -2385,6 +2612,14 @@ local function panelStatus()
   kvRow('人数', tostring(roomInfo.count) .. ' / ' .. tostring(roomInfo.capacity > 0 and roomInfo.capacity or '?'))
   kvRow('玩法', gameModeInfo(roomInfo.gameMode).title)
   kvRow('远程车辆', tostring(countRemote()) .. ' / ' .. tostring(MAX_REMOTE))
+  kvRow('本机承担', string.format('全速 %d / 简化 %d / 休眠 %d', lod.near, lod.mid, lod.far))
+  if lod.mem.availMB then
+    local memNote = ''
+    if lod.mem.level == 2 then memNote = '（危急：已收缩）'
+    elseif lod.mem.level == 1 then memNote = '（吃紧：已收缩）' end
+    kvRow('可用内存', string.format('%.0f MB%s', lod.mem.availMB, memNote),
+      lod.mem.level > 0 and C.warn or C.text)
+  end
   
   local slMap = localMap ~= '' and (string.match(localMap, '[^/]+$') or localMap) or '-'
   local mismatch = (localMap ~= '' and peerMap ~= '' and peerMap ~= localMap)
@@ -2401,6 +2636,15 @@ local function panelStatus()
   kvRow('转发到中继 /10秒', tostring(statRelayOut), statRelayOut > 0 and C.ok or C.danger)
   kvRow('中继下行 /10秒', tostring(statRelayIn), statRelayIn > 0 and C.ok or C.danger)
   kvRow('远程车辆包 /10秒', tostring(statRelayVehicle), statRelayVehicle > 0 and C.ok or C.danger)
+  kvRow('玩法下行 /10秒', tostring(statGameOut), statGameOut > 0 and C.ok or C.danger)
+  -- 玩法积分（本机）：HUD 上是常驻小卡，这里给一份带累计的，便于排障核对
+  local pkgScore = package.loaded['startrideScore']
+  if type(pkgScore) == 'table' then
+    local scSnap = pkgScore.snapshot()
+    kvRow('玩法积分（本机）',
+      tostring(scSnap.total or 0) .. '  上局 +' .. tostring(scSnap.gain or 0),
+      (scSnap.gain or 0) > 0 and C.ok or C.dim)
+  end
   kvRow('累计收到远程包', tostring(remotePacketCount), remotePacketCount > 0 and C.ok or C.dim)
   kvRow('生成车辆 成功/失败', tostring(spawnOkCount) .. ' / ' .. tostring(spawnFailCount),
     spawnFailCount > 0 and C.warn or C.ok)
@@ -2603,6 +2847,17 @@ local function handleKeys()
     pcall(function() tab = im.IsKeyPressed(im.Key_Tab) end)
     if tab then playerListOpen[0] = not playerListOpen[0] end
 
+    local skillKey = false
+    pcall(function()
+      if im.Key_H ~= nil and im.Key_LeftAlt ~= nil then
+        skillKey = im.IsKeyDown(im.Key_LeftAlt) and im.IsKeyPressed(im.Key_H)
+      end
+    end)
+    if skillKey and SRHide and roomInfo.gameMode == 'hide_seek' then
+      local ok, msg = SRHide.useSkill()
+      srToast((ok == true and '技能：' or '技能不可用：') .. tostring(msg or ''))
+    end
+
     local tDown = false
     pcall(function() tDown = im.IsKeyDown(im.Key_T) end)
     if not chatFocused and not keyHeld.t and tDown then
@@ -2689,6 +2944,13 @@ function M.srDebugSetMode(md)
   if type(md) == 'string' and md ~= '' then roomInfo.gameMode = md end
 end
 
+M.srDebugLod = lod
+M.srDebugLodPick = lod.pick
+M.srDebugLodBudget = lod.budget
+M.srDebugLodMemBudget = lod.memBudget
+M.srDebugLodMem = lod.mem
+M.srDebugLodMemTick = lod.memTick
+
 function M.srDebugSpawnState()
   local st = (SRSpawn and SRSpawn.placeState) and SRSpawn.placeState() or {}
   return {
@@ -2722,6 +2984,22 @@ local function announcePhaseCues()
     if not SRHide then return end
   else
     if not SRMode then return end
+  end
+
+  -- 撞击提示：不走 srAnnouncedKey 去重，每帧都要查
+  if not isHide then
+    local hit = SRMode.takeHitNotice and SRMode.takeHitNotice() or nil
+    if type(hit) == 'table' then
+      if hit.wrecked then
+        srToast('车辆已报废 —— 等待本局结束', 4)
+      elseif hit.self then
+        srToast('被 ' .. tostring(hit.name or '对手') .. ' 撞了（'
+          .. string.format('%.0f', tonumber(hit.speed) or 0) .. ' m/s）', 3)
+      else
+        srToast('撞击 ' .. tostring(hit.name or '对手') .. '（'
+          .. string.format('%.0f', tonumber(hit.speed) or 0) .. ' m/s）', 2)
+      end
+    end
   end
 
   local ph, round
@@ -2791,7 +3069,9 @@ local function announcePhaseCues()
         srToast('回合结束', 5)
       end
     elseif snap and snap.winner and snap.winner ~= '' then
-      srToast('回合结束 —— 胜者：' .. tostring(snap.winner), 6)
+      local tail = (snap.finishReason == 'time_up' and '（撑满全场）')
+        or (snap.finishReason == 'last_standing' and '（最后幸存）') or ''
+      srToast('回合结束 —— 胜者：' .. tostring(snap.winner) .. tail, 6)
     else
       srToast('回合结束', 5)
     end
@@ -2827,6 +3107,20 @@ local srRef = {
 local function drawModeHud()
   if not SRHud then return end
 
+  -- 玩法积分模块：**惰性取，不加顶层 local**。
+  -- ⚠️ 主模组顶层 local 已经顶到 Lua 的 200 上限，再加一个就是编译期
+  --    "too many local variables"，整块扩展直接不加载（不是运行时错误）。
+  --    package.loaded 里的缓存就是模块本体，取它零成本。
+  local sscore = package.loaded['startrideScore']
+  if type(sscore) ~= 'table' then
+    local okm, m = pcall(require, 'startrideScore')
+    if okm and type(m) == 'table' then sscore = m end
+  end
+  if srCast.scoreReset and sscore then
+    srCast.scoreReset = false
+    pcall(sscore.reset)
+  end
+
   -- 捉迷藏走 SRHide 的快照，其余玩法走 SRMode 的。
   -- 两边的 mode() 都取自同一个 roomInfo.gameMode，所以不会打架。
   local snap, extra = nil, { winnerName = '' }
@@ -2857,6 +3151,37 @@ local function drawModeHud()
   -- 强盗端：最近的警察威胁（距离/方位/强度/已被贴住多久）
   if snap.mode == 'cops_robber' and snap.role == 'robber' then
     snap.threat = SRMode.robberThreat()
+  end
+
+  -- 德比结算：排行需要全员车损，只能在此时拉一次
+  if snap.mode == 'derby' and snap.phase == 'finished' then
+    extra.derbyOrder = SRMode.derbyResults()
+  end
+
+  -- 玩法积分：结算画面会停留好几秒，这里是每帧都会经过的路径，
+  -- settle 内部按 roundKey 幂等，重复调用不会再加分。
+  if type(sscore) == 'table' then
+    local smod = isHide and SRHide or SRMode
+    if snap.phase == 'finished' and smod then
+      pcall(sscore.settle, {
+        mode = snap.mode,
+        round = snap.round,
+        -- 本局身份（秒级时刻），积分模块拿它做幂等键避免局号复用时漏计。
+        phaseAt = snap.phaseAt,
+        selfId = myId(),
+        winner = snap.winner,
+        reason = snap.reason,
+        finishReason = snap.finishReason,
+        roster = smod.roster(),
+        roles = smod.roles(),
+        stats = {
+          captureBy = snap.captureBy,
+          escapedBy = snap.escapedBy,
+          derby = (snap.mode == 'derby') and SRMode.derbyResults() or nil,
+        },
+      })
+    end
+    snap.score = sscore.snapshot()
   end
 
   SRHud.render(snap, extra)
@@ -2991,6 +3316,17 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
     end
   end
 
+  if SRMode then
+    safeCall('srModeHostSync', function()
+      local t = SRMode.hostSync and SRMode.hostSync() or nil
+      if type(t) == 'table' then
+        t.type = 'mode-sync'
+        queuePacket(t)
+        flushOut()
+      end
+    end)
+  end
+
   -- 德比：本机被撞毁 → 广播一次（房主与加入者都要发）
   --
   -- 为什么要发：房主靠「roster 里只剩 1 人」结算，而 S.eliminated 原本只写本机
@@ -3007,6 +3343,22 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
     end)
   else
     srCast.derbyDown = ''
+  end
+
+  if SRMode and roomInfo.gameMode == 'derby' then
+    safeCall('srDerbyReport', function()
+      local dmg = SRMode.needDamageReport and SRMode.needDamageReport() or nil
+      if dmg then
+        queuePacket({ type = 'derby-damage', id = myId(), damage = dmg })
+        flushOut()
+      end
+      local p = SRMode.takeImpactPacket and SRMode.takeImpactPacket() or nil
+      if type(p) == 'table' then
+        queuePacket({ type = 'mode-impact', id = myId(), target = p.target,
+                      damage = math.floor(tonumber(p.damage) or 0), speed = p.speed })
+        flushOut()
+      end
+    end)
   end
 
   -- 捉迷藏：房主推「阶段 + 局内阶段 + 发现进度」
@@ -3048,6 +3400,17 @@ local function onUpdateRaw(dtReal, dtSim, dtRaw)
           })
           flushOut()
         end
+      end
+    end)
+  end
+
+  -- 捉迷藏技能：本机按 Alt+H 用过技能 → 广播一次（脱困/标记要让别人也看见）
+  if SRHide then
+    safeCall('srHideSkillCast', function()
+      local p = SRHide.takeSkillPacket and SRHide.takeSkillPacket() or nil
+      if type(p) == 'table' then
+        queuePacket({ type = 'hide-seek-skill', id = p.id, skill = p.skill })
+        flushOut()
       end
     end)
   end

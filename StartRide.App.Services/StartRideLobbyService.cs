@@ -90,6 +90,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		session = new MultiplayerSession(settings);
 		session.StateChanged += OnSessionStateChanged;
 		session.Notice += OnSessionNotice;
+		session.RoomClosed += OnHostClosedRoom;
 		session.Log += PluginLog;
 
 		try
@@ -366,7 +367,85 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		StartRideMultiplayerRuntime.RoomMapId = "";
 		MultiplayerSession.ClearGameBootstrap();
 		RemoveModIfNeeded();
+		RestoreModIsolationIfSafe();
 		RaiseStopped(MultiplayerLobbyStopReason.UserRequested);
+	}
+
+	/// <summary>
+	/// 退出房间 / 解散房间时把被隔离的模组还给玩家（用户要求：解散/退出的流程里就恢复）。
+	///
+	/// 但**游戏还在跑时不能动 db.json**（BeamNG 退出时会整份写回，改了也白改），
+	/// 这种情况交给 AnyGameExited 的钩子 —— 游戏一退就恢复。
+	/// 幂等：没有待恢复日志时直接返回。
+	/// </summary>
+	private void RestoreModIsolationIfSafe()
+	{
+		try
+		{
+			var isolation = new ModIsolationService(settings);
+			isolation.Log += PluginLog;
+			if (!isolation.HasPendingJournal)
+			{
+				return;
+			}
+
+			if (SafeIsGameRunning())
+			{
+				PluginLog("模组隔离：游戏仍在运行，退出房间先不恢复（游戏一退出会自动恢复）");
+				return;
+			}
+
+			var restored = isolation.Restore();
+			if (restored.Count > 0)
+			{
+				PluginLog($"模组隔离：退出房间，已恢复 {restored.Count} 个模组");
+			}
+		}
+		catch (Exception exception)
+		{
+			PluginLog("模组恢复异常（可在模组管理里手动开启）：" + exception.Message);
+		}
+	}
+
+	/// <summary>
+	/// 进联机前把「限制游戏内存」的上限纠到安全值。
+	///
+	/// 实证（2026-10-04 真实联机日志）：上限 4096 MB 时 BeamNG 加载完地图、
+	/// 刚进世界十几秒就报 mimalloc `error 1455`（ERROR_COMMITMENT_LIMIT）或
+	/// D3D12 `Fatal-ISV - The GPU crashed` 退出。启动器侧只看到「游戏已退出」，
+	/// 玩家侧看到的就是「各种玩法都看不到别人 / 一会儿就闪退」。
+	/// 这里提前把话说明白，并把设置自动改回安全值，免得玩家反复踩。
+	/// </summary>
+	private void EnsureMemoryLimitSane()
+	{
+		try
+		{
+			if (!settings.LimitGameMemory) return;
+
+			int mb = settings.MaxMemoryMB;
+			if (mb <= 0) return;
+
+			// GameLauncher 里已经钳过一次；这里把**持久化的设置**也纠正过来，
+			// 否则设置页会一直显示那个会崩的值，玩家下次手动启动还会踩。
+			int safeMb = JobMemoryLimiter.ResolveSafeLimitMb(mb);
+			if (safeMb == mb) return;
+
+			settings.MaxMemoryMB = safeMb;
+			settings.Save();
+			PluginLog($"内存上限 {mb} MB 过低，已自动调整为 {safeMb} MB（过低会让游戏进图时因内存不足崩溃）");
+			try
+			{
+				AppState.Current.Notify(
+					$"游戏内存上限（{mb} MB）太低，进图时很可能直接崩溃退出。已自动调整为 {safeMb} MB。");
+			}
+			catch
+			{
+			}
+		}
+		catch (Exception exception)
+		{
+			PluginLog("内存上限检查异常：" + exception.Message);
+		}
 	}
 
 	private async Task EnsureGameReadyAsync()
@@ -389,6 +468,15 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		{
 			await RepairGameConfigAsync().ConfigureAwait(false);
 		}
+
+		// 进联机前隔离第三方模组。⚠️ 必须放在这里，不能放在 LaunchGameIfNeededAsync：
+		// 那条路被「自动启动游戏」开关和「游戏已在运行」两个 early-return 挡着，
+		// 玩家手动开游戏 / 关掉自动启动时就**永远不隔离** —— 实测就是这样：
+		// BeamMP 一直开着，它接管/删掉我们生成的远程车，于是所有玩法都看不见别人。
+		IsolateConflictingMods(gameRunning);
+
+		// 内存上限过低同样会让「联机看不到别人」—— 游戏进图十几秒后 OOM 自杀。
+		EnsureMemoryLimitSane();
 
 		if (string.IsNullOrWhiteSpace(settings.GameDirectory) || !Directory.Exists(settings.GameDirectory))
 		{
@@ -517,8 +605,6 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			// 进联机前隔离第三方联机模组：把 mods/db.json 里非 StartRide 的模组
 			// 临时置为不启用，避免对方的远程车实现和我们的抢同一批对象。
 			// 只动 active 字段、只写日志，恢复挂在全局的 AnyGameExited 上（见 AttachModIsolation）。
-			IsolateConflictingMods();
-
 			string? error = launcher.Launch(withMod: false, levelId: mapId);
 			PluginLog(error == null
 				? "已自动启动 BeamNG.drive 并直接进入房间地图"
@@ -535,7 +621,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 	/// 任何异常都在服务内部被吞掉 —— 隔离失败最多是「带着冲突进游戏」，
 	/// 不能让联机开不起来。
 	/// </summary>
-	private void IsolateConflictingMods()
+	private void IsolateConflictingMods(bool gameRunning)
 	{
 		try
 		{
@@ -548,11 +634,32 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			var isolation = new ModIsolationService(settings);
 			isolation.Log += PluginLog;
 
+			// ⚠️ 游戏在跑时**绝不能**动 mods/db.json：
+			//   BeamNG 只在启动时读它、退出时又整份写回 ——
+			//   运行中改既不会生效（这一局读的是旧内容），
+			//   还会被游戏退出时的写回覆盖掉，白折腾还可能把它搞崩。
+			//   所以这种情况只明确提示玩家，不假装隔离成功。
+			if (gameRunning)
+			{
+				PluginLog("模组隔离：游戏已在运行，本次无法隔离（要退出游戏后从启动器重新进房才生效）");
+				try
+				{
+					AppState.Current.Notify("游戏已经在运行，本次进房没法隔离第三方联机模组 —— 如果看不到其他玩家，请退出游戏后从启动器重新进入房间。");
+				}
+				catch
+				{
+				}
+				return;
+			}
+
+			// 恢复钩子无条件挂上：哪怕这次没有可隔离的模组，
+			// 也要保证「上一次没恢复干净的日志」能在游戏退出时被收掉。
+			EnsureModIsolationRestoreHook();
+
 			var isolated = isolation.Isolate();
 			if (isolated.Count > 0)
 			{
 				PluginLog($"模组隔离：已临时关闭 {isolated.Count} 个第三方模组（{string.Join("、", isolated.Take(5))}…）");
-				EnsureModIsolationRestoreHook();
 			}
 		}
 		catch (Exception exception)
@@ -590,7 +697,9 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		};
 	}
 
-	private bool _modIsolationRestoreHooked;
+	// ⚠️ 必须是 static：AnyGameExited 是**静态**事件，而本服务实例会被反复新建，
+	// 用实例标记会让每次新建都再挂一个处理器，退出时恢复跑好几遍。
+	private static bool _modIsolationRestoreHooked;
 
 	/// <summary>
 	/// 按房间码在大厅列表里找房间（要拿到房主那张图）。
@@ -793,6 +902,37 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		RaiseStopped(MultiplayerLobbyStopReason.TerracottaServiceFailed);
 	}
 
+	/// <summary>
+	/// 房主解散房间（中继广播 room-closed）时**立刻**收尾。
+	///
+	/// 为什么不能沿用断线宽限：房主关房是一个明确的结束信号，不是网络抖动。
+	/// 原来这条消息只弹一句提示再 LeaveRoomAsync()，之后走 30 秒宽限 ——
+	/// 而宽限期间中继只要恢复一次就会被取消（真实日志里就有
+	/// 「中继已恢复，房间继续」），房间于是永远不结束，被隔离的第三方模组
+	/// 也就一直不还给玩家。用户的要求是「解散房间时房间里所有玩家的模组
+	/// 都自动恢复」，所以这里直接走 StopAsync（它内部负责恢复模组）。
+	/// </summary>
+	private void OnHostClosedRoom()
+	{
+		if (disposed) return;
+		if (current == null) return; // 已经退过房间了，幂等
+
+		PluginLog("房主已解散房间，正在退出并恢复模组");
+		_ = StopAfterHostClosedAsync();
+	}
+
+	private async Task StopAfterHostClosedAsync()
+	{
+		try
+		{
+			await StopAsync().ConfigureAwait(false);
+		}
+		catch (Exception exception)
+		{
+			PluginLog("解散房间收尾异常：" + exception.Message);
+		}
+	}
+
 	private void OnSessionNotice(string level, string text)
 	{
 		PluginLog($"[{level}] {text}");
@@ -821,9 +961,12 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 	private MultiplayerLobbySnapshot Publish(MultiplayerLobbyState state)
 	{
 		var state2 = session.State;
-		var names = state2.Players.Count > 0
-			? new List<string>(state2.Players)
-			: new List<string> { playerName };
+		// ⚠️ 必须用线程安全快照：State.Players 会在中继接收线程上被整体换内容，
+		//    在这里直接 new List<string>(state2.Players) 会和 Clear/Add 撞车 ——
+		//    List<T> 并发枚举会抛 ArgumentException（源数组不够长）/
+		//    InvalidOperationException（集合已被修改），表现为大厅面板偶发崩。
+		var names = session.CopyPlayers();
+		if (names.Count == 0) names = new List<string> { playerName };
 
 		var players = new List<MultiplayerLobbyPlayer>(names.Count);
 		foreach (var name in names)
@@ -962,7 +1105,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 				gameConnected = state.GameConnected,
 				playerCount = state.PlayerCount,
 				capacity = state.Capacity,
-				players = state.Players,
+				players = session.CopyPlayers(),
 				remoteVehicles = state.RemoteVehicles,
 				vehiclePackets = state.VehiclePackets,
 				lastError = state.LastError,
@@ -1004,6 +1147,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		}
 		session.StateChanged -= OnSessionStateChanged;
 		session.Notice -= OnSessionNotice;
+		session.RoomClosed -= OnHostClosedRoom;
 		session.Dispose();
 	}
 }

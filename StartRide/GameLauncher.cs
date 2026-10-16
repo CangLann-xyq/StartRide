@@ -605,11 +605,21 @@ namespace StartRide.Core
                 int mb = _settings.MaxMemoryMB;
                 if (mb <= 0) return;
 
-                _memoryLimit = JobMemoryLimiter.Apply(_process, mb);
-                AppliedMemoryLimitMb = _memoryLimit != null ? mb : 0;
+                // 保命钳制：过低的上限会让 BeamNG 进图时 OOM 自杀
+                //（实测 4096 MB -> mimalloc error 1455 / D3D12 Fatal-ISV，
+                //  现象就是「联机进去一会儿就闪退、看不到别人」）。
+                // 玩家设得比安全值高时不受影响。
+                int safeMb = JobMemoryLimiter.ResolveSafeLimitMb(mb);
+                _memoryLimit = JobMemoryLimiter.Apply(_process, safeMb);
+                AppliedMemoryLimitMb = _memoryLimit != null ? safeMb : 0;
+                if (safeMb != mb)
+                {
+                    EmitLog($"内存上限 {mb} MB 低于本机安全值，已自动放宽到 {safeMb} MB"
+                        + "（过低会让游戏进图时因内存不足崩溃，联机表现为看不到别人）");
+                }
                 EmitLog(_memoryLimit != null
-                    ? $"已对游戏进程施加 {mb} MB 内存上限（Windows 作业对象）"
-                    : $"内存上限施加失败，本次不限制内存（{mb} MB）");
+                    ? $"已对游戏进程施加 {safeMb} MB 内存上限（Windows 作业对象）"
+                    : $"内存上限施加失败，本次不限制内存（{safeMb} MB）");
             }
             catch (Exception ex)
             {

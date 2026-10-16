@@ -76,6 +76,19 @@ namespace StartRide.Core
         public event Action<JsonElement>? SystemReceived;
         public event Action<JsonElement>? RoomClosed;
 
+        /// <summary>
+        /// 上面几个事件覆盖不到的**其余**中继下行包。玩法同步就靠它。
+        ///
+        /// ⚠️ 为什么必须有：HandleRelayMessage 以前只 switch 了
+        /// ping/vehicle/vehcfg/chat/players/system/room-closed —— 而且**没有 default**，
+        /// 其余类型解析完就丢。玩法包（mode-phase / mode-sync / mode-impact /
+        /// mode-spawn-plan / mode-placement / derby-damage / derby-down /
+        /// hide-seek-stage / hide-seek-found / hide-seek-skill）全在那一档里，
+        /// 于是跨机器联机**只有车位置能通**，玩法各玩各的，日志里一个字都不报。
+        /// 这是 LuaBridge.GamePacket 的对称缺口（那边是上行）。
+        /// </summary>
+        public event Action<JsonElement>? GamePacket;
+
         public RelayClient(AppSettings settings) => _settings = settings;
 
         public async Task<bool> JoinAsync(string roomId, string playerName, RoomMeta meta, string token = "")
@@ -604,6 +617,13 @@ namespace StartRide.Core
                     case "room-closed":
                         _roomClosed = true;
                         RoomClosed?.Invoke(d.Clone());
+                        break;
+
+                    // 其余全部上抛（见 GamePacket 的注释）。
+                    // vehicle / vehcfg / chat / players / system / room-closed
+                    // 各有专用出口，不会重复转发。
+                    default:
+                        GamePacket?.Invoke(d.Clone());
                         break;
                 }
             }

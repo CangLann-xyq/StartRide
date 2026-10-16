@@ -27,7 +27,7 @@ namespace StartRide.Core
             return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         }
 
-        private const string SERVER = "https://windseek.cloud";
+        private const string SERVER = "https://cloudfurhub.cn";
         private const string BASE = SERVER + "/api/startride";
 
         public string? Token { get; set; }

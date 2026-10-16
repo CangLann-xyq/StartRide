@@ -63,6 +63,7 @@ namespace StartRide.Core
             if (uri == null) return false;
             string host = uri.Host.ToLowerInvariant();
             return host.EndsWith("startride.top", StringComparison.Ordinal)
+                || host.EndsWith("cloudfurhub.cn", StringComparison.Ordinal)
                 || host.EndsWith("windseek.cloud", StringComparison.Ordinal)
                 || host.EndsWith("github.com", StringComparison.Ordinal)
                 || host.EndsWith("githubusercontent.com", StringComparison.Ordinal);

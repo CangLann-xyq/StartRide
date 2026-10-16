@@ -196,7 +196,8 @@ public sealed partial class LaunchMemorySettingsViewModel
 			var app = AppSettings.Current;
 			bool automatic = SelectedMemoryModeOption?.Mode != MemorySettingsMode.Manual;
 			int mb = automatic ? AutomaticMemoryMb : NormalizeMemoryValue(DefaultMemoryMb);
-			if (mb <= 0) mb = 4096;
+			// 0 = 不设上限（别再回写成 4096，那会让游戏进图时内存不足崩溃）
+			if (mb < 0) mb = 0;
 
 			app.LimitGameMemory = LimitGameMemory;
 			app.MaxMemoryMB = mb;

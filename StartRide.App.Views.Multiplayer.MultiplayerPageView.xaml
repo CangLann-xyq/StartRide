@@ -21,7 +21,7 @@
         <ItemsControl ItemTemplate="{StaticResource MultiplayerMenuItemTemplate}" ItemsSource="{Binding Sections}" />
       </controls:SecondaryMenuFrame.MenuContent>
     </controls:SecondaryMenuFrame>
-    <controls:ListPageFrame x:Name="MultiplayerListFrame" Margin="248,36,24,40" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" Title="{Binding SectionTitle}" IsHeaderBackButtonVisible="{Binding IsLobbyStep}" HeaderBackCommand="{Binding RequestLeaveLobbyCommand}">
+    <controls:ListPageFrame x:Name="MultiplayerListFrame" Margin="248,36,24,40" IsSearchVisible="False" IsListVisible="True" IsProgressiveBlurEnabled="{DynamicResource Is.ProgressiveBlur.Enabled}" UseFrameScrollViewer="True" ScrollBarAlwaysVisible="True" Title="{Binding SectionTitle}" IsHeaderBackButtonVisible="{Binding IsLobbyStep}" HeaderBackCommand="{Binding RequestLeaveLobbyCommand}">
       <controls:ListPageFrame.ListContent>
         <Grid Tag="MultiplayerSectionHost" ClipToBounds="True">
           <Grid Loaded="SectionContentRoot_OnLoaded" Unloaded="SectionContentRoot_OnUnloaded">

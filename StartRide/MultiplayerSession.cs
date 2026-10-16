@@ -38,9 +38,43 @@ namespace StartRide.Core
 
         public MultiplayerState State { get; } = new();
 
+        // ── State.Players 的并发保护 ────────────────────────────────────────────
+        // 它是整个 MultiplayerState 里**唯一**会被「中继接收线程原地改写、
+        // 同时又被别的线程读」的集合。List<T> 不支持这种用法：
+        //   写侧 Clear()/Add() 与读侧 new List<string>(...)、JsonSerializer 序列化
+        //   撞在一起会抛 ArgumentException（源数组不够长）或
+        //   InvalidOperationException（集合已被修改）。
+        // 读侧统一走 CopyPlayers()，写侧统一走 ReplacePlayers()。
+        private readonly object _playersLock = new();
+
+        /// <summary>玩家名单的线程安全快照。UI / 落盘一律用这个，别直接枚举 State.Players。</summary>
+        public List<string> CopyPlayers()
+        {
+            lock (_playersLock) return new List<string>(State.Players);
+        }
+
+        private void ReplacePlayers(IEnumerable<string>? names)
+        {
+            lock (_playersLock)
+            {
+                State.Players.Clear();
+                if (names != null) State.Players.AddRange(names);
+            }
+        }
+
         public event Action<string>? Log;
         public event Action? StateChanged;
         public event Action<string, string>? Notice;
+
+        /// <summary>
+        /// 房主解散了房间（中继广播 room-closed）。
+        ///
+        /// 与 <see cref="Notice"/> 分开是**故意**的：提示只是给人看的一句话，
+        /// 而这是启动器必须立刻收尾的**明确结束信号** —— 要退出房间、
+        /// 并把隔离掉的第三方模组还给玩家，不能等断线宽限那 30 秒
+        /// （宽限期间中继恢复一次就会被取消，房间永远不结束）。
+        /// </summary>
+        public event Action? RoomClosed;
 
         public MultiplayerSession(AppSettings settings)
         {
@@ -60,6 +94,16 @@ namespace StartRide.Core
                 _relay.ForwardToRelay(p);
             };
             _bridge.ChatReceived += p =>
+            {
+                Interlocked.Increment(ref _statGameIn);
+                Interlocked.Increment(ref _statRelayOut);
+                _relay.ForwardToRelay(p);
+            };
+
+            // 玩法同步包（mode-phase / mode-sync / derby-damage / hide-seek-* …）
+            // 走这条通用出口。以前它们死在 LuaBridge 的 default 分支里，
+            // 跨机器联机只有车位置能通 —— 见 LuaBridge.GamePacket 的注释。
+            _bridge.GamePacket += p =>
             {
                 Interlocked.Increment(ref _statGameIn);
                 Interlocked.Increment(ref _statRelayOut);
@@ -99,6 +143,16 @@ namespace StartRide.Core
             _relay.SystemReceived += OnRelaySystem;
             _relay.RoomClosed += OnRoomClosed;
             _relay.PlayersReceived += OnPlayers;
+
+            // 玩法同步包（mode-phase / mode-sync / derby-damage / hide-seek-* …）
+            // 走这条通用出口送进本地桥。以前它们死在 RelayClient 的 switch 里
+            // （没有 default 分支），跨机器联机只有车位置能通 ——
+            // 见 RelayClient.GamePacket 的注释。
+            _relay.GamePacket += p =>
+            {
+                Interlocked.Increment(ref _statGameOut);
+                try { _bridge.SendJson(p.GetRawText()); } catch { }
+            };
 
             EnsureStatsTimer();
         }
@@ -261,6 +315,7 @@ namespace StartRide.Core
                         derbyDamageLimit = AppSettings.Current.DerbyDamageLimit,
                         resetLimit = AppSettings.Current.ResetLimit,
                         resetCooldownMs = AppSettings.Current.ResetCooldownMs,
+                        roundSeconds = AppSettings.Current.RoundSeconds,
                         hideSeconds = AppSettings.Current.HideSeconds,
                         hideRoundSeconds = AppSettings.Current.HideRoundSeconds,
                         findRadius = AppSettings.Current.FindRadius,
@@ -345,8 +400,7 @@ namespace StartRide.Core
                 State.VehiclePackets = 0;
                 _loggedFirstInboundVehicle = false;
                 _loggedFirstOutboundVehicle = false;
-                State.Players.Clear();
-                State.Players.Add(name);
+                ReplacePlayers(new[] { name });
                 State.PlayerCount = 1;
                 PushRelayStateToGame();
                 PushRoomConfigToGame();
@@ -360,7 +414,7 @@ namespace StartRide.Core
             {
                 State.RoomId = "";
                 State.RoomName = "";
-                State.Players.Clear();
+                ReplacePlayers(null);
                 State.PlayerCount = 0;
 
                 Notice?.Invoke("error",
@@ -382,7 +436,7 @@ namespace StartRide.Core
         {
             await _relay.LeaveAsync();
             State.Connected = false;
-            State.Players.Clear();
+            ReplacePlayers(null);
             State.PlayerCount = 0;
             State.RemoteVehicles = 0;
             State.RoomId = "";
@@ -429,10 +483,12 @@ namespace StartRide.Core
         private long _statGameIn;
         private long _statRelayOut;
         private long _statRelayVehicle;
+        private long _statGameOut;
         private long _lastGameIn;
         private long _lastRelayOut;
         private long _lastRelayIn;
         private long _lastRelayVehicle;
+        private long _lastGameOut;
         private Timer? _statsTimer;
 
         private void EnsureStatsTimer()
@@ -451,16 +507,19 @@ namespace StartRide.Core
                 long relayOut = Interlocked.Read(ref _statRelayOut);
                 long relayIn = _relay.FramesIn;
                 long relayVehicle = Interlocked.Read(ref _statRelayVehicle);
+                long gameOut = Interlocked.Read(ref _statGameOut);
 
                 long dGameIn = gameIn - _lastGameIn;
                 long dRelayOut = relayOut - _lastRelayOut;
                 long dRelayIn = relayIn - _lastRelayIn;
                 long dRelayVehicle = relayVehicle - _lastRelayVehicle;
+                long dGameOut = gameOut - _lastGameOut;
 
                 _lastGameIn = gameIn;
                 _lastRelayOut = relayOut;
                 _lastRelayIn = relayIn;
                 _lastRelayVehicle = relayVehicle;
+                _lastGameOut = gameOut;
 
                 _bridge.Send(new
                 {
@@ -469,13 +528,14 @@ namespace StartRide.Core
                     relayOut = (int)dRelayOut,
                     relayIn = (int)dRelayIn,
                     relayVehicle = (int)dRelayVehicle,
+                    gameOut = (int)dGameOut,
                     relayConnected = _relay.IsConnected ? 1 : 0,
                 });
 
                 if (State.RoomId.Length > 0 && _bridge.IsGameConnected)
                 {
                     Log?.Invoke(
-                        $"数据流/10s 本地上报={dGameIn} 转中继={dRelayOut} 中继下行={dRelayIn} 远程车包={dRelayVehicle} "
+                        $"数据流/10s 本地上报={dGameIn} 转中继={dRelayOut} 中继下行={dRelayIn} 远程车包={dRelayVehicle} 玩法下行={dGameOut} "
                         + $"| 累计 远程车包={relayVehicle} 远程车={State.RemoteVehicles} "
                         + $"桥={(State.GameConnected ? "已连接" : "未连接")} "
                         + $"中继={(_relay.IsConnected ? "已连接" : _relay.Transport)}");
@@ -528,24 +588,36 @@ namespace StartRide.Core
             string text = packet.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
             Notice?.Invoke("warn", string.IsNullOrEmpty(text) ? "房主已关闭房间。" : text);
             _bridge.SendJson(packet.GetRawText());
+            // 先通知启动器「房间被解散了」，让它立刻退出并恢复模组；
+            // 再离开桥。顺序不能反：LeaveRoomAsync 之后状态就断了，
+            // 启动器那边只会看到一次普通断线，判不出是「房主解散」。
+            RoomClosed?.Invoke();
             _ = LeaveRoomAsync();
         }
 
         private void OnPlayers(JsonElement packet)
         {
-            State.Players.Clear();
+            // ⚠️ 先在本线程攒好，再锁内一次性换掉。
+            //    原来这里是「直接 State.Players.Clear() 然后逐个 Add」—— 而别的线程
+            //    （UI 线程点「改人数上限」、启动器桥线程掉线）会同时走
+            //    OnSessionStateChanged → Publish/WriteStateFile 去**枚举**这个 List。
+            //    List<T> 并发枚举会抛 ArgumentException / InvalidOperationException，
+            //    表现为大厅面板偶发崩，且难复现。
+            var names = new List<string>();
             if (packet.TryGetProperty("players", out var arr) && arr.ValueKind == JsonValueKind.Array)
             {
                 foreach (var p in arr.EnumerateArray())
                 {
                     if (p.TryGetProperty("name", out var n) && n.GetString() is { Length: > 0 } nm)
-                        State.Players.Add(nm);
+                        names.Add(nm);
                 }
             }
+            ReplacePlayers(names);
+
             if (packet.TryGetProperty("count", out var c) && c.TryGetInt32(out int cnt))
                 State.PlayerCount = cnt;
             else
-                State.PlayerCount = State.Players.Count;
+                State.PlayerCount = names.Count;
 
             if (packet.TryGetProperty("capacity", out var cap) && cap.TryGetInt32(out int cp))
                 State.Capacity = cp;

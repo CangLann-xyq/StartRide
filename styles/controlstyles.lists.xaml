@@ -119,6 +119,14 @@
   <Style x:Key="DownloadContentBottomSpacerStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource ListPageBottomSpacerStyle}" />
   <Style x:Key="ListPageScrollBarStyle" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource MainContentScrollBarStyle}">
     <Setter Property="Margin" Value="0,132,2,72" />
+    <Style.Triggers>
+      <!-- 默认跟随主内容：鼠标进到滚动区才显形（Opacity 0 且不可点）。
+           联机建房页把 ScrollBarAlwaysVisible 打开后强制常显、常可点。 -->
+      <DataTrigger Binding="{Binding ScrollBarAlwaysVisible, RelativeSource={RelativeSource AncestorType={x:Type controls:ListPageFrame}}}" Value="True">
+        <Setter Property="UIElement.Opacity" Value="1" />
+        <Setter Property="UIElement.IsHitTestVisible" Value="True" />
+      </DataTrigger>
+    </Style.Triggers>
   </Style>
   <Style x:Key="DownloadContentScrollBarStyle" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ListPageScrollBarStyle}" />
   <Style x:Key="ListPageScrollViewerStyle" TargetType="{x:Type ScrollViewer}" BasedOn="{StaticResource MainContentScrollViewerStyle}">

@@ -44,6 +44,17 @@ local TUNE = {
   copRatio           = 0.4,    -- 警察占比（向上取整，但不超过 半数）
   copVehicleHint     = '',     -- 警察推荐车型（空 = 不限）
   robberVehicleHint  = '',     -- 强盗推荐车型
+  roundSeconds       = 300,
+  impactRadius       = 3.4,
+  impactMinSpeed     = 4.0,
+  ramDamageFactor    = 0.9,
+  ramSelfShare       = 0.5,
+  ramBonus           = 120,
+  impactCooldownMs   = 700,
+  copNavEnabled      = 1,
+  copNavIntervalMs   = 1000,
+  copNavMinMoveM     = 15,
+  reportIntervalMs   = 1000,
 }
 
 local PHASE = {
@@ -117,6 +128,31 @@ local S = {
 
   -- 配置是否已加载
   cfgLoaded    = false,
+
+  finishReason     = '',
+  ramDamage        = {},
+  nativeDamage     = 0,
+  impacts          = {},
+  lastImpactAt     = {},
+  hitFlash         = 0,
+  hitNotice        = nil,
+  pendingImpact    = nil,
+  reportAt         = 0,
+  lastReport       = -1,
+  lastSyncKey      = '',
+  forceSync        = false,
+  roleSig          = '',
+  remoteCaptureMs  = 0,
+  remoteCaptureBy  = '',
+  remoteRoundLeft  = nil,
+  remoteRoundLeftAt = 0,
+  remoteSurvivors  = nil,
+  navAt            = 0,
+  navPos           = nil,
+  navOn            = false,
+  goneAt           = {},
+  leftIds          = {},
+  leftElim         = {},
 }
 
 -- ---------------------------------------------------------------------------
@@ -167,6 +203,17 @@ local function readConfig()
   num('resetCooldownMs', 0, 600000)
   num('finishHoldSeconds', 1, 60)
   num('placementRetrySeconds', 1, 60)
+  num('roundSeconds', 0, 7200)
+  num('impactRadius', 0.5, 30)
+  num('impactMinSpeed', 0, 80)
+  num('ramDamageFactor', 0, 100)
+  num('ramSelfShare', 0, 1)
+  num('ramBonus', 0, 100000)
+  num('impactCooldownMs', 0, 10000)
+  num('copNavEnabled', 0, 1)
+  num('copNavIntervalMs', 100, 10000)
+  num('copNavMinMoveM', 0, 500)
+  num('reportIntervalMs', 100, 10000)
 
   if type(rules.copVehicleHint) == 'string' then TUNE.copVehicleHint = rules.copVehicleHint end
   if type(rules.robberVehicleHint) == 'string' then TUNE.robberVehicleHint = rules.robberVehicleHint end
@@ -181,11 +228,16 @@ end
 -- 房主判定
 -- ---------------------------------------------------------------------------
 local function resolveAuthority(win)
-  -- 没连上 / 没有房间 / 房间已关 → 谁都没有权威，玩法一律不启动。
-  if not win.connected or win.closed then
+  -- 没连上 / 没有房间 / 房间已关 / 中继已断 → 谁都没有权威，玩法一律不启动。
+  -- ⚠️ 同时维护 sessionAlive：玩法状态（phase）必须在会话消失时复位，
+  --    因为输入限制只认 phase —— 不复位就等于把传送/复位/换车永久锁死。
+  --    'disconnected' 是启动器推来的中继状态；'unknown' 是还没收到，不当断线。
+  if not win.connected or win.closed or win.relayState == 'disconnected' then
     S.authority = false
+    S.sessionAlive = false
     return
   end
+  S.sessionAlive = true
   local h = tostring(win.host or '')
   if h == '' then
     -- 房间还没有房主信息：不猜。等 players/host 广播到了再说。
@@ -214,6 +266,27 @@ local function setPhase(ph, announce)
     S.eliminated = {}
     S.damage = {}
     S.resetUsed = 0
+    -- ⚠️ 复位**冷却**也要跟着局归零：resetUsed 清了而 resetFreeAt 没清的话，
+    --    上一局末尾按过复位的人，新局刚开跑按复位就被判「冷却中」。
+    S.resetFreeAt = 0
+    S.finishReason = ''
+    S.ramDamage = {}
+    S.nativeDamage = 0
+    S.impacts = {}
+    S.lastImpactAt = {}
+    S.hitFlash = 0
+    S.hitNotice = nil
+    S.pendingImpact = nil
+    S.lastReport = -1
+    S.lastSyncKey = ''
+    S.forceSync = true
+    S.remoteCaptureMs = 0
+    S.remoteCaptureBy = ''
+    S.remoteRoundLeft = nil
+    S.remoteSurvivors = nil
+    S.navAt = 0
+    S.navPos = nil
+    S.navOn = false
     -- 每回合重置就位汇报，并把本回合名单固化下来（算 totalCount 用）
     S.placementReady = {}
     local order = {}
@@ -221,6 +294,9 @@ local function setPhase(ph, announce)
       if type(p) == 'table' and p.id ~= nil then order[#order + 1] = tostring(p.id) end
     end
     S.placementOrder = order
+    S.goneAt = {}
+    S.leftIds = {}
+    S.leftElim = {}
   elseif ph == PHASE.countdown then
     S.countdownFrom = TUNE.countdownSeconds
   elseif ph == PHASE.running then
@@ -284,6 +360,10 @@ local function assignRoles()
 
   S.selfRole = S.roles[S.selfId or 'self'] or ROLE.robber
   S.roster = list
+  local sig = {}
+  for pid, r in pairs(S.roles) do sig[#sig + 1] = tostring(pid) .. '=' .. tostring(r) end
+  table.sort(sig)
+  S.roleSig = table.concat(sig, ',')
   return true
 end
 
@@ -340,6 +420,17 @@ local function dist2(ax, ay, bx, by)
   return math.sqrt(dx * dx + dy * dy)
 end
 
+local function notePos(pid, x, y)
+  pid = tostring(pid or '')
+  if pid == '' then return end
+  local old = S.positions[pid]
+  local rec = { x = x, y = y, at = S.clock }
+  if old then
+    rec.px, rec.py, rec.pat = old.x, old.y, old.at
+  end
+  S.positions[pid] = rec
+end
+
 -- ---------------------------------------------------------------------------
 -- 位置表维护
 --
@@ -356,17 +447,115 @@ function M.notePositions(data)
   local x, y = tonumber(data.pos[1]), tonumber(data.pos[2])
   if not x or not y then return end
 
-  S.positions[pid] = { x = x, y = y, at = S.clock }
+  notePos(pid, x, y)
 end
 
 local function tickPositions()
   -- 自己的位置
   local sx, sy = vehiclePos('self')
-  if sx and sy then S.positions[S.selfId or 'self'] = { x = sx, y = sy, at = S.clock } end
+  if sx and sy then notePos(S.selfId or 'self', sx, sy) end
 
   -- 清掉超过 3 秒没更新的（人走了）
   for pid, rec in pairs(S.positions) do
     if (S.clock - (rec.at or 0)) > 3 then S.positions[pid] = nil end
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- 玩家离开检测
+--
+-- 名单里的人在本回合进行中不在了 = 掉线 / 退房。以前完全不处理，后果是：
+--   · 德比：他永远算「还活着」→ survivorCount 永远 >= 2 → 回合永远不结束
+--   · 警匪：强盗走了没人可抓 → 干等到时限，还判强盗胜
+--   · 躲猫猫：躲藏者走了永远算「还没被找到」→ 搜索方永远赢不了
+-- 这里给一段宽限期（挡住名单抖动），超时才按「本回合出局」处理；人回来能恢复。
+-- ---------------------------------------------------------------------------
+local GONE_GRACE_SECONDS = 5
+
+local function liveIdSet(win)
+  local pl = win and win.players
+  if type(pl) ~= 'table' then return nil end
+  local live, n = {}, 0
+  for _, p in ipairs(pl) do
+    local id = nil
+    if type(p) == 'table' then
+      id = tostring(p.id or p.name or '')
+    elseif type(p) == 'string' or type(p) == 'number' then
+      id = tostring(p)
+    end
+    if id and id ~= '' then
+      live[id] = true
+      n = n + 1
+    end
+  end
+  if n == 0 then return nil end
+  return live
+end
+
+local function trackPresence(win)
+  local me = tostring(S.selfId or 'self')
+  if S.phase == PHASE.lobby then
+    S.goneAt = {}
+    S.leftIds = {}
+    S.leftElim = {}
+    return
+  end
+
+  local live = liveIdSet(win)
+  if not live then return end
+
+  local roster = S.roster or {}
+  local liveRoster = 0
+  for _, p in ipairs(roster) do
+    if live[tostring(p.id)] then liveRoster = liveRoster + 1 end
+  end
+  if liveRoster <= 0 then return end
+
+  local now = S.clock
+  local marks = S.goneAt or {}
+  S.goneAt = marks
+  local gone = nil
+
+  for _, p in ipairs(roster) do
+    local pid = tostring(p.id)
+    if pid ~= '' and pid ~= me then
+      if live[pid] then
+        marks[pid] = nil
+        if S.leftElim[pid] then
+          S.leftElim[pid] = nil
+          S.leftIds[pid] = nil
+          if (tonumber(S.damage[pid]) or 0) < (tonumber(TUNE.derbyDamageLimit) or 8000) then
+            S.eliminated[pid] = nil
+          end
+          logMode('玩家回来了，恢复参战:', pid)
+        end
+      elseif not marks[pid] then
+        marks[pid] = now
+      elseif (now - marks[pid]) >= GONE_GRACE_SECONDS then
+        gone = gone or {}
+        gone[#gone + 1] = pid
+      end
+    end
+  end
+
+  if not gone then return end
+
+  for _, pid in ipairs(gone) do
+    if not S.leftIds[pid] then
+      S.leftIds[pid] = true
+      S.leftElim[pid] = true
+      S.eliminated[pid] = true
+      S.placementReady[pid] = true
+      logMode('玩家已离开，本回合按出局处理:', pid)
+      if S.mode == 'cops_robber' and S.roles[pid] == ROLE.robber
+         and S.phase == PHASE.running and not S.captureDone then
+        S.captureDone = true
+        S.winner = ROLE.cop
+        S.finishReason = 'robber_left'
+        setPhase(PHASE.finished, true)
+        logMode('强盗已离开 —— 警察胜')
+      end
+    end
   end
 end
 
@@ -377,8 +566,41 @@ local function rolePos(pid)
   return nil, nil
 end
 
+local function posVel(rec)
+  if not rec or not rec.px or not rec.pat then return 0, 0 end
+  local dt = (rec.at or 0) - (rec.pat or 0)
+  if dt <= 0.02 then return 0, 0 end
+  return ((rec.x or 0) - (rec.px or 0)) / dt, ((rec.y or 0) - (rec.py or 0)) / dt
+end
+
+local function roleNameOf(pid)
+  local want = tostring(pid or '')
+  for _, p in ipairs(S.roster or {}) do
+    if tostring(p.id) == want then return tostring(p.name or p.id) end
+  end
+  return want
+end
+
+local function damageOf(pid)
+  if tostring(pid) == tostring(S.selfId or 'self') then
+    return (tonumber(S.nativeDamage) or 0) + (tonumber(S.ramDamage[S.selfId or 'self']) or 0)
+  end
+  return tonumber(S.damage[pid]) or 0
+end
+M.damageOf = damageOf
+
+local function survivorCount()
+  local n = 0
+  for _, p in ipairs(S.roster or {}) do
+    if not S.eliminated[p.id] then n = n + 1 end
+  end
+  return n
+end
+M.survivors = survivorCount
+
 local function tickCapture(dtReal)
   if S.mode ~= 'cops_robber' then return end
+  if S.phase ~= PHASE.running then return end
   if S.captureDone then return end
 
   -- 只有「自己是强盗」时，本地才知道自己有没有被贴住。
@@ -438,32 +660,139 @@ local function tickDerby()
   if S.mode ~= 'derby' then return end
   if S.phase ~= PHASE.running then return end
 
-  -- 本机伤害
+  local me = tostring(S.selfId or 'self')
   local dmg = nil
   pcall(function()
     local v = be:getPlayerVehicle(0)
     if v and v.getDamage then dmg = tonumber(v:getDamage()) end
   end)
-  if dmg then
-    S.damage[S.selfId or 'self'] = dmg
-    if not S.eliminated[S.selfId or 'self'] and dmg >= TUNE.derbyDamageLimit then
-      S.eliminated[S.selfId or 'self'] = true
-      logMode('本机已被淘汰（伤害 ' .. string.format('%.0f', dmg) .. '）')
-    end
+  if dmg then S.nativeDamage = dmg end
+
+  local total = damageOf(me)
+  S.damage[me] = total
+  if not S.eliminated[me] and total >= (tonumber(TUNE.derbyDamageLimit) or 8000) then
+    S.eliminated[me] = true
+    S.hitNotice = { self = true, name = '', speed = 0, wrecked = true }
+    logMode('本机已被淘汰（车损 ' .. string.format('%.0f', total) .. '）')
   end
 
-  -- 胜负：只剩一个没被淘汰的人
   if S.authority then
-    local alive = {}
-    for _, p in ipairs(S.roster or {}) do
-      if not S.eliminated[p.id] then alive[#alive + 1] = p.id end
-    end
-    if #alive <= 1 and #(S.roster or {}) >= 2 then
-      S.winner = alive[1] or ''
+    local alive = survivorCount()
+    if alive <= 1 and #(S.roster or {}) >= 2 then
+      S.winner = ''
+      for _, p in ipairs(S.roster or {}) do
+        if not S.eliminated[p.id] then S.winner = tostring(p.id) end
+      end
+      S.finishReason = 'last_standing'
       setPhase(PHASE.finished, true)
       logMode('德比结束，胜者', S.winner)
     end
   end
+end
+
+local function roundTimeLeft()
+  local total = tonumber(TUNE.roundSeconds) or 0
+  if total <= 0 then return nil end
+  if S.phase ~= PHASE.running then return nil end
+  local left = total - (S.clock - S.phaseAt)
+  if left < 0 then left = 0 end
+  return left
+end
+M.roundTimeLeft = roundTimeLeft
+
+local function viewRoundLeft()
+  if S.authority then
+    return roundTimeLeft()
+  end
+  if S.phase ~= PHASE.running then return nil end
+  if not S.remoteRoundLeft then return nil end
+  local l = S.remoteRoundLeft - (S.clock - (S.remoteRoundLeftAt or 0))
+  if l < 0 then l = 0 end
+  return l
+end
+M.viewRoundLeft = viewRoundLeft
+
+local function tickImpacts()
+  if S.mode ~= 'derby' and S.mode ~= 'cops_robber' then return end
+  if S.phase ~= PHASE.running then return end
+  local me = tostring(S.selfId or 'self')
+
+  -- ⚠️ 已淘汰（车报废）的客户端不再产生撞击包。
+  --    伤害归属是「谁在算」不是「谁在撞」：车一旦被冻住，谁撞谁在运动学上
+  --    分不出来，原来这份客户端会照常算出 closing speed 并把伤害记到**对手**
+  --    头上。结果就是「主动撞残骸的人自己掉血」，而淘汰者因为不怕掉血，
+  --    反而成了场上最危险的攻击者 —— 跟 survivorCount 不算他完全自相矛盾。
+  if S.mode == 'derby' and S.eliminated[me] == true then return end
+
+  local rec = S.positions[me]
+  if not rec or type(S.roles) ~= 'table' then return end
+  local mvx, mvy = posVel(rec)
+  local reach = (tonumber(TUNE.impactRadius) or 3.4) * 2
+  local minSpeed = tonumber(TUNE.impactMinSpeed) or 4.0
+  local cool = (tonumber(TUNE.impactCooldownMs) or 700) / 1000
+  for pid, other in pairs(S.positions) do
+    if tostring(pid) ~= me and S.roles[pid] then
+      local dx = (other.x or 0) - (rec.x or 0)
+      local dy = (other.y or 0) - (rec.y or 0)
+      local d = math.sqrt(dx * dx + dy * dy)
+      if d > 0.01 and d <= reach then
+        local ovx, ovy = posVel(other)
+        local nx, ny = dx / d, dy / d
+        local closing = math.abs((mvx - ovx) * nx + (mvy - ovy) * ny)
+        local last = S.lastImpactAt[pid]
+        if closing >= minSpeed and (not last or (S.clock - last) >= cool) then
+          S.lastImpactAt[pid] = S.clock
+          S.impacts[pid] = (S.impacts[pid] or 0) + 1
+          S.hitFlash = 2.5
+          S.hitNotice = { self = false, name = roleNameOf(pid), speed = closing }
+          if S.mode == 'derby' then
+            local dmg = closing * closing * (tonumber(TUNE.ramDamageFactor) or 0.9)
+              + (tonumber(TUNE.ramBonus) or 0)
+            S.ramDamage[me] = (S.ramDamage[me] or 0) + dmg * (tonumber(TUNE.ramSelfShare) or 0.5)
+            S.pendingImpact = { target = tostring(pid), damage = dmg, speed = closing }
+          end
+        end
+      end
+    end
+  end
+end
+
+local function tickNavigation()
+  local want = (S.mode == 'cops_robber') and (S.selfRole == ROLE.cop)
+    and (S.phase == PHASE.running) and ((tonumber(TUNE.copNavEnabled) or 1) > 0)
+  if not want then
+    if S.navOn then
+      S.navOn = false
+      S.navPos = nil
+      pcall(function() core_groundMarkers.setPath(nil) end)
+    end
+    return
+  end
+  local interval = (tonumber(TUNE.copNavIntervalMs) or 1000) / 1000
+  if (S.clock - (S.navAt or 0)) < interval then return end
+  local tx, ty = nil, nil
+  for pid, role in pairs(S.roles or {}) do
+    if role == ROLE.robber then
+      local px, py = rolePos(pid)
+      if px then tx, ty = px, py end
+    end
+  end
+  if not tx then return end
+  S.navAt = S.clock
+  if S.navPos then
+    local ndx, ndy = tx - S.navPos[1], ty - S.navPos[2]
+    if math.sqrt(ndx * ndx + ndy * ndy) < (tonumber(TUNE.copNavMinMoveM) or 15) then return end
+  end
+  S.navPos = { tx, ty }
+  local ok = pcall(function()
+    local z = 0
+    if be and be.getSurfaceHeightBelow then
+      local h = be:getSurfaceHeightBelow(vec3(tx, ty, 0))
+      if tonumber(h) then z = tonumber(h) end
+    end
+    core_groundMarkers.setPath({ { tx, ty, z } }, { clearPathOnReachingTarget = false })
+  end)
+  S.navOn = ok == true
 end
 
 -- ---------------------------------------------------------------------------
@@ -533,6 +862,32 @@ local function tickAuthority(win)
 
   elseif S.phase == PHASE.running then
     -- running → finished 由 capture / derby 判定触发
+    if not S.captureDone then
+      local total = tonumber(TUNE.roundSeconds) or 0
+      if total > 0 and elapsed >= total then
+        if S.mode == 'cops_robber' then
+          S.captureDone = true
+          S.winner = ROLE.robber
+          S.finishReason = 'time_up'
+          setPhase(PHASE.finished, true)
+          logMode('回合时限已到，强盗撑满全场')
+        else
+          local best, bestDmg = '', nil
+          for _, p in ipairs(S.roster or {}) do
+            if not S.eliminated[p.id] then
+              local d = damageOf(p.id)
+              if not bestDmg or d < bestDmg then best, bestDmg = tostring(p.id), d end
+            end
+          end
+          if best ~= '' then
+            S.winner = best
+            S.finishReason = 'time_up'
+            setPhase(PHASE.finished, true)
+            logMode('德比时限已到，胜者', best)
+          end
+        end
+      end
+    end
 
   elseif S.phase == PHASE.finished then
     if elapsed >= TUNE.finishHoldSeconds then
@@ -557,8 +912,27 @@ function M.tick(dtReal, win)
 
   resolveAuthority(win)
 
+  -- 会话没了（退房 / 关房 / 中继断）→ 玩法状态整个收回 lobby。
+  -- 不复位的话 phase 会停在 running，而输入限制只认 phase，
+  -- 玩家回到自由驾驶后会连传送/复位/换车都用不了（见 resolveAuthority 注释）。
+  if S.sessionAlive == false and S.phase ~= PHASE.lobby then
+    S.phase = PHASE.lobby
+    S.selfRole = ROLE.none
+    S.round = 0
+    S.captureDone = false
+    S.placementReady = {}
+    S.pendingSpawnPlan = nil
+    S.goneAt = {}
+    S.leftIds = {}
+    S.leftElim = {}
+    logMode('联机会话已结束 —— 玩法复位到大厅')
+  end
+
   -- 位置缓存（抓捕判定 / 雷达用）
   pcall(tickPositions)
+
+  -- 玩家离开：名单里的人不在了，超时按本回合出局处理
+  pcall(trackPresence, win)
 
   -- 玩法切走 → 重新开始
   -- ⚠️ 但如果这一帧之前刚收到房主推来的阶段（remotePhaseFresh），就**不能**复位：
@@ -580,6 +954,11 @@ function M.tick(dtReal, win)
   -- 判定
   pcall(tickCapture, dtReal)
   pcall(tickDerby)
+  pcall(tickImpacts)
+  pcall(tickNavigation)
+
+  local flash = tonumber(S.hitFlash) or 0
+  if flash > 0 then S.hitFlash = flash - (tonumber(dtReal) or 0.016) end
 
   -- 结算停留
   if S.phase == PHASE.finished and (S.clock - S.phaseAt) >= TUNE.finishHoldSeconds then
@@ -591,6 +970,12 @@ end
 -- 对外：给输入层的策略
 -- ---------------------------------------------------------------------------
 function M.inputPolicy()
+  -- 会话没了就一律放行：这是最后一道保险。
+  -- phase 因为任何原因卡在局内时，按键都不该继续锁着。
+  if S.sessionAlive == false then
+    return { roundActive = false, running = false, vehicleLock = false,
+             lockReset = false, freezeDrive = false, reason = 'session-gone' }
+  end
   local inRound = ROUND_PHASES[S.phase] and true or false
   local running = (S.phase == PHASE.running)
 
@@ -598,12 +983,23 @@ function M.inputPolicy()
   -- 德比：复位保留（翻车要能起来），但走预算 + 冷却
   local lockReset = (S.mode == 'cops_robber' and inRound)
 
+  -- ⚠️ 德比淘汰 = 车已报废（HUD 已经提示「等待本局结束」），但阶段还停在 running。
+  --    不额外冻住的话，被淘汰的人还能满油门把活着的人撞出局。
+  --    注意这里只是**多加一条**冻油门的理由：roundActive 仍然为真，
+  --    所以总闸 startrideInput.applyDriveFreeze 照常放行，冻得住。
+  local wrecked = (S.mode == 'derby')
+    and (S.eliminated[S.selfId or 'self'] == true)
+
   return {
     roundActive = inRound,
     running     = running,
     vehicleLock = inRound,
     lockReset   = lockReset,
-    reason      = S.mode .. '/' .. S.phase,
+    -- ⚠️ 就位 / 倒数期间一并冻住油门：staging 里车刚被摆到出生位，
+    --    不冻就能立刻开走；countdown 里更是直接抢跑。
+    --    running 一开自动解冻（总闸在 startrideInput.applyDriveFreeze）。
+    freezeDrive = inRound and ((S.phase ~= PHASE.running) or wrecked),
+    reason      = S.mode .. '/' .. S.phase .. (wrecked and '/wrecked' or ''),
   }
 end
 
@@ -656,6 +1052,156 @@ function M.requestReset()
     return true, '复位 ' .. tostring(S.resetUsed) .. '/' .. tostring(TUNE.resetLimit)
   end
   return true, ''
+end
+
+function M.noteRemoteDamage(pid, value)
+  pid = tostring(pid or '')
+  if pid == '' or pid == tostring(S.selfId or 'self') then return end
+  local v = tonumber(value)
+  if not v or v < 0 then return end
+  S.damage[pid] = v
+  if S.mode == 'derby' and v >= (tonumber(TUNE.derbyDamageLimit) or 8000) then
+    S.eliminated[pid] = true
+  end
+end
+
+function M.noteRemoteImpact(pid, target, damage, speed)
+  if S.mode ~= 'derby' or S.phase ~= PHASE.running then return end
+  local me = tostring(S.selfId or 'self')
+  local from = tostring(pid or '')
+  if from == '' or from == me then return end
+  if tostring(target or '') ~= me then return end
+  local d = tonumber(damage)
+  if not d or d <= 0 then return end
+  local cool = (tonumber(TUNE.impactCooldownMs) or 700) / 1000
+  local last = S.lastImpactAt[from]
+  if last and (S.clock - last) < cool then return end
+  S.lastImpactAt[from] = S.clock
+  S.impacts[from] = (S.impacts[from] or 0) + 1
+  S.ramDamage[me] = (S.ramDamage[me] or 0) + d
+  S.hitFlash = 2.5
+  S.hitNotice = { self = true, name = roleNameOf(from), speed = tonumber(speed) or 0 }
+end
+
+function M.takeImpactPacket()
+  local p = S.pendingImpact
+  S.pendingImpact = nil
+  return p
+end
+
+function M.takeHitNotice()
+  local n = S.hitNotice
+  S.hitNotice = nil
+  return n
+end
+
+function M.selfDamage()
+  return damageOf(S.selfId or 'self')
+end
+
+function M.needDamageReport()
+  if S.mode ~= 'derby' or S.phase ~= PHASE.running then
+    S.lastReport = -1
+    return nil
+  end
+  local interval = (tonumber(TUNE.reportIntervalMs) or 1000) / 1000
+  if (S.clock - (S.reportAt or 0)) < interval then return nil end
+  S.reportAt = S.clock
+  local v = math.floor(damageOf(S.selfId or 'self'))
+  if v == S.lastReport then return nil end
+  S.lastReport = v
+  return v
+end
+
+function M.hostSync()
+  if not S.authority then return nil end
+  if S.mode ~= 'cops_robber' and S.mode ~= 'derby' then return nil end
+  if S.phase == PHASE.lobby then return nil end
+  local left = roundTimeLeft()
+  local hold = S.captureSince and ((S.clock - S.captureSince) * 1000) or 0
+  local key = table.concat({
+    tostring(S.round), S.phase, tostring(math.floor(hold)),
+    tostring(S.captureBy or ''), left and string.format('%.0f', left) or '-',
+    tostring(survivorCount()), tostring(S.finishReason or ''),
+    tostring(S.winner or ''), tostring(S.roleSig or ''),
+  }, '|')
+  if key == S.lastSyncKey and not S.forceSync then return nil end
+  S.lastSyncKey = key
+  S.forceSync = false
+  local dmg, elim, roster = {}, {}, {}
+  for _, p in ipairs(S.roster or {}) do
+    local id = tostring(p.id)
+    dmg[id] = math.floor(damageOf(p.id))
+    if S.eliminated[p.id] then elim[#elim + 1] = id end
+    roster[#roster + 1] = { id = id, name = tostring(p.name or id) }
+  end
+  return {
+    round = S.round, phase = S.phase, winner = tostring(S.winner or ''),
+    captureMs = math.floor(hold), captureBy = tostring(S.captureBy or ''),
+    roundLeft = left, survivors = survivorCount(),
+    damage = dmg, eliminated = elim, roster = roster,
+    roles = S.roles, finishReason = tostring(S.finishReason or ''),
+  }
+end
+
+function M.applyHostSync(t)
+  if type(t) ~= 'table' then return end
+  if S.authority then return end
+  local me = tostring(S.selfId or 'self')
+  if tonumber(t.round) then S.round = tonumber(t.round) end
+  if tonumber(t.captureMs) then S.remoteCaptureMs = tonumber(t.captureMs) end
+  if type(t.captureBy) == 'string' then S.remoteCaptureBy = t.captureBy end
+  if tonumber(t.roundLeft) then
+    S.remoteRoundLeft = tonumber(t.roundLeft)
+    S.remoteRoundLeftAt = S.clock
+  end
+  if tonumber(t.survivors) then S.remoteSurvivors = tonumber(t.survivors) end
+  if type(t.finishReason) == 'string' and t.finishReason ~= '' then S.finishReason = t.finishReason end
+  if type(t.winner) == 'string' and t.winner ~= '' then S.winner = t.winner end
+  if type(t.roster) == 'table' then
+    local list = {}
+    for _, e in ipairs(t.roster) do
+      if type(e) == 'table' and e.id then
+        list[#list + 1] = { id = tostring(e.id), name = tostring(e.name or e.id) }
+      end
+    end
+    if #list > 0 then S.roster = list end
+  end
+  if type(t.roles) == 'table' then
+    S.roles = {}
+    for k, v in pairs(t.roles) do S.roles[tostring(k)] = tostring(v) end
+    S.selfRole = S.roles[me] or S.selfRole
+  end
+  if type(t.damage) == 'table' then
+    for k, v in pairs(t.damage) do
+      local pid = tostring(k)
+      if pid ~= me and tonumber(v) then S.damage[pid] = tonumber(v) end
+    end
+  end
+  if type(t.eliminated) == 'table' then
+    for _, pid in ipairs(t.eliminated) do
+      local k = tostring(pid)
+      if k ~= me then S.eliminated[k] = true end
+    end
+  end
+end
+
+function M.derbyResults()
+  local list = {}
+  for _, p in ipairs(S.roster or {}) do
+    list[#list + 1] = {
+      id = tostring(p.id),
+      name = tostring(p.name or p.id),
+      eliminated = S.eliminated[p.id] == true,
+      damage = math.floor(damageOf(p.id)),
+    }
+  end
+  table.sort(list, function(a, b)
+    if a.eliminated ~= b.eliminated then return not a.eliminated end
+    if a.damage ~= b.damage then return a.damage < b.damage end
+    return a.id < b.id
+  end)
+  return list
 end
 
 -- ---------------------------------------------------------------------------
@@ -754,26 +1300,29 @@ function M.snapshot()
     mode = S.mode,
     phase = S.phase,
     round = S.round,
+    -- 给积分模块当幂等身份：同一局每帧都是这个值，跨局必然不同。
+    phaseAt = S.phaseAt,
     role = S.selfRole,
     authority = S.authority,
     winner = S.winner,
     captured = S.captureDone,
-    captureMs = S.captureSince and ((S.clock - S.captureSince) * 1000) or 0,
+    captureMs = S.captureSince and ((S.clock - S.captureSince) * 1000)
+      or (tonumber(S.remoteCaptureMs) or 0),
     captureHoldMs = TUNE.captureHoldMs,
     secondsLeft = (S.phase == PHASE.countdown)
       and math.max(0, math.ceil(TUNE.countdownSeconds - (S.clock - S.phaseAt))) or nil,
-    derbyDamage = S.damage[S.selfId or 'self'] or 0,
+    derbyDamage = damageOf(S.selfId or 'self'),
     derbyLimit = TUNE.derbyDamageLimit,
+    roundLeft = viewRoundLeft(),
+    roundSeconds = TUNE.roundSeconds,
+    finishReason = S.finishReason or '',
+    ramCount = S.impacts[S.selfId or 'self'] or 0,
+    hitFlash = S.hitFlash or 0,
+    captureBy = (S.captureBy ~= '' and S.captureBy) or S.remoteCaptureBy or '',
     -- ⚠️ HUD 结算行读的是 snap.eliminated；原来没导出 → 永远走「你存活到了最后」，
     --    哪怕本机明明被撞毁了。这里补上（只读本机那一格）。
     eliminated = (S.eliminated[S.selfId or 'self'] == true),
-    derbyAlive = (function()
-      local n = 0
-      for _, p in ipairs(S.roster or {}) do
-        if not S.eliminated[p.id] then n = n + 1 end
-      end
-      return n
-    end)(),
+    derbyAlive = (S.remoteSurvivors ~= nil) and S.remoteSurvivors or survivorCount(),
     resetUsed = S.resetUsed,
     resetLimit = TUNE.resetLimit,
     roles = S.roles,
@@ -942,6 +1491,25 @@ function M.reset()
   S.placementOrder = {}
   S.pendingSpawnPlan = nil
   S.lastPlanRound = -1
+  S.damage = {}
+  S.ramDamage = {}
+  S.nativeDamage = 0
+  S.impacts = {}
+  S.lastImpactAt = {}
+  S.hitFlash = 0
+  S.hitNotice = nil
+  S.pendingImpact = nil
+  S.finishReason = ''
+  S.lastReport = -1
+  S.lastSyncKey = ''
+  S.forceSync = false
+  S.remoteCaptureMs = 0
+  S.remoteCaptureBy = ''
+  S.remoteRoundLeft = nil
+  S.remoteSurvivors = nil
+  S.navAt = 0
+  S.navPos = nil
+  S.navOn = false
 end
 
 return M

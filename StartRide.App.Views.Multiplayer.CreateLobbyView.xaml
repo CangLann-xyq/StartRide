@@ -32,6 +32,23 @@
           </controls:ListPageItemButton.TitleTrailingContent>
         </controls:ListPageItemButton>
       </DataTemplate>
+
+      <!-- 卡片里的列表：不再自己滚，整页只留框架那一条滚动条。
+           ⚠️ 不能用 RideWideListBoxStyle —— 它强制 VerticalScrollBarVisibility=Visible，
+           列表不溢出时会画出一根满格、拖不动的假拉条（用户看到的就是这个）。 -->
+      <Style x:Key="CreateLobbyCardListBoxStyle" TargetType="{x:Type ListBox}" BasedOn="{StaticResource RideWideListBoxStyle}">
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type ListBox}">
+              <Border Background="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}">
+                <ScrollViewer Name="PART_ScrollViewer" Focusable="False" Style="{StaticResource MainContentScrollViewerStyle}">
+                  <ItemsPresenter />
+                </ScrollViewer>
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
     </ResourceDictionary>
   </FrameworkElement.Resources>
 
@@ -48,17 +65,15 @@
         <TextBlock VerticalAlignment="Center" Style="{StaticResource RidePageSubtitleTextStyle}" Text="{x:Static res:Strings.Lobby_CreateHint}" />
       </DockPanel>
 
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" MinWidth="340" />
-          <ColumnDefinition Width="14" />
-          <ColumnDefinition Width="300" />
-          <ColumnDefinition Width="14" />
-          <ColumnDefinition Width="330" />
-        </Grid.ColumnDefinitions>
+      <!-- 三张卡片：固定宽 + 自动换行。
+           默认窗口是 1000×700（MinWidth 960），按老写法定宽 340+300+330=970
+           远超可用宽度，第三张「出生位置」卡片会被框架裁掉一半，出生点根本点不到。
+           330 宽 + 12 间距：1000 窗口下可用 704，两张 684 放得下；
+           宽窗口三张 1014 仍是一行。WrapPanel 窄了自动折行。 -->
+      <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
 
         <!-- 地图 -->
-        <Border Grid.Column="0" Style="{StaticResource RideDetailSurfaceStyle}">
+        <Border Width="330" Margin="0,0,12,12" Style="{StaticResource RideDetailSurfaceStyle}">
           <StackPanel>
             <DockPanel LastChildFill="False">
               <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_MapSectionTitle}" />
@@ -69,43 +84,36 @@
             <!-- 选中地图的实拍图 + 完整介绍。
                  缩略图固定 16:9（224x126）：游戏自带的预览多半是 4:3，
                  横着铺满整张卡片会把画面压成一条天空带，16:9 正好裁在画面主体上。 -->
-            <Grid Margin="0,12,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
+            <Border Margin="0,12,0,0" Height="150" CornerRadius="11" ClipToBounds="True" Background="{DynamicResource Brush.14FFFFFF}">
+              <FrameworkElement.Style>
+                <Style TargetType="{x:Type Border}">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Value="True" Binding="{Binding HasSelectedLobbyLevelPreview}">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </FrameworkElement.Style>
+              <Image Source="{Binding SelectedLobbyLevelPreview}" Stretch="UniformToFill" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" />
+            </Border>
 
-              <Border Grid.Column="0" Width="224" Height="126" CornerRadius="11" ClipToBounds="True" Background="{DynamicResource Brush.14FFFFFF}">
-                <FrameworkElement.Style>
-                  <Style TargetType="{x:Type Border}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                      <DataTrigger Value="True" Binding="{Binding HasSelectedLobbyLevelPreview}">
-                        <Setter Property="Visibility" Value="Visible" />
-                      </DataTrigger>
-                    </Style.Triggers>
-                  </Style>
-                </FrameworkElement.Style>
-                <Image Source="{Binding SelectedLobbyLevelPreview}" Stretch="UniformToFill" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" />
-              </Border>
-
-              <TextBlock Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" MaxHeight="76" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding SelectedLobbyLevelDescription}">
-                <FrameworkElement.Style>
-                  <Style TargetType="{x:Type TextBlock}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                      <DataTrigger Value="True" Binding="{Binding HasSelectedLobbyLevelDescription}">
-                        <Setter Property="Visibility" Value="Visible" />
-                      </DataTrigger>
-                    </Style.Triggers>
-                  </Style>
-                </FrameworkElement.Style>
-              </TextBlock>
-            </Grid>
+            <TextBlock Margin="0,10,0,0" MaxHeight="76" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding SelectedLobbyLevelDescription}">
+              <FrameworkElement.Style>
+                <Style TargetType="{x:Type TextBlock}">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Value="True" Binding="{Binding HasSelectedLobbyLevelDescription}">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </FrameworkElement.Style>
+            </TextBlock>
 
             <Border Margin="0,12,0,10" Style="{StaticResource RideHairlineStyle}" />
 
-            <ListBox Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" MaxHeight="330" ItemsSource="{Binding LobbyLevels}" ItemTemplate="{StaticResource CreateLobbyLevelItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
+            <ListBox Style="{StaticResource CreateLobbyCardListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" ItemsSource="{Binding LobbyLevels}" ItemTemplate="{StaticResource CreateLobbyLevelItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
 
             <TextBlock Margin="2,8,2,0" FontSize="12" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_LevelNoneFound}">
               <FrameworkElement.Style>
@@ -123,7 +131,7 @@
         </Border>
 
         <!-- 玩法模式 -->
-        <Border Grid.Column="2" Style="{StaticResource RideDetailSurfaceStyle}">
+        <Border Width="330" Margin="0,0,12,12" Style="{StaticResource RideDetailSurfaceStyle}">
           <StackPanel>
             <DockPanel LastChildFill="False">
               <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_GameModeSectionTitle}" />
@@ -133,7 +141,7 @@
 
             <Border Margin="0,12,0,10" Style="{StaticResource RideHairlineStyle}" />
 
-            <ListBox Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" MaxHeight="400" ItemsSource="{Binding LobbyGameModes}" ItemTemplate="{StaticResource CreateLobbyGameModeItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
+            <ListBox Style="{StaticResource CreateLobbyCardListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" ItemsSource="{Binding LobbyGameModes}" ItemTemplate="{StaticResource CreateLobbyGameModeItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
 
             <TextBlock Margin="2,10,2,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding SelectedLobbyGameModeDetail}">
               <FrameworkElement.Style>
@@ -151,7 +159,7 @@
         </Border>
 
         <!-- 出生位置 -->
-        <Border Grid.Column="4" Style="{StaticResource RideDetailSurfaceStyle}">
+        <Border Width="330" Margin="0,0,12,12" Style="{StaticResource RideDetailSurfaceStyle}">
           <StackPanel>
             <DockPanel LastChildFill="False">
               <TextBlock VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Strong}" Text="{x:Static res:Strings.Lobby_SpawnSectionTitle}" />
@@ -161,7 +169,7 @@
 
             <Border Margin="0,12,0,10" Style="{StaticResource RideHairlineStyle}" />
 
-            <ListBox Style="{StaticResource RideWideListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" MaxHeight="400" ItemsSource="{Binding LobbySpawns}" ItemTemplate="{StaticResource CreateLobbySpawnItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
+            <ListBox Style="{StaticResource CreateLobbyCardListBoxStyle}" ItemContainerStyle="{StaticResource ListPageVirtualizedListBoxItemStyle}" ItemsSource="{Binding LobbySpawns}" ItemTemplate="{StaticResource CreateLobbySpawnItemTemplate}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True" />
 
             <TextBlock Margin="2,8,2,0" FontSize="12" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Subtle}" Text="{x:Static res:Strings.Lobby_NoSpawnForLevel}">
               <FrameworkElement.Style>
@@ -192,7 +200,7 @@
             </StackPanel>
           </StackPanel>
         </Border>
-      </Grid>
+      </WrapPanel>
 
       <DockPanel LastChildFill="False" Margin="0,16,0,0">
         <Button DockPanel.Dock="Left" HorizontalAlignment="Left" MinWidth="168" Content="{x:Static res:Strings.Lobby_CreateRoomButton}" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Command="{Binding CreateLobbyCommand}" />

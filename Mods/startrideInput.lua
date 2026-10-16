@@ -26,7 +26,7 @@
 --
 -- 调用约定（由 startride_mod.lua 驱动）：
 --   M.setPolicy({ running = bool, roundActive = bool, vehicleLock = bool,
---                 lockReset = bool, reason = string })
+--                 lockReset = bool, freezeDrive = bool, reason = string })
 --   M.tick(dtReal)      -- 每帧，负责幂等下发 + AI 压制 + 猴补丁
 --   M.disableAll()      -- 退出玩法：全部放行 + 还原猴补丁
 -- ============================================================================
@@ -109,9 +109,12 @@ S = {
     roundActive = false,   -- 局内（staging / countdown / running 都算）
     vehicleLock = false,   -- 锁车（赛中不许换车换零件）
     lockReset   = false,   -- 连复位也锁（警匪：复位=传送逃脱）
+    freezeDrive = false,   -- 冻住油门/刹车（躲猫猫躲藏期的搜索者）
   },
   -- 已下发的状态（用于幂等比较）
   applied = {},
+  freezeApplied   = nil,
+  freezeVehicleId = nil,
   -- 猴补丁的原函数
   _origTeleportToPoi = nil,
   _patchInstalled   = false,
@@ -321,6 +324,32 @@ local function suppressAi()
   end)
 end
 
+local function playerVehicle()
+  local veh = nil
+  pcall(function()
+    if be ~= nil and be.getPlayerVehicle ~= nil then
+      veh = be:getPlayerVehicle(0)
+    end
+  end)
+  return veh
+end
+
+local function applyDriveFreeze()
+  local want = (S.want.freezeDrive == true) and (S.want.roundActive == true)
+  local veh = playerVehicle()
+  if veh == nil then return end
+  local id = nil
+  pcall(function() id = veh:getID() end)
+  if S.freezeApplied == want and S.freezeVehicleId == id then return end
+  local ok = pcall(function()
+    veh:queueLuaCommand('controller.setFreeze(' .. (want and '1' or '0') .. ')')
+  end)
+  if ok then
+    S.freezeApplied = want
+    S.freezeVehicleId = id
+  end
+end
+
 -- ---------------------------------------------------------------------------
 -- 对外：声明意图
 -- ---------------------------------------------------------------------------
@@ -332,6 +361,7 @@ function M.setPolicy(p)
   if p.running     ~= nil then w.running     = (p.running == true) end
   if p.vehicleLock ~= nil then w.vehicleLock = (p.vehicleLock == true) end
   if p.lockReset   ~= nil then w.lockReset   = (p.lockReset == true) end
+  if p.freezeDrive ~= nil then w.freezeDrive = (p.freezeDrive == true) end
 
   -- running 隐含 roundActive（调用方忘了传也不会漏禁）
   if w.running then w.roundActive = true end
@@ -365,8 +395,11 @@ function M.tick(dtReal)
   applyGroup('resetBypass', GROUP.resetBypass, ACT.resetBypass, active)
   applyGroup('reset',       GROUP.reset,       ACT.reset,       active or w.lockReset)
   applyGroup('vehicle',     GROUP.vehicle,     ACT.vehicle,     active or w.vehicleLock)
-  applyGroup('fun',         GROUP.fun,         ACT.fun,         w.running)
-  applyGroup('ai',          GROUP.ai,          ACT.ai,          w.running)
+  -- ⚠️ fun / ai 也按 roundActive 拦：staging / countdown 同样算局内。
+  --    只看 running 的话，倒计时里按 funBoost / forceField 就能提前窜出去，
+  --    而出生位是这一局唯一一次「全员同点起跑」的机会，抢跑直接毁掉公平性。
+  applyGroup('fun',         GROUP.fun,         ACT.fun,         active)
+  applyGroup('ai',          GROUP.ai,          ACT.ai,          active)
 
   -- ESC 菜单复位：按配置，任何房间都拦（真正玩法里再加一层）
   applyGroup('menuReset', GROUP.menuReset, ACT.menuReset,
@@ -385,6 +418,8 @@ function M.tick(dtReal)
       installTeleportPatch(false)
     end
   end
+
+  pcall(applyDriveFreeze)
 
   -- AI 压制（节流）
   if w.running then
@@ -408,6 +443,9 @@ function M.disableAll()
   S.want.roundActive = false
   S.want.vehicleLock = false
   S.want.lockReset = false
+  S.want.freezeDrive = false
+  S.freezeApplied = nil
+  pcall(applyDriveFreeze)
 
   local af = inputFilter()
   if af then
@@ -441,6 +479,7 @@ function M.status()
     running   = S.want.running,
     blocked   = table.concat(blocked, '/'),
     patched   = S._patchInstalled,
+    frozen    = (S.freezeApplied == true),
     lastError = S.lastError,
   }
 end

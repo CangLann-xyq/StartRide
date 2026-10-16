@@ -44,6 +44,13 @@ local TUNE = {
   PER_NODE_LIMIT = 900,
   NODE_REFRESH_INTERVAL = 5,
   minTpGap = 0.25,
+
+  dormantSyncInterval = 0.35,
+  nodeOffsetRefreshNear = 0.5,
+  nodeOffsetRefreshMid = 3,
+  nodeOffsetBudgetMax = 32,
+  lodMidForceEvery = 1,
+  dormantPullGap = 0.2,
 }
 
 local connectedBeams = {}
@@ -62,6 +69,11 @@ local tpTimer = 0
 local active = false
 local pendingSnap = false
 local lastTpAt = -100
+local lodTier = 2
+local lodFrame = 0
+local lastDormantAt = -100
+local lastPullAt = -100
+local nodePosCursor = 1
 
 local tpCount = 0
 local skipByCollision = 0
@@ -237,16 +249,44 @@ local function ensureRemoteType(sid)
   end
 end
 
+local function sweepNodePositions()
+  local n = #nodes
+  for i = 1, n do
+    local e = nodes[i]
+    local np = nil
+    pcall(function() np = obj:getNodePosition(e[1]) end)
+    if np then e[3], e[4], e[5] = np.x, np.y, np.z end
+  end
+  nodePosCursor = 1
+end
+
+local function refreshNodePositions(step)
+  local n = #nodes
+  if n <= 0 then return end
+  local i = nodePosCursor
+  local left = step
+  while left > 0 do
+    if i > n then i = 1 end
+    local e = nodes[i]
+    local np = nil
+    pcall(function() np = obj:getNodePosition(e[1]) end)
+    if np then e[3], e[4], e[5] = np.x, np.y, np.z end
+    i = i + 1
+    left = left - 1
+  end
+  nodePosCursor = i
+end
+
 local function calcCOG()
   local rot = getVehRot()
   local totalMass, cx, cy, cz = 0, 0, 0, 0
-  for nid in pairs(isConnectedNode) do
-    local nm = 0
-    pcall(function() nm = obj:getNodeMass(nid) or 0 end)
-    local np = nil
-    pcall(function() np = obj:getNodePosition(nid) end)
-    if np and nm > 0 then
-      cx, cy, cz = cx + np.x * nm, cy + np.y * nm, cz + np.z * nm
+  local n = #nodes
+  for i = 1, n do
+    local e = nodes[i]
+    local x, y, z = e[3], e[4], e[5]
+    if x then
+      local nm = e[2] / physicsFPS
+      cx, cy, cz = cx + x * nm, cy + y * nm, cz + z * nm
       totalMass = totalMass + nm
     end
   end
@@ -302,6 +342,7 @@ local function findConnectedNodes()
       end
     end
   end
+  sweepNodePositions()
   calcCOG()
   beamsChanged = false
   nodesBuilt = #nodes > 0
@@ -385,13 +426,13 @@ local function addAngularVelocity(x, y, z, pitchAV, rollAV, yawAV)
   rotatedInto(cogTmp, cogRel, rot)
   local cx, cy, cz = cogTmp.x, cogTmp.y, cogTmp.z
 
-  for i = 1, #nodes do
+  local n = #nodes
+  for i = 1, n do
     local node = nodes[i]
-    local cid, mul = node[1], node[2]
-    local np = nil
-    pcall(function() np = obj:getNodePosition(cid) end)
-    if np then
-      local px, py, pz = np.x - cx, np.y - cy, np.z - cz
+    local nx, ny, nz = node[3], node[4], node[5]
+    if nx then
+      local cid, mul = node[1], node[2]
+      local px, py, pz = nx - cx, ny - cy, nz - cz
       applyNodeForce(cid,
         (x + py * yawAV - pz * rollAV) * mul,
         (y + pz * pitchAV - px * yawAV) * mul,
@@ -520,6 +561,9 @@ local function pullMailbox()
     return
   end
 
+  if lodTier <= 0 and (timer - lastPullAt) < TUNE.dormantPullGap then return end
+  lastPullAt = timer
+
   local box = 'srPos' .. sid
   local ok, ver = pcall(function() return obj:getLastMailboxVersion(box) end)
   if not ok or ver == nil or ver == lastMailboxVersion then return end
@@ -538,6 +582,42 @@ local function onPhysicsStep(dtSim)
     local a, b, c = obj:getRollPitchYawAngularVelocity()
     if finite3(a, b, c) then vehRvel:set(b, a, c) end
   end)
+end
+
+local function requestDormantSync()
+  return pcall(function()
+    local payload = jsonEncode({
+      pos = { remoteData.pos.x, remoteData.pos.y, remoteData.pos.z },
+      rot = { remoteData.rot.x, remoteData.rot.y, remoteData.rot.z, remoteData.rot.w },
+      vel = { remoteData.vel.x, remoteData.vel.y, remoteData.vel.z },
+      rvel = { remoteData.rvel.x, remoteData.rvel.y, remoteData.rvel.z },
+      vehVel = { remoteData.vel.x, remoteData.vel.y, remoteData.vel.z },
+    })
+    obj:queueGameEngineLua('startride.applyRemoteTransform(' .. obj:getID() .. ', ' ..
+      string.format('%q', payload) .. ')')
+  end)
+end
+
+local function lodNodeBudget(n, dt)
+  if n <= 0 then return 0 end
+  local sec = (lodTier == 1) and TUNE.nodeOffsetRefreshMid or TUNE.nodeOffsetRefreshNear
+  local b = math.floor(n * dt / sec)
+  if b < 1 then b = 1 end
+  if b > TUNE.nodeOffsetBudgetMax then b = TUNE.nodeOffsetBudgetMax end
+  return b
+end
+
+local function setLodTier(tier)
+  local t = tonumber(tier) or 2
+  if t < 0 then t = 0 elseif t > 2 then t = 2 end
+  if t == lodTier then return end
+  local wasDormant = lodTier <= 0
+  lodTier = t
+  if wasDormant and t > 0 then
+    pendingSnap = true
+    framesSinceReset = 0
+    tpTimer = 0
+  end
 end
 
 local function requestTeleport(px, py, pz, qx, qy, qz, qw, vx, vy, vz, rvx, rvy, rvz, noCounter)
@@ -574,15 +654,7 @@ local function updateGFX(dt)
 
   if v.mpVehicleType ~= 'R' then return end
 
-  if not nodesBuilt then
-    pcall(buildNodeSet)
-    if not nodesBuilt and framesSinceReset == 30 then
-      logI('拿不到节点集合，退回 cluster 级施力（碰撞可能异常）')
-    end
-  elseif beamsChanged or (timer - lastNodeRefresh) > TUNE.NODE_REFRESH_INTERVAL then
-    lastNodeRefresh = timer
-    pcall(findConnectedNodes)
-  end
+  lodFrame = lodFrame + 1
 
   if not active then return end
 
@@ -593,6 +665,33 @@ local function updateGFX(dt)
       logI('同步中断（对方数据超时），车辆保持原位')
     end
     return
+  end
+
+  if lodTier <= 0 then
+    if (timer - lastDormantAt) >= TUNE.dormantSyncInterval then
+      lastDormantAt = timer
+      requestDormantSync()
+    end
+    return
+  end
+
+  if not nodesBuilt then
+    pcall(buildNodeSet)
+    if not nodesBuilt and framesSinceReset == 30 then
+      logI('拿不到节点集合，退回 cluster 级施力（碰撞可能异常）')
+    end
+  elseif beamsChanged or (timer - lastNodeRefresh) > TUNE.NODE_REFRESH_INTERVAL then
+    lastNodeRefresh = timer
+    pcall(findConnectedNodes)
+  end
+
+  if #nodes > 0 and #nodes <= TUNE.PER_NODE_LIMIT then
+    local budget = lodNodeBudget(#nodes, dt)
+    if budget > 0 and budget < #nodes then
+      pcall(refreshNodePositions, budget)
+    elseif budget >= #nodes then
+      pcall(sweepNodePositions)
+    end
   end
 
   local rn = getRefNode()
@@ -748,14 +847,17 @@ local function updateGFX(dt)
   local rotLenSq = tRaccX * tRaccX + tRaccY * tRaccY + tRaccZ * tRaccZ
   local accLenSq2 = tAccX * tAccX + tAccY * tAccY + tAccZ * tAccZ
 
-  if rotLenSq > TUNE.minRotForce * TUNE.minRotForce or len3(vehVel.x, vehVel.y, vehVel.z) > 1 then
+  if lodTier == 1 then
+    if (lodFrame % TUNE.lodMidForceEvery) == 0
+      and (rotLenSq > TUNE.minRotForce * TUNE.minRotForce
+        or accLenSq2 > TUNE.minPosForce * TUNE.minPosForce) then
+      clusterAccel(tAccX, tAccY, tAccZ, tRaccX, tRaccY, tRaccZ)
+    end
+  elseif rotLenSq > TUNE.minRotForce * TUNE.minRotForce or len3(vehVel.x, vehVel.y, vehVel.z) > 1 then
     addAngularVelocity(tAccX, tAccY, tAccZ, tRaccX, tRaccY, tRaccZ)
   elseif accLenSq2 > TUNE.minPosForce * TUNE.minPosForce then
     addVelocity(tAccX, tAccY, tAccZ)
   end
-
-  lastAcc = vec3(tAccX, tAccY, tAccZ)
-  lastRacc = vec3(tRaccX, tRaccY, tRaccZ)
 end
 
 
@@ -846,6 +948,8 @@ local function debugState()
     nanDrops = nanDropCount,
     nodes = #nodes,
     parentNode = parentNode,
+    lodTier = lodTier,
+    lodFrame = lodFrame,
     perNode = (#nodes > 0 and #nodes <= TUNE.PER_NODE_LIMIT),
   }
 end
@@ -858,6 +962,7 @@ M.onPhysicsStep = onPhysicsStep
 
 M.setVehicleType = setVehicleType
 M.setServerID = setServerID
+M.setLodTier = setLodTier
 M.setTargetPos = setTargetPos
 M.setVehiclePosRot = setTargetPos
 M.setAngularVelocityOnly = setAngularVelocityOnly

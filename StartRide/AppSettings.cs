@@ -69,6 +69,12 @@ namespace StartRide.Core
         public int ResetLimit { get; set; } = 3;
 
         /// <summary>
+        /// 警匪 / 德比：单回合时限（秒）。到时强盗没被抓就算撑满全场获胜，
+        /// 德比则判给幸存者里车损最低的那位。0 = 不限时。
+        /// </summary>
+        public int RoundSeconds { get; set; } = 300;
+
+        /// <summary>
         /// 德比：两次原地复位之间的冷却（毫秒）。
         /// </summary>
         public int ResetCooldownMs { get; set; } = 10000;
@@ -98,9 +104,11 @@ namespace StartRide.Core
 
         public bool AutoAllowFirewall { get; set; } = true;
         public bool MinimizeToTray { get; set; }
-        public int MaxMemoryMB { get; set; } = 4096;
+        // 0 = 跟随系统（不设上限）。原来默认 4096 会让 BeamNG 进图时 OOM 自杀。
+        public int MaxMemoryMB { get; set; } = 0;
 
-        public bool LimitGameMemory { get; set; } = true;
+        // 默认关闭：BeamNG 自己会管内存，硬上限只会让它进图时崩。
+        public bool LimitGameMemory { get; set; } = false;
         public string ExtraLaunchArgs { get; set; } = "";
         public bool AutoCheckVehicleMods { get; set; } = true;
         public bool ForceHighPerformanceGpu { get; set; } = true;

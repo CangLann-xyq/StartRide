@@ -40,6 +40,19 @@ namespace StartRide.Core
         public event Action<JsonElement>? VehicleReceived;
         public event Action<JsonElement>? VehCfgReceived;
         public event Action<JsonElement>? ChatReceived;
+
+        /// <summary>
+        /// 上面三个事件覆盖不到的**所有**游戏侧包。转发到中继就靠它。
+        ///
+        /// ⚠️ 为什么必须有：Dispatch 以前只 switch 了 ready/vehicle/vehcfg/chat/ping，
+        /// 其余一律走 `default: break` —— 也就是**静默丢弃**。而玩法同步包恰好全在
+        /// 那一档里（mode-phase / mode-sync / mode-impact / mode-spawn-plan /
+        /// mode-placement / derby-damage / derby-down / hide-seek-stage /
+        /// hide-seek-found / hide-seek-skill）。后果是跨机器联机**只有车位置能通**，
+        /// 整局玩法各玩各的，而且日志里一个字都不报 —— 最难查的一类。
+        /// </summary>
+        public event Action<JsonElement>? GamePacket;
+
         public event Action? GameDisconnected;
 
         public bool IsStarted
@@ -244,7 +257,12 @@ namespace StartRide.Core
                         break;
 
                     case "ping":
+                        break;
+
+                    // 其余全部上抛（见 GamePacket 的注释）。
+                    // vehicle / vehcfg / chat 有各自的专用出口，不会重复转发。
                     default:
+                        GamePacket?.Invoke(root.Clone());
                         break;
                 }
             }

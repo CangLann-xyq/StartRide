@@ -1521,7 +1521,7 @@
 <data name="Settings_MemoryNoModule" xml:space="preserve"><value>讀不到內存條資訊（可能被系統或權限限制）。</value></data>
 <data name="Settings_MemoryRefreshButton" xml:space="preserve"><value>刷新硬體資訊</value></data>
 <data name="Settings_MemoryLimitLabel" xml:space="preserve"><value>限制遊戲內存（真實生效）</value></data>
-<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>開啟後啟動器會以 Windows 作業物件給 BeamNG.drive 進程設一個內存上限：遊戲分配超過該值時會被系統拒絕，而不是只在介面裡記一個數字。</value></data>
+<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>開啟後啟動器會以 Windows 作業物件給 BeamNG.drive 行程設一個記憶體上限：遊戲分配超過該值時會被系統拒絕，而不是只在介面裡記一個數字。注意：上限過低會讓遊戲在載入地圖時因記憶體不足而崩潰退出，連線時表現為「進遊戲一會兒就閃退、看不到其他玩家」；低於實體記憶體一半的值會被自動放寬到安全值，不確定填多少就別開這個開關。</value></data>
 <data name="Settings_MemoryLimitAppliedFormat" xml:space="preserve"><value>已對遊戲進程施加 {0} 內存上限</value></data>
 <data name="Settings_MemoryLimitFailedFormat" xml:space="preserve"><value>內存上限施加失敗：{0}</value></data>
 <data name="Settings_MemoryTotalSummaryFormat" xml:space="preserve"><value>物理內存 {0} · 可用 {1}</value></data>

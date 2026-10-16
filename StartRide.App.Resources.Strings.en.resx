@@ -2923,7 +2923,7 @@ The current game folder will be automatically backed up before restoration.</val
 
 <data name="Settings_MemoryLimitLabel" xml:space="preserve"><value>Limit in-game memory (effective in reality)</value></data>
 
-<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>When enabled, the launcher will set a memory limit for the BeamNG.drive process using Windows Job Object: if the game tries to allocate more than this limit, the system will reject it, instead of just showing a number in the interface.</value></data>
+<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>When enabled, the launcher sets a memory cap on the BeamNG.drive process via a Windows Job Object: allocations beyond the cap are rejected by the system rather than merely shown as a number in the UI. Note: a cap that is too low makes the game crash while loading a map due to insufficient memory, which shows up in multiplayer as "it crashes shortly after entering the map and no other players are visible". Values below half of the physical memory are automatically raised to a safe value; if you are unsure what to enter, leave this switch off.</value></data>
 
 <data name="Settings_MemoryLimitAppliedFormat" xml:space="preserve"><value>Memory limit of {0} applied to the game process</value></data>
 

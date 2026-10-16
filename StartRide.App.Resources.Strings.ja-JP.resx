@@ -1521,7 +1521,7 @@
 <data name="Settings_MemoryNoModule" xml:space="preserve"><value>メモリモジュールの情報を読み取れません（システムや権限によって制限されている可能性があります）。</value></data>
 <data name="Settings_MemoryRefreshButton" xml:space="preserve"><value>ハードウェア情報を更新する</value></data>
 <data name="Settings_MemoryLimitLabel" xml:space="preserve"><value>ゲーム内メモリを制限する（実際に有効）</value></data>
-<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>有効にすると、ランチャーは Windows のジョブオブジェクトを使って BeamNG.drive プロセスにメモリ上限を設定します：ゲームがこの値を超えてメモリを割り当てようとすると、単にインターフェース上の数字として表示されるのではなく、システムによって拒否されます。</value></data>
+<data name="Settings_MemoryLimitDescription" xml:space="preserve"><value>有効にすると、ランチャーは Windows ジョブオブジェクトで BeamNG.drive プロセスにメモリ上限を設定します。上限を超える割り当てはシステムに拒否され、画面に数字を表示するだけではありません。注意：上限が低すぎると、マップ読み込み時にメモリ不足でゲームがクラッシュします。マルチプレイでは「マップに入ってすぐ落ちて、他のプレイヤーが見えない」という症状になります。物理メモリの半分未満の値は自動的に安全な値へ引き上げられます。適切な値が分からない場合はこのスイッチをオフにしてください。</value></data>
 <data name="Settings_MemoryLimitAppliedFormat" xml:space="preserve"><value>ゲームプロセスに {0} のメモリ上限を設定済み</value></data>
 <data name="Settings_MemoryLimitFailedFormat" xml:space="preserve"><value>メモリ上限の設定に失敗しました：{0}</value></data>
 <data name="Settings_MemoryTotalSummaryFormat" xml:space="preserve"><value>物理メモリ {0} · 利用可能 {1}</value></data>

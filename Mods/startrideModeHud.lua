@@ -367,6 +367,7 @@ end
 local function stageLabel(stage)
   if stage == 'hiding' then return '躲藏期' end
   if stage == 'seek' then return '搜索期' end
+  if stage == 'escape' then return '逃脱期' end
   return nil
 end
 
@@ -381,6 +382,20 @@ end
 local function clockText(sec)
   local s = math.max(0, math.floor(tonumber(sec) or 0))
   return string.format('%d:%02d', math.floor(s / 60), s % 60)
+end
+
+-- 昵称太长（联机 id 有 37 字符）会把结算行撑出卡片 → 按 UTF-8 边界截断
+local function shortName(s)
+  s = tostring(s or '')
+  if #s <= 8 then return s end
+  local cut = 8
+  while cut > 0 do
+    local b = s:byte(cut + 1)
+    if not b or b < 0x80 or b >= 0xC0 then break end
+    cut = cut - 1
+  end
+  if cut <= 0 then cut = 8 end
+  return s:sub(1, cut) .. '…'
 end
 
 -- 这个玩法是不是「按角色区分显示」的两种（警匪 / 捉迷藏）
@@ -458,13 +473,20 @@ function M.render(snap, extra)
     if snap.mode == 'hide_seek' and snap.phase == 'running' then
       -- 捉迷藏：running 里再分「躲藏期 / 搜索期」，这是玩家最需要知道的状态
       local sl = stageLabel(snap.stage) or '进行中'
-      local scol = (snap.stage == 'seek') and COL.danger or COL.hider
+      local scol = (snap.stage == 'escape') and COL.warn
+        or (snap.stage == 'seek') and COL.danger or COL.hider
       textAt(tx, line2, sl, scol, FS.L2)
-      if snap.stageSecondsLeft then
+      if snap.outsideSeconds then
+        textSame('返回区域 ' .. tostring(snap.outsideSeconds), COL.danger, FS.L2)
+      elseif snap.stageSecondsLeft then
         textSame(clockText(snap.stageSecondsLeft), COL.text, FS.L2)
       end
     elseif snap.phase == 'countdown' and snap.secondsLeft then
       textAt(tx, line2, string.format('%.0f 秒后开始', snap.secondsLeft), COL.warn, FS.L2)
+    elseif snap.phase == 'running' and snap.roundLeft then
+      local left = math.max(0, tonumber(snap.roundLeft) or 0)
+      textAt(tx, line2, '剩余 ' .. clockText(left),
+             (left <= 30) and COL.danger or COL.text, FS.L2)
     else
       textAt(tx, line2, phaseLabel(snap.phase), COL.text, FS.L2)
     end
@@ -477,10 +499,21 @@ function M.render(snap, extra)
         or ('贴住强盗 ' .. string.format('%.0f', (snap.captureHoldMs or 5000) / 1000) .. ' 秒')
       textAt(tx, line3, '目标 · ' .. goal, COL.dim, FS.L3)
     elseif snap.mode == 'hide_seek' then
-      local goal = (snap.role == 'seeker') and '找出所有躲藏者' or '别被找到'
+      local goal
+      if snap.stage == 'escape' then
+        goal = (snap.role == 'seeker') and '守住逃脱点，别放跑躲藏者' or '跑到逃脱点即获胜'
+      else
+        goal = (snap.role == 'seeker') and '找出所有躲藏者' or '别被找到'
+      end
       textAt(tx, line3, '目标 · ' .. goal, COL.dim, FS.L3)
     elseif snap.mode == 'derby' then
-      textAt(tx, line3, '目标 · 活到最后', COL.dim, FS.L3)
+      -- 淘汰后「目标 · 活到最后」已经不成立，而且车被冻住了。
+      -- 不明说的话玩家会以为游戏卡死 —— 直接改说状态（只改这一句，位置不动）。
+      if snap.eliminated and snap.phase == 'running' then
+        textAt(tx, line3, '已淘汰 · 观战中，等待本局结束', COL.danger, FS.L3)
+      else
+        textAt(tx, line3, '目标 · 活到最后', COL.dim, FS.L3)
+      end
     end
 
     -- ============ 抓捕 / 搜索 / 车损 进度条 ============
@@ -501,18 +534,20 @@ function M.render(snap, extra)
                (snap.role == 'robber') and '未被贴身' or '尚未贴身', COL.dim, FS.L3)
       end
     elseif snap.mode == 'hide_seek' then
-      local hold = math.max(1, snap.findHoldMs or 2000)
-      local cur = tonumber(snap.findMs) or 0
-      local ratio = clamp01(cur / hold)
+      local ratio = clamp01(tonumber(snap.detection) or 0)
       barFill(dl, cx + TUNE.padX, barY, innerW, TUNE.barH, ratio, COL.seeker)
-      if ratio > 0 then
+      if ratio > 0.01 then
         local who = (snap.role == 'hider') and '你被锁定' or '发现中'
         textAt(cx + TUNE.padX, barY - TUNE.barGap, who, COL.seeker, FS.L3)
+        local band = snap.proximity
+        local note = (band == 'near' and '极近') or (band == 'middle' and '接近')
+          or (band == 'far' and '远处') or ''
         textAt(cx + TUNE.padX + 64, barY - TUNE.barGap,
-               string.format('%.1f / %.1f 秒', cur / 1000, hold / 1000), COL.text, FS.L2)
+               string.format('%.0f%%', ratio * 100) .. (note ~= '' and ('  ' .. note) or ''),
+               COL.text, FS.L2)
       else
         textAt(cx + TUNE.padX, barY - TUNE.barGap,
-               (snap.role == 'seeker') and '尚未贴近躲藏者' or '暂时安全', COL.dim, FS.L3)
+               (snap.role == 'seeker') and '尚未发现目标' or '暂时安全', COL.dim, FS.L3)
       end
     elseif snap.mode == 'derby' then
       -- 车损条：越满越危险（黄 → 红）
@@ -669,17 +704,31 @@ function M.render(snap, extra)
         noteCol = COL.warn
       elseif snap.stage == 'seek' then
         if isSeeker then
-          note = '搜索期 · 贴近躲藏者 '
-            .. string.format('%.0f', (snap.findHoldMs or 2000) / 1000) .. ' 秒即可找到'
+          note = '搜索期 · 越靠近锁定越快'
         else
           note = '搜索期 · 别让搜索者贴住你'
         end
         noteCol = COL.dim
+      elseif snap.stage == 'escape' then
+        if isSeeker then
+          note = '逃脱期 · 守住逃脱点'
+        else
+          note = '逃脱期 · 跑到逃脱点即获胜'
+        end
+        noteCol = COL.warn
       else
         note = ''
         noteCol = COL.dim
       end
       textAt(trackX, trackY + TUNE.barH + 8, note, noteCol, FS.L3)
+
+      local sk = snap.skill
+      if type(sk) == 'table' and sk.skill ~= '' and snap.stage ~= 'hiding' then
+        local nm = (sk.skill == 'break') and '脱离' or '标记'
+        local tip = sk.ready and ('Alt+H ' .. nm) or (tostring(sk.cooldownSeconds) .. 's ' .. nm)
+        textAt(trackX + trackW - 74, trackY + TUNE.barH + 8, tip,
+               sk.ready and barCol or COL.dim, FS.L3)
+      end
 
       -- 距离标尺（做出仪表感：0 / 200 / 400 m）
       local marks = { '0', '200', '400' }
@@ -694,10 +743,26 @@ function M.render(snap, extra)
              '远', COL.dim, FS.L3)
     end
 
+    -- ============ 右上：玩法积分（常驻，跨局累计） ============
+    do
+      local sc = extra.score or snap.score
+      if type(sc) == 'table' and sc.enabled then
+        local sx = vw - M0 - 200
+        local sy = M0
+        card(dl, sx, sy, 200, 52, COL.accent)
+        textAt(sx + TUNE.padX, sy + TUNE.padY, '积分', COL.dim, FS.L3)
+        textAt(sx + TUNE.padX + 62, sy + TUNE.padY - 3,
+               tostring(sc.total or 0), COL.text, FS.L2)
+        local gain = tonumber(sc.gain) or 0
+        textAt(sx + TUNE.padX + 62, sy + TUNE.padY + LH.L2 - 1,
+               '上局 +' .. tostring(gain), gain > 0 and COL.accent or COL.dim, FS.L3)
+      end
+    end
+
     -- ============ 右上：捉迷藏 —— 找到计数 ============
     if snap.mode == 'hide_seek' and snap.phase == 'running' then
       local wx = vw - M0 - 200
-      local wy = M0
+      local wy = M0 + 60
       card(dl, wx, wy, 200, 52, COL.hider)
       textAt(wx + TUNE.padX, wy + TUNE.padY, '已找到', COL.dim, FS.L3)
       local left = tonumber(snap.hidersLeft) or 0
@@ -711,7 +776,7 @@ function M.render(snap, extra)
     -- ============ 右上：复位预算提示（德比） ============
     if snap.mode == 'derby' and snap.phase == 'running' and snap.resetLimit then
       local wx = vw - M0 - 200
-      local wy = M0
+      local wy = M0 + 60
       card(dl, wx, wy, 200, 52, COL.warn)
       textAt(wx + TUNE.padX, wy + TUNE.padY, '原地复位', COL.dim, FS.L3)
       local left = math.max(0, (snap.resetLimit or 0) - (snap.resetUsed or 0))
@@ -729,7 +794,7 @@ function M.render(snap, extra)
       local alpha = smoothstep(enter) * leave
 
       if alpha > 0.01 then
-        local cw, ch = 460, 150
+        local cw, ch = 460, 178
         local bx = (vw - cw) * 0.5
         local by = (vh - ch) * 0.5
 
@@ -769,6 +834,29 @@ function M.render(snap, extra)
         -- L1 标题
         textAt(bx + 28, by + 26, title, tcol, FS.L1 + 0.16, alpha)
 
+        -- 右上角：本局得分 + 累计（积分卡结算期仍在右上，这里再点一次「涨了多少」）
+        local sc = extra.score or snap.score
+        if type(sc) == 'table' and sc.enabled then
+          local gain = tonumber(sc.gain) or 0
+          local gtxt = (gain > 0 and '+' or '') .. tostring(gain) .. ' 分'
+          local gw = 0
+          pcall(function()
+            im.SetWindowFontScale(FS.L1 + 0.30)
+            gw = im.CalcTextSize(gtxt).x
+            im.SetWindowFontScale(1.0)
+          end)
+          textAt(bx + cw - 28 - gw, by + 26, gtxt,
+                 gain > 0 and COL.accent or COL.dim, FS.L1 + 0.30, alpha)
+          local ttxt = '累计 ' .. tostring(sc.total or 0)
+          local tw = 0
+          pcall(function()
+            im.SetWindowFontScale(FS.L3)
+            tw = im.CalcTextSize(ttxt).x
+            im.SetWindowFontScale(1.0)
+          end)
+          textAt(bx + cw - 28 - tw, by + 64, ttxt, COL.dim, FS.L3, alpha)
+        end
+
         -- 自己的结果
         local mine
         if snap.mode == 'cops_robber' then
@@ -795,13 +883,43 @@ function M.render(snap, extra)
         -- 副行（L3 说明）
         local sub
         if snap.mode == 'hide_seek' then
-          sub = '找到 ' .. tostring(snap.foundCount or 0) .. ' 人'
+          local why = (snap.reason == 'escaped') and '有人逃脱'
+            or (snap.reason == 'time_up') and '时间耗尽'
+            or (snap.reason == 'outside') and '有人离开区域' or '全部被找到'
+          sub = why .. ' · 找到 ' .. tostring(snap.foundCount or 0) .. ' 人'
             .. ' · 剩余躲藏者 ' .. tostring(snap.hidersLeft or 0)
             .. ' · 即将返回等待'
         else
-          sub = '即将返回等待…'
+          local why = (snap.finishReason == 'time_up' and '撑满全场')
+            or (snap.finishReason == 'last_standing' and '最后幸存') or ''
+          sub = (why ~= '' and (why .. ' · ') or '') .. '即将返回等待…'
+        end
+
+        if snap.mode == 'derby' and type(extra.derbyOrder) == 'table' and #extra.derbyOrder > 0 then
+          local parts = {}
+          for i = 1, math.min(#extra.derbyOrder, 4) do
+            local e = extra.derbyOrder[i]
+            parts[#parts + 1] = tostring(i) .. '.' .. tostring(e.name or e.id)
+              .. (e.eliminated and '已淘汰' or '')
+          end
+          textAt(bx + 28, by + 122, table.concat(parts, '  '), COL.dim, FS.L3, alpha)
         end
         textAt(bx + 28, by + 104, sub, COL.dim, FS.L3, alpha)
+
+        -- 积分榜（前 4 名，带本局增量）
+        if type(sc) == 'table' and sc.enabled
+           and type(sc.board) == 'table' and #sc.board > 0 then
+          local parts = {}
+          for i = 1, math.min(#sc.board, 4) do
+            local e = sc.board[i]
+            local d = tonumber(e.delta) or 0
+            parts[#parts + 1] = tostring(i) .. '.' .. shortName(e.name or e.id)
+              .. ' ' .. tostring(e.score or 0)
+              .. (d > 0 and ('(+' .. tostring(d) .. ')') or '')
+          end
+          textAt(bx + 28, by + 150, '积分榜  ' .. table.concat(parts, '    '),
+                 COL.dim, FS.L3, alpha)
+        end
       end
     end
 

@@ -35,16 +35,33 @@ local M = {}
 -- ---------------------------------------------------------------------------
 local TUNE = {
   hideSeconds       = 30,     -- 躲藏期时长（搜索者被冻住）
-  roundSeconds      = 240,    -- 搜索期时长（归零 = 躲藏方胜）
+  roundSeconds      = 240,    -- 搜索期时长（归零 = 躲藏方胜；启动器 hideRoundSeconds 覆盖此处）
   findRadius        = 12.0,   -- 发现半径（米）
   findHoldMs        = 2000,   -- 贴近多久算找到（毫秒）
   findStillSpeed    = 0,      -- 躲藏者「近乎静止」阈值；0 = 不启用静止要求
   minPlayers        = 2,      -- 少于此人数不启动
   seekerCount       = 1,      -- 搜索者人数（固定 1，保留可调）
   -- 出生规划参数（本模块自规划，不走走廊/围场那两条路）
-  hiderSpread       = 220,    -- 躲藏者之间期望间距（米）
   seekerStandoff    = 260,    -- 搜索者与最近躲藏者的最小距离（米）
   hiderClusterMin   = 90,     -- 躲藏者两两最小距离（米）
+  detectNear        = 5.0,
+  detectMid         = 10.0,
+  detectFar         = 18.0,
+  rateNear          = 1.5,
+  rateMid           = 0.8,
+  rateFar           = 0.35,
+  detectDecay       = 0.3,
+  escapeAfterSeconds = 100,
+  escapeRadius      = 15.0,
+  zoneRadius        = 900.0,
+  outsideGraceSeconds = 25,
+  skillCooldownSeconds = 45,
+  pingSeconds       = 10,
+  breakSeconds      = 6,
+  stagingSeconds    = 8,
+  countdownSeconds  = 5,
+  finishHoldSeconds = 6,
+  placementRetrySeconds = 5,
 }
 
 local PHASE = {
@@ -65,6 +82,7 @@ local ROLE = {
 local STAGE = {
   hiding = 'hiding',
   seek   = 'seek',
+  escape = 'escape',
 }
 
 local ROUND_PHASES = {
@@ -126,6 +144,28 @@ local S = {
 
   -- 结算广播去重
   lastFoundSentKey = '',
+
+  seekAt       = 0,
+  detection    = 0,
+  proximity    = '',
+  detectTarget = '',
+  detectBy     = '',
+  skillReadyAt = 0,
+  skillUsed    = '',
+  shieldUntil  = 0,
+  pingTarget   = '',
+  pingUntil    = 0,
+  zone         = nil,
+  escape       = nil,
+  outside      = {},
+  escapedBy    = '',
+  localOutsideSince = nil,
+  shield       = {},
+  localDetection = 0,
+  localBand    = '',
+  goneAt       = {},
+  leftIds      = {},
+  leftElim     = {},
 }
 
 -- ---------------------------------------------------------------------------
@@ -220,18 +260,41 @@ local function readConfig()
   local rules = cfg.modeRules
   if type(rules) ~= 'table' then rules = cfg end
 
-  local function num(key, lo, hi)
+  local function num(key, lo, hi, dst)
     local v = tonumber(rules[key])
-    if v and v >= lo and v <= hi then TUNE[key] = v end
+    if v and v >= lo and v <= hi then TUNE[dst or key] = v end
   end
 
   num('hideSeconds', 0, 300)
-  num('hideRoundSeconds', 30, 3600)
+  num('hideRoundSeconds', 30, 3600, 'roundSeconds')
   num('findRadius', 2, 200)
   num('findHoldMs', 200, 60000)
   num('seekerCount', 1, 8)
-  num('hiderSpread', 30, 2000)
+  num('hiderClusterMin', 30, 2000)
   num('seekerStandoff', 30, 3000)
+  num('detectNear', 1, 400)
+  num('detectMid', 2, 600)
+  num('detectFar', 3, 900)
+  num('rateNear', 0.05, 20)
+  num('rateMid', 0.05, 20)
+  num('rateFar', 0.05, 20)
+  num('detectDecay', 0, 5)
+  num('escapeAfterSeconds', 5, 3600)
+  num('escapeRadius', 3, 300)
+  num('zoneRadius', 50, 5000)
+  num('outsideGraceSeconds', 3, 600)
+  num('skillCooldownSeconds', 1, 600)
+  num('pingSeconds', 1, 120)
+  num('breakSeconds', 0, 60)
+
+  if type(rules.findRadius) == 'number' then
+    local fr = tonumber(rules.findRadius) or 0
+    if fr > 0 then
+      TUNE.detectFar = math.max(fr, TUNE.detectMid or 10)
+      if TUNE.detectMid > TUNE.detectFar then TUNE.detectMid = TUNE.detectFar end
+      if TUNE.detectNear > TUNE.detectMid then TUNE.detectNear = TUNE.detectMid end
+    end
+  end
 
   return true
 end
@@ -290,6 +353,17 @@ local function setPhase(ph, announce)
     S.winner = ''
     S.reason = ''
     S.found = {}
+    -- ⚠️ 下面三个是**局内临时状态**，必须跟着局一起归零：
+    --    escapedBy —— 不清的话，上一局有人逃出后，之后每一局的躲藏期一结束就会被
+    --                tickStageAuthority 判成「有躲藏者逃出 → 躲藏方胜」，玩法直接
+    --                坏掉（现场看起来只是「这局刚开始怎么就结束了」）。
+    --    outside   —— 出圈计时的起点时间戳；残留会让新局刚进搜索期就按旧时间戳
+    --                算够宽限，把站在圈外的人当场判出局。
+    --    shield    —— 隐身剩余时间（按 S.clock 比较，本来会自然过期，一起清干净）。
+    --    zone / escape 不在这里清：它们由大厅出生计划下发，不是局内状态。
+    S.escapedBy = ''
+    S.outside = {}
+    S.shield = {}
     S.findSince = nil
     S.findBy = ''
     S.remoteFindTarget = ''
@@ -297,6 +371,9 @@ local function setPhase(ph, announce)
     S.stage = STAGE.hiding
     S.stageAt = S.clock
     S.placementReady = {}
+    S.goneAt = {}
+    S.leftIds = {}
+    S.leftElim = {}
     local order = {}
     for _, p in ipairs(S.roster or {}) do
       if type(p) == 'table' and p.id ~= nil then order[#order + 1] = tostring(p.id) end
@@ -337,6 +414,94 @@ local function tickPositions()
   end
 end
 
+-- ---------------------------------------------------------------------------
+-- 玩家离开检测
+--
+-- 名单里的人在本回合进行中不在了 = 掉线 / 退房。以前完全不处理，后果是：
+--   · 德比：他永远算「还活着」→ survivorCount 永远 >= 2 → 回合永远不结束
+--   · 警匪：强盗走了没人可抓 → 干等到时限，还判强盗胜
+--   · 躲猫猫：躲藏者走了永远算「还没被找到」→ 搜索方永远赢不了
+-- 这里给一段宽限期（挡住名单抖动），超时才按「本回合出局」处理；人回来能恢复。
+-- ---------------------------------------------------------------------------
+local GONE_GRACE_SECONDS = 5
+
+local function liveIdSet(win)
+  local pl = win and win.players
+  if type(pl) ~= 'table' then return nil end
+  local live, n = {}, 0
+  for _, p in ipairs(pl) do
+    local id = nil
+    if type(p) == 'table' then
+      id = tostring(p.id or p.name or '')
+    elseif type(p) == 'string' or type(p) == 'number' then
+      id = tostring(p)
+    end
+    if id and id ~= '' then
+      live[id] = true
+      n = n + 1
+    end
+  end
+  if n == 0 then return nil end
+  return live
+end
+
+local function trackPresence(win)
+  local me = tostring(S.selfId or 'self')
+  if S.phase == PHASE.lobby then
+    S.goneAt = {}
+    S.leftIds = {}
+    S.leftElim = {}
+    return
+  end
+
+  local live = liveIdSet(win)
+  if not live then return end
+
+  local roster = S.roster or {}
+  local liveRoster = 0
+  for _, p in ipairs(roster) do
+    if live[tostring(p.id)] then liveRoster = liveRoster + 1 end
+  end
+  if liveRoster <= 0 then return end
+
+  local now = S.clock
+  local marks = S.goneAt or {}
+  S.goneAt = marks
+  local gone = nil
+
+  for _, p in ipairs(roster) do
+    local pid = tostring(p.id)
+    if pid ~= '' and pid ~= me then
+      if live[pid] then
+        marks[pid] = nil
+        if S.leftElim[pid] then
+          S.leftElim[pid] = nil
+          S.leftIds[pid] = nil
+          if S.roles[pid] == ROLE.hider then S.found[pid] = nil end
+          logHS('玩家回来了，恢复参战:', pid)
+        end
+      elseif not marks[pid] then
+        marks[pid] = now
+      elseif (now - marks[pid]) >= GONE_GRACE_SECONDS then
+        gone = gone or {}
+        gone[#gone + 1] = pid
+      end
+    end
+  end
+
+  if not gone then return end
+
+  for _, pid in ipairs(gone) do
+    if not S.leftIds[pid] then
+      S.leftIds[pid] = true
+      S.leftElim[pid] = true
+      S.found[pid] = true
+      S.placementReady[pid] = true
+      logHS('玩家已离开，本回合按出局处理:', pid)
+    end
+  end
+end
+
 local function rolePos(pid)
   local rec = S.positions[pid]
   if rec then return rec.x, rec.y end
@@ -354,8 +519,15 @@ local function setStage(st)
   S.stageAt = S.clock
   S.findSince = nil
   S.findBy = ''
+  S.detection = 0
+  S.detectTarget = ''
+  S.detectBy = ''
+  S.proximity = ''
   if st == STAGE.seek then
+    S.seekAt = S.clock
     logHS('躲藏期结束，搜索开始')
+  elseif st == STAGE.escape then
+    logHS('逃脱区已开放')
   end
 end
 
@@ -370,24 +542,39 @@ end
 
 local function tickStageAuthority()
   if S.phase ~= PHASE.running then return end
-  local elapsed = S.clock - S.stageAt
 
   if S.stage == STAGE.hiding then
-    if elapsed >= TUNE.hideSeconds then
+    if (S.clock - S.stageAt) >= (tonumber(TUNE.hideSeconds) or 30) then
       setStage(STAGE.seek)
     end
-  elseif S.stage == STAGE.seek then
-    if aliveHiders() <= 0 then
-      S.winner = ROLE.seeker
-      S.reason = 'all_found'
-      setPhase(PHASE.finished, true)
-      logHS('全部躲藏者被找到 —— 搜索方胜')
-    elseif elapsed >= TUNE.roundSeconds then
-      S.winner = ROLE.hider
-      S.reason = 'time_up'
-      setPhase(PHASE.finished, true)
-      logHS('搜索时间耗尽 —— 躲藏方胜')
-    end
+    return
+  end
+
+  if aliveHiders() <= 0 then
+    S.winner = ROLE.seeker
+    S.reason = 'all_found'
+    setPhase(PHASE.finished, true)
+    logHS('全部躲藏者被找到 —— 搜索方胜')
+    return
+  end
+
+  if S.escapedBy ~= '' then
+    S.winner = ROLE.hider
+    S.reason = 'escaped'
+    setPhase(PHASE.finished, true)
+    logHS('有躲藏者逃出 —— 躲藏方胜')
+    return
+  end
+
+  local seekElapsed = S.clock - (S.seekAt or S.stageAt)
+  if S.stage == STAGE.seek and seekElapsed >= (tonumber(TUNE.escapeAfterSeconds) or 100) then
+    setStage(STAGE.escape)
+  end
+  if seekElapsed >= (tonumber(TUNE.roundSeconds) or 240) then
+    S.winner = ROLE.hider
+    S.reason = 'time_up'
+    setPhase(PHASE.finished, true)
+    logHS('搜索时间耗尽 —— 躲藏方胜')
   end
 end
 
@@ -413,20 +600,65 @@ local function nearestSeekerTo(hx, hy)
   return best, bestD
 end
 
-local function tickFindAuthority()
-  if S.phase ~= PHASE.running then return end
-  if S.stage ~= STAGE.seek then return end
+local function proximityBand(d)
+  if not d then return '', 0 end
+  local near = tonumber(TUNE.detectNear) or 5
+  local mid  = tonumber(TUNE.detectMid) or 10
+  local far  = tonumber(TUNE.detectFar) or 18
+  if d <= near then return 'near', (tonumber(TUNE.rateNear) or 1.5) end
+  if d <= mid  then return 'middle', (tonumber(TUNE.rateMid) or 0.8) end
+  if d <= far  then return 'far', (tonumber(TUNE.rateFar) or 0.35) end
+  return '', 0
+end
 
-  -- 找「离某个搜索者最近、且在半径内」的躲藏者
+local function decayDetection(dt)
+  if S.detection <= 0 then return end
+  S.detection = math.max(0, S.detection - (tonumber(TUNE.detectDecay) or 0.3) * dt)
+  if S.detection <= 0 then
+    S.detection = 0
+    S.detectTarget = ''
+    S.detectBy = ''
+    S.proximity = ''
+  end
+end
+
+local function zoneCenter(kind)
+  local z = (kind == 'escape') and S.escape or S.zone
+  if type(z) ~= 'table' then return nil, nil, nil end
+  local x, y = tonumber(z.x), tonumber(z.y)
+  if not x or not y then return nil, nil, nil end
+  local r = tonumber(z.radius)
+    or ((kind == 'escape') and (tonumber(TUNE.escapeRadius) or 15) or (tonumber(TUNE.zoneRadius) or 900))
+  return x, y, r
+end
+
+local function selfOutside()
+  if S.selfRole ~= ROLE.hider then return false end
+  local cx, cy, r = zoneCenter('zone')
+  if not cx then return false end
+  local mx, my = vehiclePos()
+  if not mx then return false end
+  return dist2(mx, my, cx, cy) > r
+end
+
+local function tickFindAuthority(dt)
+  if S.phase ~= PHASE.running then return end
+  if S.stage == STAGE.hiding then return end
+  local step = tonumber(dt) or 0.016
+  if step > 0.25 then step = 0.25 end
+
   local target, targetSeeker, targetD = nil, nil, nil
   for pid, role in pairs(S.roles or {}) do
     if role == ROLE.hider and not S.found[pid] then
-      local hx, hy = rolePos(pid)
-      if hx and hy then
-        local sk, d = nearestSeekerTo(hx, hy)
-        if sk and d and d <= TUNE.findRadius then
-          if not targetD or d < targetD then
-            target, targetSeeker, targetD = pid, sk, d
+      local shielded = (tonumber(S.shield[pid]) or 0) > S.clock
+      if not shielded then
+        local hx, hy = rolePos(pid)
+        if hx and hy then
+          local sk, d = nearestSeekerTo(hx, hy)
+          if sk and d and d <= (tonumber(TUNE.detectFar) or 18) then
+            if not targetD or d < targetD then
+              target, targetSeeker, targetD = pid, sk, d
+            end
           end
         end
       end
@@ -434,50 +666,103 @@ local function tickFindAuthority()
   end
 
   if not target then
-    -- 没人被贴住：进度清零（不做衰减）
-    if S.findSince then
-      S.findSince = nil
-      S.findBy = ''
+    decayDetection(step)
+    return
+  end
+
+  if S.detectTarget ~= target then
+    S.detectTarget = target
+    S.detection = 0
+  end
+  local band, rate = proximityBand(targetD)
+  if band == '' then
+    decayDetection(step)
+    return
+  end
+
+  S.proximity = band
+  S.detectBy = targetSeeker
+  S.detection = math.min(1, S.detection + rate * step)
+  if S.detection < 1 then return end
+
+  S.found[target] = true
+  if S.roles[target] == ROLE.hider then S.roles[target] = ROLE.seeker end
+  S.detection = 0
+  S.detectTarget = ''
+  S.detectBy = ''
+  S.proximity = ''
+  logHS(tostring(target) .. ' 被找到 → 转入搜索方')
+  if aliveHiders() <= 0 then
+    S.winner = ROLE.seeker
+    S.reason = 'all_found'
+    setPhase(PHASE.finished, true)
+  end
+end
+
+local function tickEscapeAuthority()
+  if S.phase ~= PHASE.running then return end
+  if S.stage ~= STAGE.escape then return end
+  if S.escapedBy ~= '' then return end
+  local cx, cy, r = zoneCenter('escape')
+  if not cx then return end
+  for pid, role in pairs(S.roles or {}) do
+    if role == ROLE.hider and not S.found[pid] then
+      local px, py = rolePos(pid)
+      if px and py and dist2(px, py, cx, cy) <= r then
+        S.escapedBy = tostring(pid)
+        return
+      end
     end
-    return
   end
+end
 
-  -- 换了目标 → 重新计时
-  if S.findBy ~= target then
-    S.findSince = S.clock
-    S.findBy = target
-    return
-  end
-
-  local heldMs = (S.clock - (S.findSince or S.clock)) * 1000
-  if heldMs >= TUNE.findHoldMs then
-    S.found[target] = true
-    -- 被找到的人转成搜索者（BeamLink：被找到的人加入搜索方）
-    if S.roles[target] == ROLE.hider then S.roles[target] = ROLE.seeker end
-    S.findSince = nil
-    S.findBy = ''
-    logHS(tostring(target) .. ' 被找到（贴住 '
-      .. string.format('%.1f', heldMs / 1000) .. ' 秒）→ 转入搜索方')
-    -- 立刻算一次胜负（最后一个被找到 → 直接结算）
-    if aliveHiders() <= 0 then
-      S.winner = ROLE.seeker
-      S.reason = 'all_found'
-      setPhase(PHASE.finished, true)
+local function tickZoneAuthority(dt)
+  if S.phase ~= PHASE.running then return end
+  if S.stage == STAGE.hiding then return end
+  local cx, cy, r = zoneCenter('zone')
+  if not cx then return end
+  local grace = tonumber(TUNE.outsideGraceSeconds) or 25
+  for pid, role in pairs(S.roles or {}) do
+    if role == ROLE.hider and not S.found[pid] then
+      local px, py = rolePos(pid)
+      if px and py then
+        if dist2(px, py, cx, cy) > r then
+          if not S.outside[pid] then
+            S.outside[pid] = S.clock
+            logHS(tostring(pid) .. ' 离开活动区域，开始倒计时')
+          elseif (S.clock - S.outside[pid]) >= grace then
+            S.outside[pid] = nil
+            S.found[pid] = true
+            if S.roles[pid] == ROLE.hider then S.roles[pid] = ROLE.seeker end
+            logHS(tostring(pid) .. ' 离开区域超时出局')
+            if aliveHiders() <= 0 then
+              S.winner = ROLE.seeker
+              S.reason = 'outside'
+              setPhase(PHASE.finished, true)
+            end
+          end
+        else
+          S.outside[pid] = nil
+        end
+      end
     end
   end
 end
 
 -- 本地（搜索者）预测：本机贴近某个躲藏者时给出进度，HUD 不必等房主广播。
-local function tickFindLocal()
+local function tickFindLocal(dt)
   if S.phase ~= PHASE.running then return end
-  if S.stage ~= STAGE.seek then return end
+  if S.stage == STAGE.hiding then return end
   if S.selfRole ~= ROLE.seeker then
-    if S.localTarget then S.localTarget = nil; S.localMs = 0 end
+    if S.localTarget then S.localTarget = nil end
+    S.localMs = 0
     return
   end
 
   local mx, my = vehiclePos()
   if not mx then return end
+  local step = tonumber(dt) or 0.016
+  if step > 0.25 then step = 0.25 end
 
   local best, bestD = nil, nil
   for pid, role in pairs(S.roles or {}) do
@@ -485,22 +770,110 @@ local function tickFindLocal()
       local px, py = rolePos(pid)
       if px and py then
         local d = dist2(mx, my, px, py)
-        if d <= TUNE.findRadius and (not bestD or d < bestD) then best, bestD = pid, d end
+        if d <= (tonumber(TUNE.detectFar) or 18) and (not bestD or d < bestD) then
+          best, bestD = pid, d
+        end
       end
     end
   end
 
   if not best then
-    S.localTarget = nil
+    if S.localTarget then S.localTarget = nil end
     S.localMs = 0
+    if S.localDetection and S.localDetection > 0 then
+      S.localDetection = math.max(0, S.localDetection - (tonumber(TUNE.detectDecay) or 0.3) * step)
+    end
     return
   end
+
   if S.localTarget ~= best then
     S.localTarget = best
-    S.localSince = S.clock
+    S.localDetection = 0
   end
-  S.localMs = (S.clock - (S.localSince or S.clock)) * 1000
+  local band, rate = proximityBand(bestD)
+  S.localBand = band
   S.localDist = bestD
+  if band == '' then return end
+  S.localDetection = math.min(1, (S.localDetection or 0) + rate * step)
+  S.localMs = (S.localDetection or 0) * (tonumber(TUNE.findHoldMs) or 2000)
+end
+
+function M.useSkill()
+  if S.phase ~= PHASE.running then return false, '现在不能用技能' end
+  if S.stage == STAGE.hiding then return false, '躲藏期还不能用技能' end
+  local role = S.selfRole
+  if role ~= ROLE.hider and role ~= ROLE.seeker then return false, '观战不能用技能' end
+  if S.clock < (S.skillReadyAt or 0) then
+    return false, '技能冷却中 ' .. tostring(math.ceil((S.skillReadyAt or 0) - S.clock)) .. ' 秒'
+  end
+  S.skillReadyAt = S.clock + (tonumber(TUNE.skillCooldownSeconds) or 45)
+  if role == ROLE.hider then
+    S.skillUsed = 'break'
+    S.pendingSkill = { id = tostring(S.selfId or 'self'), skill = 'break' }
+    S.shieldUntil = S.clock + (tonumber(TUNE.breakSeconds) or 6)
+    S.detection = 0
+    S.detectTarget = ''
+    S.detectBy = ''
+    S.proximity = ''
+    logHS('使用技能：脱离')
+    return true, '已脱离'
+  end
+  S.skillUsed = 'ping'
+  S.pendingSkill = { id = tostring(S.selfId or 'self'), skill = 'ping' }
+  local mx, my = vehiclePos()
+  local best, bestD = nil, nil
+  if mx then
+    for pid, r in pairs(S.roles or {}) do
+      if r == ROLE.hider and not S.found[pid] then
+        local px, py = rolePos(pid)
+        if px and py then
+          local d = dist2(mx, my, px, py)
+          if not bestD or d < bestD then best, bestD = pid, d end
+        end
+      end
+    end
+  end
+  S.pingTarget = tostring(best or '')
+  S.pingUntil = S.clock + (tonumber(TUNE.pingSeconds) or 10)
+  logHS('使用技能：标记')
+  return true, '已标记'
+end
+
+function M.skillState()
+  local readyIn = math.max(0, (S.skillReadyAt or 0) - S.clock)
+  return {
+    skill = (S.selfRole == ROLE.hider) and 'break' or (S.selfRole == ROLE.seeker) and 'ping' or '',
+    ready = readyIn <= 0,
+    cooldownSeconds = math.ceil(readyIn),
+    shieldLeft = math.max(0, (S.shieldUntil or 0) - S.clock),
+    pingTarget = (S.pingUntil or 0) > S.clock and S.pingTarget or '',
+    pingLeft = math.max(0, (S.pingUntil or 0) - S.clock),
+  }
+end
+
+function M.takeSkillPacket()
+  local p = S.pendingSkill
+  S.pendingSkill = nil
+  return p
+end
+
+function M.applyRemoteSkill(pid, skill)
+  pid = tostring(pid or '')
+  skill = tostring(skill or '')
+  if pid == '' then return end
+  if skill == 'break' then
+    S.shield[pid] = S.clock + (tonumber(TUNE.breakSeconds) or 6)
+    logHS(tostring(pid) .. ' 使用了脱离')
+  elseif skill == 'ping' then
+    S.pingTarget = pid
+    S.pingUntil = S.clock + (tonumber(TUNE.pingSeconds) or 10)
+  end
+end
+
+function M.applyRemoteEscape(pid)
+  pid = tostring(pid or '')
+  if pid == '' then return end
+  S.escapedBy = pid
 end
 
 -- 加入者：接收房主广播的发现进度
@@ -523,6 +896,10 @@ function M.applyRemoteStage(stage)
   if S.stage ~= stage then
     S.stage = stage
     S.stageAt = S.clock
+    if stage == STAGE.seek then S.seekAt = S.clock end
+    S.detection = 0
+    S.proximity = ''
+    S.detectTarget = ''
     logHS('跟随房主局内阶段 →', stage)
   end
 end
@@ -542,7 +919,7 @@ end
 -- ---------------------------------------------------------------------------
 -- 阶段推进（权威端）
 -- ---------------------------------------------------------------------------
-local function tickAuthority(win)
+local function tickAuthority(win, dt)
   if not S.authority then return end
   if S.mode ~= 'hide_seek' then return end
 
@@ -589,7 +966,9 @@ local function tickAuthority(win)
 
   elseif S.phase == PHASE.running then
     tickStageAuthority()
-    tickFindAuthority()
+    tickFindAuthority(dt)
+    tickEscapeAuthority()
+    tickZoneAuthority(dt)
 
   elseif S.phase == PHASE.finished then
     if elapsed >= (TUNE.finishHoldSeconds or 6) then
@@ -613,9 +992,13 @@ function M.tick(dtReal, win)
   S.mode       = tostring(win.gameMode or 'hide_seek')
 
   -- 房主判定（与警匪/德比同一套口径）
-  if not win.connected or win.closed then
+  -- ⚠️ sessionAlive 与 authority 分开记：玩法状态要在会话消失时复位，
+  --    否则 phase 停在局内，而输入限制只认 phase → 按键永久锁死。
+  if not win.connected or win.closed or win.relayState == 'disconnected' then
     S.authority = false
+    S.sessionAlive = false
   else
+    S.sessionAlive = true
     local h = tostring(win.host or '')
     if h == '' then
       S.authority = false
@@ -624,7 +1007,23 @@ function M.tick(dtReal, win)
     end
   end
 
+  -- 会话没了（退房 / 关房 / 中继断）→ 玩法状态整个收回 lobby。
+  -- 理由同警匪：输入限制只由 phase 决定，不复位就会一直锁着按键。
+  if S.sessionAlive == false and S.phase ~= PHASE.lobby then
+    S.phase = PHASE.lobby
+    S.selfRole = ROLE.none
+    S.round = 0
+    S.roles = {}
+    S.found = {}
+    S.remoteFindTarget = ''
+    S.remoteFindMs = 0
+    logHS('联机会话已结束 —— 玩法复位到大厅')
+  end
+
   pcall(tickPositions)
+
+  -- 玩家离开：名单里的人不在了，超时按本回合出局处理
+  pcall(trackPresence, win)
 
   -- 玩法切走 → 重新开始
   -- ⚠️ 但如果这一帧之前刚收到房主推来的阶段（remotePhaseFresh），就**不能**复位：
@@ -642,9 +1041,19 @@ function M.tick(dtReal, win)
     end
   end
 
-  tickAuthority(win)
+  tickAuthority(win, dtReal)
 
-  pcall(tickFindLocal)
+  pcall(tickFindLocal, dtReal)
+
+  if S.phase == PHASE.running and S.selfRole == ROLE.hider and not S.found[S.selfId or 'self'] then
+    if selfOutside() then
+      if not S.localOutsideSince then S.localOutsideSince = S.clock end
+    else
+      S.localOutsideSince = nil
+    end
+  else
+    S.localOutsideSince = nil
+  end
 
   -- 结算停留
   if S.phase == PHASE.finished and (S.clock - S.phaseAt) >= (TUNE.finishHoldSeconds or 6) then
@@ -662,20 +1071,28 @@ end
 --      seek   阶段      → 全员锁复位/传送（对齐警匪：复位=传送逃脱）
 -- ---------------------------------------------------------------------------
 function M.inputPolicy()
+  -- 会话没了就一律放行（含 freezeDrive）：最后一道保险，见 tick 里的复位。
+  if S.sessionAlive == false then
+    return { roundActive = false, running = false, vehicleLock = false,
+             lockReset = false, freezeDrive = false, reason = 'session-gone' }
+  end
   local inRound = ROUND_PHASES[S.phase] and true or false
   local running = (S.phase == PHASE.running)
   local hidingSeeker = (running and S.stage == STAGE.hiding and S.selfRole == ROLE.seeker)
 
-  local lockReset = (inRound and running and S.selfRole == ROLE.seeker)
-    or (running and S.stage == STAGE.hiding and S.selfRole == ROLE.seeker)
+  -- 准备期（就位 / 倒数）全员锁复位；比赛期只锁搜索者 —— 躲藏者的复位
+  -- 由 requestReset 兜底拒绝，留着按键还能给玩家一句「为什么不行」的提示。
+  local lockReset = inRound and ((S.phase ~= PHASE.running) or S.selfRole == ROLE.seeker)
+
+  -- 就位 / 倒数期间全员冻住（不然倒计时里能抢跑）；躲藏期的搜索者也冻。
+  local freezeDrive = hidingSeeker or (inRound and not running)
 
   return {
     roundActive = inRound,
     running     = running,
     vehicleLock = inRound,
     lockReset   = lockReset,
-    -- 躲藏期的搜索者连油门都不能给（由主模组读取这个字段做油门封锁）
-    freezeDrive = hidingSeeker,
+    freezeDrive = freezeDrive,
     reason      = S.mode .. '/' .. S.phase .. '/' .. tostring(S.stage),
   }
 end
@@ -729,9 +1146,9 @@ end
 function M.stageSecondsLeft()
   if S.phase ~= PHASE.running then return nil end
   if S.stage == STAGE.hiding then
-    return math.max(0, TUNE.hideSeconds - (S.clock - S.stageAt))
+    return math.max(0, (tonumber(TUNE.hideSeconds) or 30) - (S.clock - S.stageAt))
   end
-  return math.max(0, TUNE.roundSeconds - (S.clock - S.stageAt))
+  return math.max(0, (tonumber(TUNE.roundSeconds) or 240) - (S.clock - (S.seekAt or S.stageAt)))
 end
 
 -- ---------------------------------------------------------------------------
@@ -887,10 +1304,44 @@ function M.buildSpawnPlan(state)
     }
   end
 
+  local zone = nil
+  local escape = nil
+  if #picked >= 2 then
+    local minX, maxX, minY, maxY = picked[1].x, picked[1].x, picked[1].y, picked[1].y
+    for _, q in ipairs(picked) do
+      if q.x < minX then minX = q.x end
+      if q.x > maxX then maxX = q.x end
+      if q.y < minY then minY = q.y end
+      if q.y > maxY then maxY = q.y end
+    end
+    local cx, cy = (minX + maxX) / 2, (minY + maxY) / 2
+    local span = math.sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY)) / 2
+    zone = { x = cx, y = cy, radius = math.max(tonumber(TUNE.zoneRadius) or 900, span + 300) }
+    local bestNode, bestD = nil, nil
+    for _, n in ipairs(roads) do
+      local d = math.sqrt((n.x - cx) * (n.x - cx) + (n.y - cy) * (n.y - cy))
+      if d >= span + 120 and (not bestD or d < bestD) then bestNode, bestD = n, d end
+    end
+    if not bestNode then
+      for _, n in ipairs(roads) do
+        local d = math.sqrt((n.x - cx) * (n.x - cx) + (n.y - cy) * (n.y - cy))
+        if not bestD or d > bestD then bestNode, bestD = n, d end
+      end
+    end
+    if bestNode then
+      escape = { x = bestNode.x, y = bestNode.y, radius = tonumber(TUNE.escapeRadius) or 15 }
+    end
+  end
+
+  S.zone = zone
+  S.escape = escape
+
   return {
     round = state.round,
     kind = 'hideseek',
     slots = slots,
+    zone = zone,
+    escape = escape,
   }
 end
 
@@ -909,6 +1360,8 @@ function M.applySpawnPlan(plan)
   if r <= (S.lastPlanRound or -1) then return false end
   S.lastPlanRound = r
   S.pendingSpawnPlan = plan
+  if type(plan.zone) == 'table' then S.zone = plan.zone end
+  if type(plan.escape) == 'table' then S.escape = plan.escape end
   return true
 end
 
@@ -991,6 +1444,8 @@ function M.snapshot()
     phase = S.phase,
     stage = S.stage,
     round = S.round,
+    -- 给积分模块当幂等身份：同一局每帧都是这个值，跨局必然不同。
+    phaseAt = S.phaseAt,
     role = S.selfRole,
     authority = S.authority,
     winner = S.winner,
@@ -1017,6 +1472,19 @@ function M.snapshot()
     findTarget = (S.selfRole == ROLE.seeker) and (S.localTarget or '') or S.remoteFindTarget,
     findMs = (S.selfRole == ROLE.seeker) and (S.localMs or 0) or S.remoteFindMs,
     roles = S.roles,
+    detection = (S.selfRole == ROLE.seeker) and (S.localDetection or 0) or S.detection,
+    proximity = (S.selfRole == ROLE.seeker) and (S.localBand or '') or S.proximity,
+    seekSecondsLeft = (S.phase == PHASE.running and S.stage ~= STAGE.hiding)
+      and math.max(0, math.ceil((tonumber(TUNE.roundSeconds) or 240) - (S.clock - (S.seekAt or S.stageAt)))) or nil,
+    escapeSecondsLeft = (S.phase == PHASE.running and S.stage == STAGE.seek)
+      and math.max(0, math.ceil((tonumber(TUNE.escapeAfterSeconds) or 100) - (S.clock - (S.seekAt or S.stageAt)))) or nil,
+    outsideSeconds = S.localOutsideSince
+      and math.max(0, math.ceil((tonumber(TUNE.outsideGraceSeconds) or 25) - (S.clock - S.localOutsideSince))) or nil,
+    zone = S.zone,
+    escape = S.escape,
+    escapedBy = S.escapedBy,
+    skill = M.skillState(),
+    paused = false,
   }
 end
 
@@ -1050,6 +1518,25 @@ function M.reset()
   S.lastAnnounce = ''
   S.lastSentKey = ''
   S.lastFoundSentKey = ''
+  S.seekAt = 0
+  S.detection = 0
+  S.proximity = ''
+  S.detectTarget = ''
+  S.detectBy = ''
+  S.skillReadyAt = 0
+  S.skillUsed = ''
+  S.shieldUntil = 0
+  S.pingTarget = ''
+  S.pingUntil = 0
+  S.zone = nil
+  S.escape = nil
+  S.outside = {}
+  S.escapedBy = ''
+  S.localOutsideSince = nil
+  S.shield = {}
+  S.localDetection = 0
+  S.localBand = ''
+  S.pendingSkill = nil
 end
 
 return M

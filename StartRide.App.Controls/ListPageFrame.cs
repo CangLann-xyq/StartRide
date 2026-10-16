@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Diagnostics;
 using System.Windows;
@@ -52,6 +52,8 @@ public partial class ListPageFrame : UserControl, IComponentConnector
 	public static readonly DependencyProperty IsProgressiveBlurEnabledProperty;
 
 	public static readonly DependencyProperty UseFrameScrollViewerProperty;
+
+	public static readonly DependencyProperty ScrollBarAlwaysVisibleProperty;
 
 	public static readonly DependencyProperty OverlayContentProperty;
 
@@ -301,6 +303,23 @@ public partial class ListPageFrame : UserControl, IComponentConnector
 		}
 	}
 
+	/// <summary>
+	/// 框架滚动条常显。默认与主内容一致：鼠标进到内容里才显形。
+	/// 联机建房页内容很长（地图全列出来），用户找不到拉条就会以为「拉条拉不下去」，
+	/// 所以那一页把它打开。
+	/// </summary>
+	public bool ScrollBarAlwaysVisible
+	{
+		get
+		{
+			return (bool)((DependencyObject)this).GetValue(ScrollBarAlwaysVisibleProperty);
+		}
+		set
+		{
+			((DependencyObject)this).SetValue(ScrollBarAlwaysVisibleProperty, (object)value);
+		}
+	}
+
 	public object? OverlayContent
 	{
 		get
@@ -434,6 +453,7 @@ public partial class ListPageFrame : UserControl, IComponentConnector
 		IsListVisibleProperty = DependencyProperty.Register("IsListVisible", typeof(bool), typeof(ListPageFrame), new PropertyMetadata((object)true, new PropertyChangedCallback(OnListVisibilityChanged)));
 		IsProgressiveBlurEnabledProperty = DependencyProperty.Register("IsProgressiveBlurEnabled", typeof(bool), typeof(ListPageFrame), new PropertyMetadata((object)false, new PropertyChangedCallback(OnProgressiveBlurEnabledChanged)));
 		UseFrameScrollViewerProperty = DependencyProperty.Register("UseFrameScrollViewer", typeof(bool), typeof(ListPageFrame), new PropertyMetadata((object)true));
+		ScrollBarAlwaysVisibleProperty = DependencyProperty.Register("ScrollBarAlwaysVisible", typeof(bool), typeof(ListPageFrame), new PropertyMetadata((object)false));
 		OverlayContentProperty = DependencyProperty.Register("OverlayContent", typeof(object), typeof(ListPageFrame), new PropertyMetadata((PropertyChangedCallback)null));
 		ListContentProperty = DependencyProperty.Register("ListContent", typeof(object), typeof(ListPageFrame), new PropertyMetadata((PropertyChangedCallback)null));
 		FloatingContentProperty = DependencyProperty.Register("FloatingContent", typeof(object), typeof(ListPageFrame), new PropertyMetadata((PropertyChangedCallback)null));
