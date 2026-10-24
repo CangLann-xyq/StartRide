@@ -670,7 +670,52 @@ function M.render(snap, extra)
   if type(im) ~= 'table' then return end
   -- 除自由驾驶外，每个模式都有自己的 HUD（赛道日以前被这里挡在门外）
   if snap.mode == nil or snap.mode == '' or snap.mode == 'free_drive' then return end
-  if snap.phase == 'lobby' then return end
+  if snap.phase == 'lobby' then
+    -- 等待开局提示卡：lobby 阶段原本整个 HUD 直接 return，玩家看到的是「什么都没有」，
+    -- 会以为模式界面包没装上。至少告诉玩家：玩法已生效，正在等人 / 为什么还不开局。
+    pcall(function()
+      local vw, vh = 1920, 1080
+      pcall(function()
+        local vp = im.GetMainViewport()
+        if vp then vw, vh = vp.Size.x, vp.Size.y end
+      end)
+      im.SetNextWindowPos(im.ImVec2(0, 0), im.Cond_Always)
+      im.SetNextWindowSize(im.ImVec2(vw, vh), im.Cond_Always)
+      im.SetNextWindowBgAlpha(0)
+      local lflags = im.WindowFlags_NoTitleBar + im.WindowFlags_NoResize
+        + im.WindowFlags_NoScrollbar + im.WindowFlags_NoMove
+        + im.WindowFlags_NoCollapse + im.WindowFlags_NoSavedSettings
+        + im.WindowFlags_NoInputs + im.WindowFlags_NoFocusOnAppearing
+        + im.WindowFlags_NoBringToFrontOnFocus + im.WindowFlags_NoBackground
+      if not im.Begin('##sr_lobbyhint', im.BoolPtr(false), lflags) then
+        im.End()
+        return
+      end
+      local ldl = nil
+      pcall(function() ldl = fnGetDrawList() end)
+
+      local w, h = 316, 100
+      local x, y = TUNE.margin, vh - TUNE.margin - h
+      card(ldl, x, y, w, h, COL.accent, 1)
+
+      textAt(x + 16, y + 12, modeLabel(snap.mode) .. ' · 等待开局', COL.accent, 1.05)
+      local players = tonumber(snap.lobbyPlayers) or 1
+      local need = tonumber(snap.minPlayers) or 2
+      local line2
+      if players < need then
+        line2 = string.format('等待玩家加入（%d/%d 人）', players, need)
+      else
+        line2 = '正在分配角色，马上开始…'
+      end
+      textAt(x + 16, y + 42, line2, COL.text, 0.92)
+      local why = tostring(snap.blockReason or '')
+      if why ~= '' then
+        textAt(x + 16, y + 68, '开局条件：' .. why, COL.dim, 0.82)
+      end
+      im.End()
+    end)
+    return
+  end
 
   extra = extra or {}
 

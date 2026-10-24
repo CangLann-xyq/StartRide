@@ -2184,6 +2184,21 @@ function M.snapshot()
     phaseAt = S.phaseAt,
     role = S.selfRole,
     authority = S.authority,
+    -- 等待开局（lobby 提示卡用）：当前人数与「为什么还不开局」。
+    -- 单人进特殊模式时回合起不来是设计（minPlayers），但不告诉玩家就是「没装上」的错觉。
+    lobbyPlayers = (function()
+      local n = 1
+      local pl = S.lastPlayers
+      if type(pl) == 'table' then
+        for _, p in ipairs(pl) do
+          local pid = tostring(p.id or p.name or '')
+          if pid ~= '' and pid ~= tostring(S.selfId or '') then n = n + 1 end
+        end
+      end
+      return n
+    end)(),
+    minPlayers = TUNE.minPlayers,
+    blockReason = S.lastBlockReason or '',
     winner = S.winner,
     captured = S.captureDone,
     -- 警匪雷达（见函数开头说明：以前是死字段）
