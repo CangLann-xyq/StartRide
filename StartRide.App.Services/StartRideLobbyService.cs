@@ -165,6 +165,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			PluginLog("房间登记到大厅失败（不影响房间码联机）：" + exception.Message);
 		}
 
+		EnsureModePackageReady(mode.Id);
 		await LaunchGameIfNeededAsync(mapId).ConfigureAwait(false);
 
 		return Publish(MultiplayerLobbyState.Active);
@@ -238,6 +239,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			PluginLog("大厅登记加入失败（不影响联机）：" + exception.Message);
 		}
 
+		EnsureModePackageReady(modeId);
 		await LaunchGameIfNeededAsync(mapId).ConfigureAwait(false);
 
 		return Publish(MultiplayerLobbyState.Active);
@@ -320,6 +322,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			PluginLog("记住玩法选择失败：" + exception.Message);
 		}
 
+		EnsureModePackageReady(mode.Id);
 		PluginLog("玩法已改为 " + mode.Title);
 		RaiseSnapshotChanged(Publish(MultiplayerLobbyState.Active));
 		return true;
@@ -807,6 +810,34 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		catch (Exception exception)
 		{
 			PluginLog("移除联机模组失败（不影响退出）：" + exception.Message);
+		}
+	}
+
+	/// <summary>
+	/// 模式界面包：建房/进房/改玩法时装对应模式的 startride-mode-*.zip，
+	/// 退房随 Remove() 一并清除，单机启动永远不经过这里。
+	/// 失败不阻断联机 —— 缺包只是那块模式面板不画（pcall 兜底）。
+	/// </summary>
+	private void EnsureModePackageReady(string modeId)
+	{
+		try
+		{
+			string? error = AppState.Current.ModInstaller.InstallModePackage(modeId);
+			if (error != null)
+			{
+				PluginLog("模式界面包未就位（不影响联机本体）：" + error);
+				try
+				{
+					AppState.Current.Notify("当前玩法的界面包没装上：" + error);
+				}
+				catch
+				{
+				}
+			}
+		}
+		catch (Exception exception)
+		{
+			PluginLog("模式界面包处理异常（不影响联机）：" + exception.Message);
 		}
 	}
 

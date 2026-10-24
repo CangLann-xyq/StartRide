@@ -33,6 +33,123 @@ namespace StartRide.Core
                 "startride_mod", "startrideVE", "startrideHL"
             };
 
+        // ------------------------------------------------------------------
+        // 模式界面包（一次性装载）
+        // ------------------------------------------------------------------
+        // 基础包永远只带骨架（桥 + 玩法核心），各模式的专属界面组件拆成
+        // startride-mode-<mode>.zip：进房按房间模式装对应包，退房/换模式清掉。
+        // 单机启动不经过联机链路，mods 里就永远不会有这些包。
+        // ModeHud 侧对组件全部 pcall(require)：包不在只是那块面板不画，绝不炸。
+        private static readonly HashSet<string> ModePackStems =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "startridePackChase", "startridePackDerby",
+                "startridePackSeek",  "startridePackTrack"
+            };
+
+        public const string ModePackagePrefix = "startride-mode-";
+
+        /// <summary>模式 → 界面组件 stem。自由驾驶/未知模式返回 null（无专属组件）。</summary>
+        public static string? ModePackStemFor(string? modeId)
+        {
+            switch (modeId)
+            {
+                case "cops_robber": return "startridePackChase";
+                case "derby":       return "startridePackDerby";
+                case "hide_seek":   return "startridePackSeek";
+                case "track_day":   return "startridePackTrack";
+                default:            return null;
+            }
+        }
+
+        /// <summary>
+        /// 按房间模式安装界面包，并清掉其它模式的包（换模式后旧组件不能再留在 mods 里）。
+        /// modeId 是自由驾驶/未知时只清不装。写入约束与 Install 相同：
+        /// 游戏运行中不能动 mods 目录，这里直接拒绝，由调用方提示。
+        /// </summary>
+        public string? InstallModePackage(string? modeId)
+        {
+            try
+            {
+                if (IsGameRunning())
+                    return "游戏运行中，模式界面包等下次进图或重启游戏后生效";
+
+                string? clearError = RemoveModePackages();
+                if (clearError != null) return clearError;
+
+                string? stem = ModePackStemFor(modeId);
+                if (stem == null) return null;   // 自由驾驶：无包可装
+
+                string source = Path.Combine(SourceDirectory, stem + ".lua");
+                if (!File.Exists(source)) return $"找不到模式组件源文件：{source}";
+
+                Directory.CreateDirectory(ModsDirectory);
+
+                // 文件名取 stem 去掉 startridePack 前缀的小写，例如 startride-mode-chase.zip
+                string fileName = ModePackagePrefix +
+                    stem.Substring("startridePack".Length).ToLowerInvariant() + ".zip";
+                string packagePath = Path.Combine(ModsDirectory, fileName);
+
+                string stamp;
+                using (var sha = SHA256.Create())
+                using (var fs = File.OpenRead(source))
+                    stamp = Convert.ToHexString(sha.ComputeHash(fs));
+
+                string infoJson = "{\"name\":\"StartRide Mode " + stem + "\",\"author\":\"CloudFur Studio\"," +
+                                  $"\"version\":\"{ModVersion}\",\"description\":\"StartRide mode HUD pack\"," +
+                                  "\"type\":\"script\",\"minGameVersion\":\"0.30\"}";
+
+                string tmp = packagePath + ".tmp";
+                if (File.Exists(tmp)) File.Delete(tmp);
+
+                using (var fs = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write))
+                using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
+                {
+                    AddText(zip, "info.json", infoJson);
+                    AddFile(zip, GeExtensionsDir + "/" + stem + ".lua", source);
+                    AddText(zip, StampEntry, stamp);
+                }
+
+                if (File.Exists(packagePath)) File.Replace(tmp, packagePath, null);
+                else File.Move(tmp, packagePath);
+
+                Log?.Invoke($"模式界面包已安装：{fileName}（{stem}）");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke("安装模式界面包失败：" + ex.Message);
+                return ex.Message;
+            }
+        }
+
+        /// <summary>删掉 mods 里全部模式界面包。被占用的文件报错返回，不炸调用方。</summary>
+        public string? RemoveModePackages()
+        {
+            try
+            {
+                if (!Directory.Exists(ModsDirectory)) return null;
+                foreach (var path in Directory.GetFiles(ModsDirectory, ModePackagePrefix + "*.zip"))
+                {
+                    try
+                    {
+                        File.Delete(path);
+                        Log?.Invoke("模式界面包已清除：" + Path.GetFileName(path));
+                    }
+                    catch (Exception ex)
+                    {
+                        return "删除 " + Path.GetFileName(path) + " 失败（文件被占用）：" + ex.Message;
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
+        }
+
+
         private readonly AppSettings _settings;
 
         public ModInstaller(AppSettings settings) => _settings = settings;
@@ -52,7 +169,11 @@ namespace StartRide.Core
         /// ⚠️ 漏掉任何一个都不会报错：loadPeer 内部是 pcall + nil 兜底，
         /// 失败只写一条日志，玩法直接静默失效。所以这里「宁可全带上」。
         /// </summary>
-        private static List<(string Name, string Path)> EnumeratePeerModules()
+        /// <param name="includeModePacks">
+        /// 是否带上模式界面组件。基础包<strong>永远不带</strong>（它们按房间模式
+        /// 打进独立的 startride-mode-*.zip），只有指纹计算与基础包构建用 false。
+        /// </param>
+        private static List<(string Name, string Path)> EnumeratePeerModules(bool includeModePacks = true)
         {
             var list = new List<(string, string)>();
             try
@@ -64,6 +185,7 @@ namespace StartRide.Core
                 {
                     string stem = Path.GetFileNameWithoutExtension(path);
                     if (BridgeStems.Contains(stem)) continue;
+                    if (!includeModePacks && ModePackStems.Contains(stem)) continue;
                     list.Add((stem, path));
                 }
                 list.Sort((a, b) => string.Compare(a.Item1, b.Item1, StringComparison.OrdinalIgnoreCase));
@@ -204,7 +326,7 @@ namespace StartRide.Core
 
                     // 兄弟模块：startride_mod.lua 用 loadPeer 按名 require 它们，
                     // 必须落在 lua/ge/extensions/ 下且同名，否则静默失效。
-                    foreach (var (name, path) in EnumeratePeerModules())
+                    foreach (var (name, path) in EnumeratePeerModules(includeModePacks: false))
                     {
                         AddFile(zip, GeExtensionsDir + "/" + name + ".lua", path);
                         peerCount++;
@@ -253,6 +375,7 @@ namespace StartRide.Core
 
                 File.Delete(InstalledPackagePath);
                 ClearPendingRemoval();
+                RemoveModePackages();
 
                 CleanupBackups(keep: 0);
 
@@ -356,7 +479,7 @@ namespace StartRide.Core
                 Path.Combine(SourceDirectory, "startrideVE.lua"),
                 Path.Combine(SourceDirectory, "startrideHL.lua"),
             };
-            foreach (var (_, path) in EnumeratePeerModules()) files.Add(path);
+            foreach (var (_, path) in EnumeratePeerModules(includeModePacks: false)) files.Add(path);
 
             foreach (var path in files)
             {
