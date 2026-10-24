@@ -209,7 +209,7 @@
     <Setter Property="behaviors:BackdropBlurHost.IsApplied" Value="True" />
     <Setter Property="behaviors:BackdropBlurHost.IsBlurEnabled" Value="{DynamicResource Is.Surface.BackdropBlur.Enabled}" />
     <Setter Property="behaviors:BackdropBlurHost.FallbackBrush" Value="{DynamicResource Brush.Card.Surface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Brush.18FFFFFF}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.Edge}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Border.CornerRadius" Value="14" />
     <Setter Property="ClipToBounds" Value="True" />

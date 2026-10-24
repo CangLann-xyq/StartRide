@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
   <Color x:Key="Color.000000">#000000</Color>
   <SolidColorBrush x:Key="Brush.000000" Color="{StaticResource Color.000000}" />
@@ -236,9 +236,17 @@
   <SolidColorBrush x:Key="Brush.Control.Disabled" Color="{StaticResource Color.5A5A5A}" />
   <SolidColorBrush x:Key="Brush.Surface.Window" Color="{StaticResource Color.E0151515}" />
   <Color x:Key="Color.Surface.Popup">#80FFFFFF</Color>
-  <SolidColorBrush x:Key="Brush.Surface.Popup" Color="{StaticResource Color.Surface.Popup}" />
+  <LinearGradientBrush x:Key="Brush.Surface.Popup" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#FDFFFFFF" Offset="0" />
+    <GradientStop Color="#F6FFFFFF" Offset="0.55" />
+    <GradientStop Color="#FBFFFFFF" Offset="1" />
+  </LinearGradientBrush>
   <Color x:Key="Color.Surface.Flyout">#FFFFFFFF</Color>
-  <SolidColorBrush x:Key="Brush.Surface.Flyout" Color="{StaticResource Color.Surface.Flyout}" />
+  <LinearGradientBrush x:Key="Brush.Surface.Flyout" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#FCFFFFFF" Offset="0" />
+    <GradientStop Color="#F4FFFFFF" Offset="0.55" />
+    <GradientStop Color="#FAFFFFFF" Offset="1" />
+  </LinearGradientBrush>
   <Color x:Key="Color.Surface.SearchBox">#E6FFFFFF</Color>
   <SolidColorBrush x:Key="Brush.Surface.SearchBox" Color="{StaticResource Color.Surface.SearchBox}" />
   <SolidColorBrush x:Key="Brush.Surface.Message" Color="{StaticResource Color.EA252A30}" />
@@ -254,7 +262,7 @@
   <Color x:Key="Color.Field.ReadOnly.Border">#16000000</Color>
   <Color x:Key="Color.Input.TextBox.Background">#12000000</Color>
   <Color x:Key="Color.Input.TextBox.BackgroundFocused">#12000000</Color>
-  <Color x:Key="Color.Input.TextBox.Border">#0C000000</Color>
+  <Color x:Key="Color.Input.TextBox.Border">#1F000000</Color>
   <Color x:Key="Color.Input.TextBox.BorderFocused">#662196F3</Color>
   <Color x:Key="Color.Input.ComboBox.Background">#12000000</Color>
   <Color x:Key="Color.Input.ComboBox.Hover">#22E1E4E8</Color>
@@ -265,20 +273,44 @@
   <Color x:Key="Color.Button.Secondary.Hover">#70C9CED6</Color>
   <Color x:Key="Color.Button.Secondary.Pressed">#80BBC1CA</Color>
   <Color x:Key="Color.List.Item.Background">#12000000</Color>
-  <Color x:Key="Color.List.Item.Hover">#20000000</Color>
-  <Color x:Key="Color.List.Item.Selected">#20000000</Color>
-  <Color x:Key="Color.List.Item.SelectedBorder">#882196F3</Color>
+  <Color x:Key="Color.List.Item.Hover">#1A000000</Color>
+  <Color x:Key="Color.List.Item.Selected">#332196F3</Color>
+  <Color x:Key="Color.List.Item.SelectedBorder">#992196F3</Color>
   <SolidColorBrush x:Key="Brush.Page.Background" Color="{StaticResource Color.Page.Background}" />
-  <SolidColorBrush x:Key="Brush.Card.Surface" Color="{StaticResource Color.Card.Surface}" />
-  <SolidColorBrush x:Key="Brush.Card.Border" Color="{StaticResource Color.Card.Border}" />
+  <LinearGradientBrush x:Key="Brush.Card.Surface" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#F7FFFFFF" Offset="0" />
+    <GradientStop Color="#E9FFFFFF" Offset="0.55" />
+    <GradientStop Color="#F3FFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Card.Border" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#33000000" Offset="0" />
+    <GradientStop Color="#14000000" Offset="0.55" />
+    <GradientStop Color="#24000000" Offset="1" />
+  </LinearGradientBrush>
   <SolidColorBrush x:Key="Brush.Field.ReadOnly.Surface" Color="{StaticResource Color.Field.ReadOnly.Surface}" />
   <SolidColorBrush x:Key="Brush.Field.ReadOnly.Border" Color="{StaticResource Color.Field.ReadOnly.Border}" />
-  <SolidColorBrush x:Key="Brush.Input.TextBox.Background" Color="{StaticResource Color.Input.TextBox.Background}" />
-  <SolidColorBrush x:Key="Brush.Input.TextBox.BackgroundFocused" Color="{StaticResource Color.Input.TextBox.BackgroundFocused}" />
+  <LinearGradientBrush x:Key="Brush.Input.TextBox.Background" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#0F000000" Offset="0" />
+    <GradientStop Color="#08000000" Offset="0.55" />
+    <GradientStop Color="#06000000" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Input.TextBox.BackgroundFocused" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#14000000" Offset="0" />
+    <GradientStop Color="#0C000000" Offset="0.55" />
+    <GradientStop Color="#0A000000" Offset="1" />
+  </LinearGradientBrush>
   <SolidColorBrush x:Key="Brush.Input.TextBox.Border" Color="{StaticResource Color.Input.TextBox.Border}" />
   <SolidColorBrush x:Key="Brush.Input.TextBox.BorderFocused" Color="{StaticResource Color.Input.TextBox.BorderFocused}" />
-  <SolidColorBrush x:Key="Brush.Input.ComboBox.Background" Color="{StaticResource Color.Input.ComboBox.Background}" />
-  <SolidColorBrush x:Key="Brush.Input.ComboBox.Hover" Color="{StaticResource Color.Input.ComboBox.Hover}" />
+  <LinearGradientBrush x:Key="Brush.Input.ComboBox.Background" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#F2FFFFFF" Offset="0" />
+    <GradientStop Color="#E6FFFFFF" Offset="0.55" />
+    <GradientStop Color="#EEFFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Input.ComboBox.Hover" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#FAFFFFFF" Offset="0" />
+    <GradientStop Color="#F0FFFFFF" Offset="0.55" />
+    <GradientStop Color="#F6FFFFFF" Offset="1" />
+  </LinearGradientBrush>
   <SolidColorBrush x:Key="Brush.Input.ComboBox.Border" Color="{StaticResource Color.Input.ComboBox.Border}" />
   <SolidColorBrush x:Key="Brush.Input.ComboBox.BorderExpanded" Color="{StaticResource Color.Input.ComboBox.BorderExpanded}" />
   <SolidColorBrush x:Key="Brush.Button.Secondary.Background" Color="{StaticResource Color.Button.Secondary.Background}" />
@@ -308,11 +340,19 @@
   <Color x:Key="Color.SecondaryMenu.Header.Start">#D8FFFFFF</Color>
   <Color x:Key="Color.SecondaryMenu.Header.Middle">#C2FFFFFF</Color>
   <Color x:Key="Color.SecondaryMenu.Header.End">#00FFFFFF</Color>
-  <SolidColorBrush x:Key="Brush.SecondaryMenu.Panel" Color="{StaticResource Color.SecondaryMenu.Panel}" />
+  <LinearGradientBrush x:Key="Brush.SecondaryMenu.Panel" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#EAFFFFFF" Offset="0" />
+    <GradientStop Color="#CCFFFFFF" Offset="0.5" />
+    <GradientStop Color="#DDFFFFFF" Offset="1" />
+  </LinearGradientBrush>
   <SolidColorBrush x:Key="Brush.SecondaryMenu.BackdropTint" Color="{StaticResource Color.SecondaryMenu.BackdropTint}" />
   <SolidColorBrush x:Key="Brush.SurfaceBackdrop.ContrastOverlay" Color="{StaticResource Color.SurfaceBackdrop.ContrastOverlay}" />
   <SolidColorBrush x:Key="Brush.LauncherBackground.Image.DimOverlay" Color="{StaticResource Color.LauncherBackground.Image.DimOverlay}" />
-  <SolidColorBrush x:Key="Brush.SecondaryMenu.Border" Color="{StaticResource Color.SecondaryMenu.Border}" />
+  <LinearGradientBrush x:Key="Brush.SecondaryMenu.Border" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#3A000000" Offset="0" />
+    <GradientStop Color="#12000000" Offset="0.4" />
+    <GradientStop Color="#1C000000" Offset="1" />
+  </LinearGradientBrush>
   <SolidColorBrush x:Key="Brush.SecondaryMenu.Shadow.Interior" Color="{StaticResource Color.SecondaryMenu.Shadow.Interior}" />
   <SolidColorBrush x:Key="Brush.Home.Name.Foreground" Color="{StaticResource Color.F4FFFFFF}" />
   <SolidColorBrush x:Key="Brush.Home.GameSettings.Foreground" Color="{StaticResource Color.9FFFFFFF}" />
@@ -331,4 +371,66 @@
   <DropShadowEffect x:Key="Effect.Card.Surface" BlurRadius="17" Direction="270" Opacity="0.08" ShadowDepth="0" Color="{StaticResource Color.Shadow}" />
   <DropShadowEffect x:Key="Effect.ToolTip.Surface" BlurRadius="17" Direction="270" Opacity="0.16" ShadowDepth="0" Color="{StaticResource Color.Shadow}" />
   <Color x:Key="Color.Accent.Primary">#2196F3</Color>
+  <!-- ===== 玻璃材质令牌 v2（Launcher Glass）===== -->
+  <LinearGradientBrush x:Key="Brush.Glass.Face" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#F7FFFFFF" Offset="0" />
+    <GradientStop Color="#E9FFFFFF" Offset="0.55" />
+    <GradientStop Color="#F3FFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.FaceSoft" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#F0FFFFFF" Offset="0" />
+    <GradientStop Color="#E2FFFFFF" Offset="0.55" />
+    <GradientStop Color="#ECFFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.FaceSunken" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#0F000000" Offset="0" />
+    <GradientStop Color="#06000000" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.FaceRaised" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#FCFFFFFF" Offset="0" />
+    <GradientStop Color="#F4FFFFFF" Offset="0.55" />
+    <GradientStop Color="#FAFFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.Edge" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#33000000" Offset="0" />
+    <GradientStop Color="#14000000" Offset="0.45" />
+    <GradientStop Color="#24000000" Offset="1" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="Brush.Glass.EdgeSoft" Color="#1A000000" />
+  <LinearGradientBrush x:Key="Brush.Glass.TopHighlight" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Color="#00FFFFFF" Offset="0" />
+    <GradientStop Color="#B3FFFFFF" Offset="0.5" />
+    <GradientStop Color="#00FFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.TopHighlightSoft" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Color="#00FFFFFF" Offset="0" />
+    <GradientStop Color="#80FFFFFF" Offset="0.5" />
+    <GradientStop Color="#00FFFFFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.AccentFace" StartPoint="0.1,0" EndPoint="0.9,1">
+    <GradientStop Color="#FF8CC4FF" Offset="0" />
+    <GradientStop Color="#FF3D8BFF" Offset="0.55" />
+    <GradientStop Color="#FF5AA2FF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.AccentHover" StartPoint="0.1,0" EndPoint="0.9,1">
+    <GradientStop Color="#FFA6D2FF" Offset="0" />
+    <GradientStop Color="#FF4D97FF" Offset="0.55" />
+    <GradientStop Color="#FF6EAEFF" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.AccentPressed" StartPoint="0.1,0" EndPoint="0.9,1">
+    <GradientStop Color="#FF7AB6F2" Offset="0" />
+    <GradientStop Color="#FF2F79E0" Offset="0.55" />
+    <GradientStop Color="#FF4A90EB" Offset="1" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="Brush.Glass.AccentEdge" Color="#80FFFFFF" />
+  <LinearGradientBrush x:Key="Brush.Glass.HoverFace" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#1F000000" Offset="0" />
+    <GradientStop Color="#0D000000" Offset="0.55" />
+    <GradientStop Color="#18000000" Offset="1" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Brush.Glass.SelectedFace" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#3D3D8BFF" Offset="0" />
+    <GradientStop Color="#241D4ED8" Offset="0.55" />
+    <GradientStop Color="#302A6BE8" Offset="1" />
+  </LinearGradientBrush>
 </ResourceDictionary>

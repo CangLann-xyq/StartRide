@@ -155,8 +155,9 @@
     <Setter Property="Height" Value="52" />
     <Setter Property="Margin" Value="0,22,0,0" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.FFFFFF}" />
-    <Setter Property="Background" Value="{DynamicResource Brush.0891FE}" />
-    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.AccentFace}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.AccentEdge}" />
+    <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontSize" Value="18" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FrameworkElement.Cursor" Value="Hand" />
@@ -164,7 +165,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type Button}">
-          <Border Name="Root" CornerRadius="26">
+          <Border Name="Root" CornerRadius="26" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}">
             <UIElement.Effect>
               <DropShadowEffect x:Name="RootGlow" BlurRadius="22" Color="{DynamicResource Color.0891FE}" Opacity="0.34" ShadowDepth="2" />
             </UIElement.Effect>
@@ -174,8 +175,9 @@
                   <ScaleTransform x:Name="BackgroundScale" ScaleX="1" ScaleY="1" />
                 </UIElement.RenderTransform>
                 <Border Name="BaseBackground" Background="{TemplateBinding Control.Background}" CornerRadius="26" />
-                <Border Name="HoverBackground" Background="{DynamicResource Brush.047EDC}" CornerRadius="26" Opacity="0" />
-                <Border Name="PressedBackground" Background="{DynamicResource Brush.036FC2}" CornerRadius="26" Opacity="0" />
+                <Border Name="HoverBackground" Background="{DynamicResource Brush.Glass.AccentHover}" CornerRadius="26" Opacity="0" />
+                <Border Name="PressedBackground" Background="{DynamicResource Brush.Glass.AccentPressed}" CornerRadius="26" Opacity="0" />
+                <Border Name="GlassHighlight" Height="1" Margin="2,1,2,0" VerticalAlignment="Top" CornerRadius="20" Background="{DynamicResource Brush.Glass.TopHighlight}" IsHitTestVisible="False" />
               </Grid>
               <ContentPresenter Name="ButtonContentPresenter" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Auto">
                 <FrameworkElement.LayoutTransform>
@@ -331,8 +333,8 @@
   </Style>
 
   <Style x:Key="RideStatStripStyle" TargetType="{x:Type Border}">
-    <Setter Property="Background" Value="#0DFFFFFF" />
-    <Setter Property="BorderBrush" Value="#17FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.FaceSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.Edge}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Border.CornerRadius" Value="14" />
     <Setter Property="Padding" Value="14,10" />
@@ -340,8 +342,8 @@
   </Style>
 
   <Style x:Key="RideStatChipStyle" TargetType="{x:Type Border}">
-    <Setter Property="Background" Value="#12FFFFFF" />
-    <Setter Property="BorderBrush" Value="#1CFFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.Face}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.EdgeSoft}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Border.CornerRadius" Value="11" />
     <Setter Property="Padding" Value="13,6" />
@@ -364,8 +366,8 @@
   </Style>
 
   <Style x:Key="RideListSurfaceStyle" TargetType="{x:Type Border}">
-    <Setter Property="Background" Value="#08FFFFFF" />
-    <Setter Property="BorderBrush" Value="#15FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.FaceSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.Edge}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Border.CornerRadius" Value="16" />
     <Setter Property="Padding" Value="6,6,6,6" />
@@ -373,8 +375,8 @@
   </Style>
 
   <Style x:Key="RideSidebarSurfaceStyle" TargetType="{x:Type Border}">
-    <Setter Property="Background" Value="#08FFFFFF" />
-    <Setter Property="BorderBrush" Value="#15FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.FaceSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.Edge}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Border.CornerRadius" Value="18" />
     <Setter Property="Padding" Value="0" />
@@ -425,7 +427,7 @@
   </Style>
 
   <Style x:Key="RideFieldSurfaceStyle" TargetType="{x:Type Border}">
-    <Setter Property="Background" Value="#0AFFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.FaceSunken}" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Border.CornerRadius" Value="10" />
     <Setter Property="Border.Padding" Value="12,7" />
@@ -435,7 +437,7 @@
 
   <Style x:Key="RideHairlineStyle" TargetType="{x:Type Border}">
     <Setter Property="Height" Value="1" />
-    <Setter Property="Background" Value="#16FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.EdgeSoft}" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="Margin" Value="0,14,0,14" />
   </Style>

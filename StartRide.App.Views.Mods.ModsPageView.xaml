@@ -247,11 +247,8 @@
     </StackPanel>
 
     <StackPanel Margin="36,60,36,0" Orientation="Horizontal" VerticalAlignment="Top">
-      <Button Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Mods_OnlineTab}" Command="{Binding ShowOnlineCommand}" />
-      <Button Margin="8,0,0,0" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Mods_LocalTab}" Command="{Binding ShowLocalCommand}" />
+      <Button Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Mods_LocalTab}" Command="{Binding ShowLocalCommand}" />
       <Button Margin="8,0,0,0" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Mods_OpenModsFolderButton}" Command="{Binding OpenModsFolderCommand}" />
-      <TextBox Margin="16,0,0,0" Width="160" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static res:Strings.Mods_SearchTooltip}" Visibility="{Binding IsOnlineView, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
-      <controls:AnimatedComboBox Margin="8,0,0,0" Width="90" Height="32" VerticalAlignment="Center" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" Visibility="{Binding IsOnlineView, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}" />
     </StackPanel>
   </Grid>
 </UserControl>

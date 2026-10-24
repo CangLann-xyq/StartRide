@@ -593,7 +593,7 @@ public sealed class VehiclesPageViewModel : ObservableObject
 		{
 			StatusMessage = string.IsNullOrWhiteSpace(GameDirectory)
 				? "未检测到 BeamNG.drive 安装目录，请在设置中指定游戏目录。"
-				: "未找到已安装车辆。可以在「模组仓库 → 在线仓库」里下载，或手动放到 mods 文件夹。";
+				: "未找到已安装车辆。可以手动把车辆模组放到 mods 文件夹。";
 		}
 		else if (entries.Count == 0)
 		{

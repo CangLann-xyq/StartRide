@@ -24,6 +24,7 @@
           <Border Name="Root" behaviors:BackdropBlurHost.IsApplied="True" behaviors:BackdropBlurHost.IsBlurEnabled="{DynamicResource Is.Surface.BackdropBlur.Enabled}" behaviors:BackdropBlurHost.FallbackBrush="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" CornerRadius="10" behaviors:BackdropBlurHost.LightweightShadowEffect="{Binding Path=(behaviors:BackdropBlurHost.LightweightShadowEffect), RelativeSource={RelativeSource TemplatedParent}}">
             <Grid>
               <Border Name="HoverBackground" Background="{DynamicResource Brush.Button.Secondary.Hover}" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}" />
+              <Border Name="GlassHighlight" Height="1" Margin="1,1,1,0" VerticalAlignment="Top" Background="{DynamicResource Brush.Glass.TopHighlightSoft}" IsHitTestVisible="False" />
               <TextBlock Name="PlaceholderText" Margin="9,0,0,0" Foreground="{DynamicResource Brush.Text.Disabled}" FontSize="{TemplateBinding Control.FontSize}" VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}" IsHitTestVisible="False" Text="{Binding Path=(behaviors:TextBoxPlaceholder.Text), RelativeSource={RelativeSource TemplatedParent}}">
                 <FrameworkElement.Style>
                   <Style TargetType="{x:Type TextBlock}">
@@ -94,6 +95,7 @@
           <Border Name="Root" behaviors:BackdropBlurHost.IsApplied="True" behaviors:BackdropBlurHost.IsBlurEnabled="{DynamicResource Is.Surface.BackdropBlur.Enabled}" behaviors:BackdropBlurHost.FallbackBrush="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" CornerRadius="10" behaviors:BackdropBlurHost.LightweightShadowEffect="{Binding Path=(behaviors:BackdropBlurHost.LightweightShadowEffect), RelativeSource={RelativeSource TemplatedParent}}">
             <Grid>
               <Border Name="HoverBackground" Background="{DynamicResource Brush.Button.Secondary.Hover}" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}" />
+              <Border Name="GlassHighlight" Height="1" Margin="1,1,1,0" VerticalAlignment="Top" Background="{DynamicResource Brush.Glass.TopHighlightSoft}" IsHitTestVisible="False" />
               <Grid Margin="{TemplateBinding Control.Padding}">
                 <ScrollViewer Name="PART_ContentHost" VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}" />
               </Grid>
@@ -171,6 +173,7 @@
           <Border Name="Root" behaviors:BackdropBlurHost.IsApplied="True" behaviors:BackdropBlurHost.IsBlurEnabled="{DynamicResource Is.Surface.BackdropBlur.Enabled}" CornerRadius="10" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" behaviors:BackdropBlurHost.FallbackBrush="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" behaviors:BackdropBlurHost.LightweightShadowEffect="{Binding Path=(behaviors:BackdropBlurHost.LightweightShadowEffect), RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}">
             <Grid>
               <Border Name="HoverBackground" Background="{DynamicResource Brush.Button.Secondary.Hover}" Opacity="0" behaviors:InnerCornerRadius.Source="{Binding ElementName=Root}" />
+              <Border Name="GlassHighlight" Height="1" Margin="1,1,1,0" VerticalAlignment="Top" Background="{DynamicResource Brush.Glass.TopHighlightSoft}" IsHitTestVisible="False" />
               <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
               <TextBlock Margin="0,0,12,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="{DynamicResource LauncherIconFontFamily}" FontSize="11" Foreground="{DynamicResource Brush.CFFFFFFF}" Text="" />
             </Grid>
@@ -314,8 +317,8 @@
     <Setter Property="Padding" Value="12,0,34,0" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.F4F4F4}" />
-    <Setter Property="Background" Value="{DynamicResource Brush.Card.Surface}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Input.TextBox.Border}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Glass.FaceSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Glass.EdgeSoft}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="behaviors:BackdropBlurHost.LightweightShadowEffect" Value="{DynamicResource Effect.Card.Surface}" />
     <Setter Property="ComboBox.MaxDropDownHeight" Value="260" />
@@ -349,7 +352,7 @@
                     <DropShadowEffect BlurRadius="22" Color="{DynamicResource Color.000000}" Opacity="0.36" ShadowDepth="0" />
                   </UIElement.Effect>
                 </Border>
-                <Border Name="PopupBlurSurface" Background="{DynamicResource Brush.Surface.Flyout}" BorderBrush="{DynamicResource Brush.14FFFFFF}" BorderThickness="1" CornerRadius="14" />
+                <Border Name="PopupBlurSurface" Background="{DynamicResource Brush.Glass.FaceRaised}" BorderBrush="{DynamicResource Brush.Glass.Edge}" BorderThickness="1" CornerRadius="14" />
                 <ListBox Name="PART_DropDownList" Margin="5" ItemTemplate="{TemplateBinding ItemsControl.ItemTemplate}" ItemTemplateSelector="{TemplateBinding ItemsControl.ItemTemplateSelector}" ItemStringFormat="{TemplateBinding ItemsControl.ItemStringFormat}" ItemContainerStyle="{TemplateBinding controls:AnimatedComboBox.DropDownItemContainerStyle}" ItemsPanel="{TemplateBinding ItemsControl.ItemsPanel}" DisplayMemberPath="{TemplateBinding ItemsControl.DisplayMemberPath}" SelectedValuePath="{TemplateBinding Selector.SelectedValuePath}" HorizontalContentAlignment="{TemplateBinding Control.HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding Control.VerticalContentAlignment}" SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" Style="{StaticResource LauncherComboBoxDropDownListStyle}" ItemsSource="{Binding Path=Items, RelativeSource={RelativeSource TemplatedParent}}" SelectedItem="{Binding Path=SelectedItem, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
               </Grid>
             </Popup>

@@ -1154,7 +1154,7 @@ public sealed class ModsPageViewModel : ObservableObject
 		}
 		foreach (ModItem m in entries) { Mods.Add(m); }
 		StatusMessage = entries.Count == 0
-			? "还没有安装模组。点击上方「在线仓库」浏览下载，或在下方打开模组文件夹手动放入 zip。"
+			? "还没有安装模组。可以在下方打开模组文件夹手动放入 zip。"
 			: $"共 {entries.Count} 个模组 · {ModsDirectory}";
 		OnPropertyChanged(nameof(HasMods));
 	}
