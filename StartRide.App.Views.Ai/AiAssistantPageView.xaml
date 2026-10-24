@@ -225,11 +225,21 @@
       </Setter>
     </Style>
 
+    <!--
+      ⚠️ Tag 必须给真正的 Brush，不能写成 "#8CE0A03C" 这种字符串：
+      Tag 是 object 类型，XAML 不知道它最后会喂给 Background，于是原样存成 string，
+      模板里的 TemplateBinding 转不成画刷 → 静默没有底色。
+      实测表现：只有「允许」（本来就是 DynamicResource 画刷）有蓝底，
+      「禁止 / 询问」选中时只剩白字，看起来像没选中。
+    -->
+    <SolidColorBrush x:Key="AiSegDenyFill" Color="#4DFFFFFF" />
+    <SolidColorBrush x:Key="AiSegAskFill" Color="#8CE0A03C" />
+
     <Style x:Key="AiSegDeny" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
-      <Setter Property="Tag" Value="#4DFFFFFF" />
+      <Setter Property="Tag" Value="{StaticResource AiSegDenyFill}" />
     </Style>
     <Style x:Key="AiSegAsk" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
-      <Setter Property="Tag" Value="#8CE0A03C" />
+      <Setter Property="Tag" Value="{StaticResource AiSegAskFill}" />
     </Style>
     <Style x:Key="AiSegAllow" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
       <Setter Property="Tag" Value="{DynamicResource Brush.Accent.Primary}" />

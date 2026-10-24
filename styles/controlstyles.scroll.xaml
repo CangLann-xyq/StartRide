@@ -78,7 +78,7 @@
   -->
   <Style x:Key="SlimScrollThumbStyle" TargetType="{x:Type Thumb}">
     <Setter Property="MinHeight" Value="40" />
-    <Setter Property="Background" Value="#59FFFFFF" />
+    <Setter Property="Background" Value="#66FFFFFF" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type Thumb}">
@@ -105,7 +105,7 @@
           <Grid Background="#00FFFFFF">
             <!-- 底槽：极淡的一条，只说明「轨道有多长」，不能抢滑块的存在感 -->
             <Border Name="TrackBed" Width="6" HorizontalAlignment="Right" Margin="0,3,2,3"
-                    CornerRadius="3" Background="#08FFFFFF" />
+                    CornerRadius="3" Background="#14FFFFFF" />
             <Track Name="PART_Track" IsDirectionReversed="True">
               <Track.DecreaseRepeatButton>
                 <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollRepeatButtonStyle}" />
@@ -120,7 +120,7 @@
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="UIElement.IsMouseOver" Value="True">
-              <Setter TargetName="TrackBed" Property="Background" Value="#12FFFFFF" />
+              <Setter TargetName="TrackBed" Property="Background" Value="#1FFFFFFF" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
