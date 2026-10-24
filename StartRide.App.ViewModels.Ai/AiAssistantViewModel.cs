@@ -110,6 +110,7 @@ public sealed class AiMessage : ObservableObject
             if (SetProperty(ref text, value))
             {
                 OnPropertyChanged(nameof(HasText));
+                OnPropertyChanged(nameof(ThinkingHeader));
             }
         }
     }
@@ -132,7 +133,13 @@ public sealed class AiMessage : ObservableObject
 
     public bool HasThinking => !string.IsNullOrEmpty(thinking);
 
-    public string ThinkingHeader => "思考过程 · " + thinking.Length + " 字";
+    /// <summary>
+    /// 折叠头文案。默认就是折叠的，但要让玩家知道「里面在动」——
+    /// 所以在还没开始输出正文时写「思考中」，思考完改成字数。
+    /// </summary>
+    public string ThinkingHeader
+        => (string.IsNullOrEmpty(text) ? "思考中 · 已想 " : "思考过程 · ")
+           + thinking.Length + " 字";
 
     public bool IsThinkingExpanded
     {
@@ -243,9 +250,13 @@ public sealed class AiAssistantViewModel : ObservableObject
             if (SetProperty(ref input, value))
             {
                 SendCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsInputEmpty));
             }
         }
     }
+
+    /// <summary>输入框空着时显示占位提示（WPF TextBox 没有原生 placeholder）。</summary>
+    public bool IsInputEmpty => string.IsNullOrWhiteSpace(input);
 
     public bool IsBusy
     {
@@ -397,12 +408,18 @@ public sealed class AiAssistantViewModel : ObservableObject
                     },
                     piece =>
                     {
+                        // 思考结束、正文开始的那一帧：把思考块收起来。
+                        // 要求就是「默认折叠、思考完自动折叠」——展开是用户手动点的，
+                        // 收起来要自动，否则一段几百字的思考会把正文挤到屏幕外。
+                        if (bubble.HasThinking && bubble.IsThinkingExpanded)
+                            bubble.IsThinkingExpanded = false;
                         bubble.Text += piece;
                         StatusText = "生成中…";
                     },
                     cts.Token);
 
                 bubble.IsStreaming = false;
+                bubble.IsThinkingExpanded = false;
 
                 if (!res.Ok)
                 {

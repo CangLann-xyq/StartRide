@@ -102,7 +102,7 @@ internal static class NavigationCatalog
 				Page = "Ai",
 				Title = "AI 助手",
 				Icon = "\ue99a",
-				IconKey = "general/general_startride_logo"
+				IconKey = "general/general_ai"
 			},
 			new NavigationItem
 			{

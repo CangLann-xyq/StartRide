@@ -59,12 +59,92 @@
       <Setter Property="Background" Value="{DynamicResource Brush.Card.Surface}" />
     </Style>
 
+    <!-- 卡片：玻璃渐变 + 单像素亮边，比纯色块更有层次（纯色在深底上会发死） -->
     <Style x:Key="AiSideCard" TargetType="{x:Type Border}">
       <Setter Property="CornerRadius" Value="14" />
-      <Setter Property="Padding" Value="16,14" />
+      <Setter Property="Padding" Value="16,14,16,14" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Card.Border}" />
-      <Setter Property="Background" Value="{DynamicResource Brush.Card.Surface}" />
+      <Setter Property="BorderBrush" Value="#14FFFFFF" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+            <GradientStop Color="#10FFFFFF" Offset="0" />
+            <GradientStop Color="#06FFFFFF" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 卡片内的一行：左边标签、右边开关 -->
+    <Style x:Key="AiRowLabel" TargetType="{x:Type TextBlock}">
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+    </Style>
+
+    <!-- 主按钮：主题蓝填充胶囊（对话页只有一个主动作，不该和「停止」长得一样） -->
+    <Style x:Key="AiPrimaryButton" TargetType="{x:Type Button}">
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Primary}" />
+      <Setter Property="Padding" Value="18,7" />
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9"
+                    Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Accent.Hover}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Accent.Pressed}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 次按钮：透明底 + 发丝边，和主按钮拉开层级 -->
+    <Style x:Key="AiGhostButton" TargetType="{x:Type Button}" BasedOn="{StaticResource AiPrimaryButton}">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+      <Setter Property="Background" Value="#10FFFFFF" />
+      <Setter Property="Padding" Value="14,7" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="9"
+                    BorderThickness="1" BorderBrush="#1FFFFFFF"
+                    Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#1CFFFFFF" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#26FFFFFF" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="AiDivider" TargetType="{x:Type Border}">
+      <Setter Property="Height" Value="1" />
+      <Setter Property="Margin" Value="0,10,0,10" />
+      <Setter Property="Background" Value="#0FFFFFFF" />
     </Style>
 
     <Style x:Key="AiSideTitle" TargetType="{x:Type TextBlock}">
@@ -186,74 +266,164 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <TextBox x:Name="InputBox" Grid.Column="0" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
-                   AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="140"
-                   VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
-                   Foreground="{DynamicResource Brush.Text.Strong}" CaretBrush="{DynamicResource Brush.Text.Strong}"
-                   FontSize="13" KeyDown="InputBox_KeyDown" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,0,0">
-            <Button Content="停止" Command="{Binding StopCommand}" Margin="0,0,8,0" />
-            <Button Content="发送" Command="{Binding SendCommand}" />
+          <Grid Grid.Column="0">
+            <TextBox x:Name="InputBox" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="140"
+                     VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
+                     Foreground="{DynamicResource Brush.Text.Strong}" CaretBrush="{DynamicResource Brush.Text.Strong}"
+                     FontSize="13" KeyDown="InputBox_KeyDown" />
+            <!-- 占位提示：WPF 的 TextBox 没有 placeholder，只能叠一层不吃点击的文字 -->
+            <TextBlock Text="问点什么…  Enter 发送 · Shift+Enter 换行"
+                       Margin="3,3,0,0" VerticalAlignment="Top" IsHitTestVisible="False"
+                       FontSize="12.5" Foreground="{DynamicResource Brush.Text.Muted}"
+                       Visibility="{Binding IsInputEmpty, Mode=OneWay, Converter={StaticResource BoolVis}}" />
+          </Grid>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
+            <Button Content="停止" Command="{Binding StopCommand}" Margin="0,0,8,0"
+                    Style="{StaticResource AiGhostButton}" />
+            <Button Content="发送" Command="{Binding SendCommand}"
+                    Style="{StaticResource AiPrimaryButton}" />
           </StackPanel>
         </Grid>
       </Border>
     </Grid>
 
     <!-- ================= 右：设置 ================= -->
+    <!--
+      版式说明：每张卡 = 卡片头（6px 主题色竖条 + 标题 + 发丝分隔线）+ 若干「标签 / 开关」行。
+      开关用全应用统一的 LauncherSwitchToggleButtonStyle（46×28 玻璃轨道），
+      不再用原生 CheckBox —— 原生方框在深色玻璃面上像上个时代的控件。
+    -->
     <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel>
+
+        <!-- 模式 -->
         <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">
           <StackPanel>
-            <TextBlock Style="{StaticResource AiSideTitle}" Text="模式" />
-            <CheckBox Content="Agent 模式" IsChecked="{Binding IsAgentMode, Mode=TwoWay}"
-                      IsEnabled="{Binding CanEditPermissions}" />
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
+                      Background="{DynamicResource Brush.Accent.Primary}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="模式" />
+            </Grid>
+
+            <Grid Height="34">
+              <TextBlock Style="{StaticResource AiRowLabel}" Text="Agent 模式" />
+              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        IsChecked="{Binding IsAgentMode, Mode=TwoWay}"
+                        IsEnabled="{Binding CanEditPermissions}" />
+            </Grid>
             <TextBlock Style="{StaticResource AiHint}"
-                       Text="Agent 模式下我会读写文件 / 执行命令来修问题；对话模式只聊天，不碰你的电脑。" />
-            <CheckBox Content="显示思考过程（deepseek-reasoner）"
-                      IsChecked="{Binding UseReasoning, Mode=TwoWay}"
-                      IsEnabled="{Binding CanEditPermissions}" />
+                       Text="可以读写文件、执行命令来修问题；关掉只聊天，不碰你的电脑。" />
+
+            <Border Style="{StaticResource AiDivider}" />
+
+            <Grid Height="34">
+              <TextBlock Style="{StaticResource AiRowLabel}" Text="显示思考过程" />
+              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        IsChecked="{Binding UseReasoning, Mode=TwoWay}"
+                        IsEnabled="{Binding CanEditPermissions}" />
+            </Grid>
             <TextBlock Style="{StaticResource AiHint}"
-                       Text="思考过程会以可折叠的「思考过程」块实时展开。Agent 模式固定用 deepseek-chat（reasoner 不支持工具调用）。" />
+                       Text="用 deepseek-reasoner，思考过程默认折叠，想看点开就能看。Agent 模式固定用 deepseek-chat。" />
           </StackPanel>
         </Border>
 
+        <!-- 权限 -->
         <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">
           <StackPanel>
-            <TextBlock Style="{StaticResource AiSideTitle}" Text="权限" />
-            <CheckBox Content="读取文件 / 列目录" IsChecked="{Binding AllowRead, Mode=TwoWay}"
-                      IsEnabled="{Binding CanEditPermissions}" />
-            <CheckBox Content="写入 / 覆盖文件" IsChecked="{Binding AllowWrite, Mode=TwoWay}"
-                      IsEnabled="{Binding CanEditPermissions}" Margin="0,6,0,0" />
-            <CheckBox Content="执行命令（cmd）" IsChecked="{Binding AllowExecute, Mode=TwoWay}"
-                      IsEnabled="{Binding CanEditPermissions}" Margin="0,6,0,0" />
-            <TextBlock Style="{StaticResource AiHint}" Margin="0,8,0,0"
-                       Text="关闭后我会明确告诉你「权限不足」，不会尝试绕过。写文件和执行命令默认关闭。" />
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
+                      Background="{DynamicResource Brush.Accent.Primary}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="权限" />
+            </Grid>
+
+            <Grid Height="34">
+              <TextBlock Style="{StaticResource AiRowLabel}" Text="读取文件 / 列目录" />
+              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        IsChecked="{Binding AllowRead, Mode=TwoWay}"
+                        IsEnabled="{Binding CanEditPermissions}" />
+            </Grid>
+
+            <Grid Height="34">
+              <TextBlock Style="{StaticResource AiRowLabel}" Text="写入 / 覆盖文件" />
+              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        IsChecked="{Binding AllowWrite, Mode=TwoWay}"
+                        IsEnabled="{Binding CanEditPermissions}" />
+            </Grid>
+
+            <Grid Height="34">
+              <TextBlock Style="{StaticResource AiRowLabel}" Text="执行命令（cmd）" />
+              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        IsChecked="{Binding AllowExecute, Mode=TwoWay}"
+                        IsEnabled="{Binding CanEditPermissions}" />
+            </Grid>
+
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,6,0,0"
+                       Text="关掉时我会明确告诉你「权限不足」，不会尝试绕过。写入与执行默认关闭。" />
           </StackPanel>
         </Border>
 
+        <!-- 工作目录 -->
         <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">
           <StackPanel>
-            <TextBlock Style="{StaticResource AiSideTitle}" Text="工作目录" />
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
+                      Background="{DynamicResource Brush.Accent.Primary}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="工作目录" />
+            </Grid>
+
             <TextBox Text="{Binding WorkspaceRoot, UpdateSourceTrigger=PropertyChanged}"
                      FontSize="11.5" Margin="0,0,0,6" />
-            <TextBlock Style="{StaticResource AiHint}" Text="{Binding EffectiveRoot, Mode=OneWay}" />
-            <Button Content="选择目录…" Command="{Binding PickFolderCommand}" HorizontalAlignment="Left" />
-            <TextBlock Style="{StaticResource AiHint}" Margin="0,8,0,0"
-                       Text="所有读写路径都会被限制在这个目录内，越界直接拒绝。留空 = 你的用户目录。" />
+            <TextBlock Style="{StaticResource AiMono}" FontSize="10.5" Margin="0,0,0,10"
+                       Text="{Binding EffectiveRoot, Mode=OneWay}" />
+            <Button Content="选择目录…" Command="{Binding PickFolderCommand}" HorizontalAlignment="Left"
+                    Style="{StaticResource AiGhostButton}" />
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,10,0,0"
+                       Text="所有读写路径都被限制在这个目录内，越界直接拒绝。留空 = 用户目录。" />
           </StackPanel>
         </Border>
 
+        <!-- 其它 -->
         <Border Style="{StaticResource AiSideCard}">
           <StackPanel>
-            <TextBlock Style="{StaticResource AiSideTitle}" Text="其它" />
+            <Grid Margin="0,0,0,10">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
+                      Background="{DynamicResource Brush.Accent.Primary}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="其它" />
+            </Grid>
+
             <StackPanel Orientation="Horizontal">
-              <Button Content="清空" Command="{Binding ClearCommand}" Margin="0,0,8,0" />
-              <Button Content="检查服务端" Command="{Binding CheckHealthCommand}" />
+              <Button Content="清空" Command="{Binding ClearCommand}" Margin="0,0,8,0"
+                      Style="{StaticResource AiGhostButton}" />
+              <Button Content="检查服务端" Command="{Binding CheckHealthCommand}"
+                      Style="{StaticResource AiGhostButton}" />
             </StackPanel>
             <TextBlock Style="{StaticResource AiHint}" Margin="0,10,0,0"
-                       Text="密钥只在服务器上，安装包里没有。默认连 cloudfurhub.cn/api/startride/ai，连不上会自动切备用域。" />
+                       Text="密钥只在服务器上，安装包里没有。默认连 cloudfurhub.cn，连不上自动切备用域。" />
           </StackPanel>
         </Border>
+
       </StackPanel>
     </ScrollViewer>
   </Grid>

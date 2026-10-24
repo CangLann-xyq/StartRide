@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AI 助手图标：一大一小两颗四角星（sparkle）。
+  刻意用直线 + 圆形转角，而不是曲线：18px 下曲线星会糊成一团光斑，
+  直线在同样尺寸下边缘还能看清。
+  stroke="currentColor"：颜色由 SvgIcon 的 Foreground 决定（导航选中/未选中自动跟随主题）。
+-->
+<svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 4L21.6 16.4L34 20L21.6 23.6L18 36L14.4 23.6L2 20L14.4 16.4L18 4Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3.6"
+          stroke-linejoin="round" />
+    <path d="M36 26L38.2 33.8L46 36L38.2 38.2L36 46L33.8 38.2L26 36L33.8 33.8L36 26Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3.2"
+          stroke-linejoin="round" />
+</svg>
