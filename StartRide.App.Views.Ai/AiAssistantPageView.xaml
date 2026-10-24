@@ -313,9 +313,26 @@
         <ItemsControl ItemsSource="{Binding Messages}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Grid Margin="0,0,0,12">
+              <Grid Margin="0,0,0,12" x:Name="MsgRoot">
                 <Border x:Name="Bubble" Style="{StaticResource AiBubble}">
                   <StackPanel>
+                    <!-- 理解需求中：占位状态行，模型一有产出就自动消失 -->
+                    <StackPanel Visibility="{Binding IsUnderstandingVisible, Converter={StaticResource BoolVis}}">
+                      <TextBlock Text="正在理解你的需求…" FontSize="12"
+                                 Foreground="{DynamicResource Brush.Text.Muted}" />
+                    </StackPanel>
+
+                    <!-- 理解与计划（Agent 中间轮的说明文字，默认收起） -->
+                    <StackPanel Visibility="{Binding HasPlan, Converter={StaticResource BoolVis}}">
+                      <ToggleButton Style="{StaticResource AiFoldToggle}"
+                                    Content="{Binding PlanHeader, Mode=OneWay}"
+                                    IsChecked="{Binding IsPlanExpanded, Mode=TwoWay}" />
+                      <Border Style="{StaticResource AiSubPanel}"
+                              Visibility="{Binding IsPlanExpanded, Converter={StaticResource BoolVis}}">
+                        <TextBlock Style="{StaticResource AiMono}" Text="{Binding Plan}" />
+                      </Border>
+                    </StackPanel>
+
                     <!-- 思考过程（可折叠） -->
                     <StackPanel Visibility="{Binding HasThinking, Converter={StaticResource BoolVis}}">
                       <ToggleButton Style="{StaticResource AiFoldToggle}"
@@ -367,6 +384,14 @@
                 </Border>
               </Grid>
               <DataTemplate.Triggers>
+                <!-- 理解占位完成后整条隐藏（属性置位即可，不动集合） -->
+                <MultiDataTrigger>
+                  <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsUnderstanding}" Value="True" />
+                    <Condition Binding="{Binding UnderstandingDone}" Value="True" />
+                  </MultiDataTrigger.Conditions>
+                  <Setter TargetName="MsgRoot" Property="Visibility" Value="Collapsed" />
+                </MultiDataTrigger>
                 <!-- 用户发言靠右、用主题蓝底 -->
                 <DataTrigger Binding="{Binding IsUser}" Value="True">
                   <Setter TargetName="Bubble" Property="HorizontalAlignment" Value="Right" />

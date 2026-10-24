@@ -90,8 +90,13 @@ public sealed class AiMessage : ObservableObject
 
     private string text = "";
     private string thinking = "";
+    private string plan = "";
+    private bool isPlanExpanded;
+    private bool isUnderstanding;
+    private bool understandingDone;
     private bool isThinkingExpanded;
-    private bool isStepsExpanded = true;
+    // 执行过程默认折叠：步骤展开会把正文顶出视野，要看的人自己点开。
+    private bool isStepsExpanded;
     private bool isStreaming;
 
     public AiMessage(string role) => Role = role;
@@ -132,6 +137,57 @@ public sealed class AiMessage : ObservableObject
     }
 
     public bool HasThinking => !string.IsNullOrEmpty(thinking);
+
+    /// <summary>
+    /// 「理解与计划」：Agent 多轮里，模型在调工具之前写的那段说明文字。
+    /// 它是过程不是答案 —— 折到这里（默认收起），别让它以正文姿态刷屏。
+    /// </summary>
+    public string Plan
+    {
+        get => plan;
+        set
+        {
+            if (SetProperty(ref plan, value))
+            {
+                OnPropertyChanged(nameof(HasPlan));
+                OnPropertyChanged(nameof(PlanHeader));
+            }
+        }
+    }
+
+    public bool HasPlan => !string.IsNullOrEmpty(plan);
+
+    public string PlanHeader => "理解与计划 · " + plan.Length + " 字";
+
+    public bool IsPlanExpanded
+    {
+        get => isPlanExpanded;
+        set => SetProperty(ref isPlanExpanded, value);
+    }
+
+    /// <summary>
+    /// 「正在理解需求」占位：消息发出去到首轮响应之间的一条状态行。
+    /// 模型一开始产出（思考/正文/工具调用）就置 UnderstandingDone，整行自动消失 ——
+    /// 用属性而不是把消息从集合里删掉：属性变更 WPF 会跨线程封送，
+    /// 在流式回调线程上动 ObservableCollection 会直接炸。
+    /// </summary>
+    public bool IsUnderstanding
+    {
+        get => isUnderstanding;
+        set => SetProperty(ref isUnderstanding, value);
+    }
+
+    public bool UnderstandingDone
+    {
+        get => understandingDone;
+        set
+        {
+            if (SetProperty(ref understandingDone, value))
+                OnPropertyChanged(nameof(IsUnderstandingVisible));
+        }
+    }
+
+    public bool IsUnderstandingVisible => isUnderstanding && !understandingDone;
 
     /// <summary>
     /// 折叠头文案。默认就是折叠的，但要让玩家知道「里面在动」——
@@ -445,6 +501,10 @@ public sealed class AiAssistantViewModel : ObservableObject
         StatusText = "思考中…";
         turnAllowedTools.Clear();
 
+        // 「正在理解需求」占位：首轮响应一到就自动消失（见 understanding 标记）。
+        var understanding = new AiMessage(AiMessage.RoleAssistant) { IsUnderstanding = true };
+        Messages.Add(understanding);
+
         // 本轮创建的所有气泡都要记下来。
         // 🔴 这里以前不记：中途任何异常都会跳过 `bubble.IsStreaming = false`，
         //    气泡就永远挂着「正在输出…」，而 IsBusy 已经在 finally 里变回 false
@@ -478,11 +538,13 @@ public sealed class AiAssistantViewModel : ObservableObject
                     toolSchema,
                     piece =>
                     {
+                        understanding.UnderstandingDone = true;
                         bubble.Thinking += piece;
                         StatusText = "思考中…";
                     },
                     piece =>
                     {
+                        understanding.UnderstandingDone = true;
                         // 思考结束、正文开始的那一帧：把思考块收起来。
                         if (bubble.HasThinking && bubble.IsThinkingExpanded)
                             bubble.IsThinkingExpanded = false;
@@ -493,6 +555,7 @@ public sealed class AiAssistantViewModel : ObservableObject
 
                 bubble.IsStreaming = false;
                 bubble.IsThinkingExpanded = false;
+                understanding.UnderstandingDone = true;
 
                 // ① 用户点了停止
                 if (res.Cancelled)
@@ -522,6 +585,16 @@ public sealed class AiAssistantViewModel : ObservableObject
                 if (res.ToolCalls.Count > 0)
                 {
                     history.Add(BuildAssistantToolCallMessage(res, bubble.Text));
+
+                    // 中间轮的「正文」是模型调工具前的说明，不是给用户的最终答案。
+                    // 折进「理解与计划」（默认收起），最终答案那一轮才以正文出现。
+                    if (!string.IsNullOrEmpty(bubble.Text))
+                    {
+                        bubble.Plan = string.IsNullOrEmpty(bubble.Plan)
+                            ? bubble.Text
+                            : bubble.Plan + "\n\n" + bubble.Text;
+                        bubble.Text = "";
+                    }
 
                     foreach (var call in res.ToolCalls)
                     {
@@ -596,6 +669,7 @@ public sealed class AiAssistantViewModel : ObservableObject
         {
             // 无论怎么退出，所有气泡都必须收掉「正在输出」—— 这是那个卡住 bug 的根治点
             foreach (var b in bubbles) b.IsStreaming = false;
+            understanding.UnderstandingDone = true;
 
             ClearPendingConfirm(false);
             turnAllowedTools.Clear();
