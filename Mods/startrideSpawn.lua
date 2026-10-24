@@ -1181,6 +1181,11 @@ function M.applyModePlan(SRMode, isHide, mod)
   end
   if plan == nil then return end
 
+  -- 活动区域：把方案槽位推导成全员共享的圈（房主/加入者同源）。
+  -- ⚠️ 房主**收不到自己的广播**（见 buildModePlan 末尾的 modeLocalPlan），
+  --    所以这里必须替它记一次；加入者那边由 applySpawnPlan 顺手记过。
+  if SRMode.noteZonePlan then pcall(SRMode.noteZonePlan, plan) end
+
   local slot = M.pickMySlot(plan)
   if slot == nil then return end
 

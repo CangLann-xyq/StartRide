@@ -372,6 +372,7 @@
             <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchFindHoldSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
           </Grid>
 
+
           <Grid Margin="0,14,0,0">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
@@ -658,6 +659,165 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+        </StackPanel>
+      </Border>
+    </GroupBox>
+
+    <GroupBox Margin="0,14,0,0" Header="{x:Static res:Strings.Settings_ModeAdmitLabel}" Style="{StaticResource RideSectionStyle}">
+      <Border Style="{StaticResource RideSectionBodyStyle}">
+        <StackPanel>
+              <TextBlock Margin="0,0,0,12" Text="{x:Static res:Strings.Settings_ModeAdmitHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_RoundSecondsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_RoundSecondsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchRoundSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_ZoneRadiusLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ZoneRadiusHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchZoneRadius, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_ZoneGraceLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ZoneGraceHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchZoneGraceSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_ZoneEliminateLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ZoneEliminateHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchZoneEliminate, Mode=TwoWay}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_VehicleTypesLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_VehicleTypesHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchVehicleTypes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_VehicleEnforceLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_VehicleEnforceHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Style="{StaticResource LauncherSwitchToggleButtonStyle}" IsChecked="{Binding LaunchVehicleEnforce, Mode=TwoWay}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_BlockGroupsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_BlockGroupsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchBlockGroups, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_AllowGroupsLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_AllowGroupsHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding LaunchAllowGroups, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+
+              <!-- 细粒度玩法规则：三态（跟随模式 / 强制开启 / 强制关闭） -->
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_NeutralLockLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_NeutralLockHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <controls:AnimatedComboBox Grid.Column="1" VerticalAlignment="Center" ItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" SelectionItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding ModeRuleOptions}" SelectedItem="{Binding ModeRuleNeutralLockOption, Mode=TwoWay}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_NoManualResetLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_NoManualResetHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <controls:AnimatedComboBox Grid.Column="1" VerticalAlignment="Center" ItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" SelectionItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding ModeRuleOptions}" SelectedItem="{Binding ModeRuleNoManualResetOption, Mode=TwoWay}" />
+              </Grid>
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_NoVehicleSwapLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_NoVehicleSwapHint}" Style="{StaticResource SettingsDescriptionTextStyle}" />
+                </StackPanel>
+                <controls:AnimatedComboBox Grid.Column="1" VerticalAlignment="Center" ItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" SelectionItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding ModeRuleOptions}" SelectedItem="{Binding ModeRuleNoVehicleSwapOption, Mode=TwoWay}" />
+              </Grid>
+
+              <!-- 严格度预设：一次调好 29 条规则的松紧 -->
+              <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_ModePresetLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ModePresetHint}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <controls:AnimatedComboBox Grid.Column="1" VerticalAlignment="Center" ItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" SelectionItemTemplate="{StaticResource SRL_GraphicsBackendTemplate}" Style="{StaticResource LauncherComboBoxStyle}" ItemsSource="{Binding ModePresetOptions}" SelectedItem="{Binding ModeRulePresetOption, Mode=TwoWay}" />
+              </Grid>
+
+              <!-- 规则逐条覆写：29 条规则一条不落地都能单独开关 -->
+              <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{x:Static res:Strings.Settings_ModeRuleOverrideLabel}" Style="{StaticResource SettingsOptionTextStyle}" />
+                  <TextBlock Margin="0,4,0,0" Text="{x:Static res:Strings.Settings_ModeRuleOverrideHint}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <TextBox Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding ModeRuleOverridesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </Grid>
+              <TextBlock Margin="0,6,0,0" Text="{Binding ModeRuleOverrideStatus}" Style="{StaticResource SettingsDescriptionTextStyle}" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
     </GroupBox>

@@ -1611,6 +1611,43 @@
 <data name="Settings_FindRadiusHint" xml:space="preserve"><value>搜尋者靠近到這麼近才開始計時，越大越容易抓到人</value></data>
 <data name="Settings_FindHoldLabel" xml:space="preserve"><value>發現需要貼住（秒）</value></data>
 <data name="Settings_FindHoldHint" xml:space="preserve"><value>搜尋者連續貼住躲藏者這麼久才算找到，中途跑開就重新計時</value></data>
+<data name="Settings_ModeAdmitLabel" xml:space="preserve"><value>模式准入门槛</value></data>
+<data name="Settings_ModeAdmitHint" xml:space="preserve"><value>警匪追逐、德比等特殊模式进入游戏后的功能 / 位置 / 时间 / 车辆限制，房主开房时生效</value></data>
+<data name="Settings_RoundSecondsLabel" xml:space="preserve"><value>回合时限（秒）</value></data>
+<data name="Settings_RoundSecondsHint" xml:space="preserve"><value>时间到仍未分胜负就由幸存者获胜；0 = 不限时</value></data>
+<data name="Settings_ZoneRadiusLabel" xml:space="preserve"><value>活动范围半径（米）</value></data>
+<data name="Settings_ZoneRadiusHint" xml:space="preserve"><value>以本人出生点为圆心，超出即触发处置；0 = 不限制</value></data>
+<data name="Settings_ZoneGraceLabel" xml:space="preserve"><value>出圈宽限（秒）</value></data>
+<data name="Settings_ZoneGraceHint" xml:space="preserve"><value>出圈后留给玩家开回圈内的时间，HUD 会倒数</value></data>
+<data name="Settings_ZoneEliminateLabel" xml:space="preserve"><value>出圈即淘汰</value></data>
+<data name="Settings_ZoneEliminateHint" xml:space="preserve"><value>宽限结束还没回圈：开启 = 直接淘汰，关闭 = 拉回圈内边缘</value></data>
+<data name="Settings_VehicleTypesLabel" xml:space="preserve"><value>指定车型</value></data>
+<data name="Settings_VehicleTypesHint" xml:space="preserve"><value>车辆文件名关键字，逗号分隔；留空 = 不限制</value></data>
+<data name="Settings_VehicleEnforceLabel" xml:space="preserve"><value>强制指定车型</value></data>
+<data name="Settings_VehicleEnforceHint" xml:space="preserve"><value>开局自动把不在名单里的车换成名单车型</value></data>
+<data name="Settings_BlockGroupsLabel" xml:space="preserve"><value>额外屏蔽功能</value></data>
+<data name="Settings_BlockGroupsHint" xml:space="preserve"><value>逗号分隔：fun / vehicle / ai / reset / teleport / menu</value></data>
+<data name="Settings_AllowGroupsLabel" xml:space="preserve"><value>放行功能</value></data>
+<data name="Settings_AllowGroupsHint" xml:space="preserve"><value>逗号分隔，优先级低于额外屏蔽；警匪局的原地复位始终不可放行</value></data>
+<data name="Settings_ModeRuleAuto" xml:space="preserve"><value>跟隨模式預設</value></data>
+<data name="Settings_ModeRuleOn" xml:space="preserve"><value>強制開啟</value></data>
+<data name="Settings_ModeRuleOff" xml:space="preserve"><value>強制關閉</value></data>
+<data name="Settings_ModePresetLabel" xml:space="preserve"><value>嚴格度預設</value></data>
+<data name="Settings_ModePresetHint" xml:space="preserve"><value>「跟隨模式」依各玩法自己的口徑；統一指定後，下面的逐條開關與覆寫仍可再蓋</value></data>
+<data name="Settings_ModePresetAuto" xml:space="preserve"><value>跟隨模式</value></data>
+<data name="Settings_ModePresetLoose" xml:space="preserve"><value>寬鬆</value></data>
+<data name="Settings_ModePresetStandard" xml:space="preserve"><value>標準</value></data>
+<data name="Settings_ModePresetStrict" xml:space="preserve"><value>嚴格</value></data>
+<data name="Settings_ModeRuleOverrideLabel" xml:space="preserve"><value>規則逐條覆寫</value></data>
+<data name="Settings_ModeRuleOverrideHint" xml:space="preserve"><value>格式 key=1 開啟 / key=0 關閉，逗號分隔，優先級最高。位置 noMapTeleport noHomeAnchor noDropAtCam zoneEliminate｜時間 neutralLock freezeStaging noPause noSlowMotion roundLimit｜車輛 noVehicleSwap noPartsSwap noRepair noTrailer vehicleEnforce sameModel｜視野 noFreeCam noPhotoMode noWalkMode noMinimap｜功能 noManualReset noFun noAiTraffic noAiMode noNodeGrabber noWorldEditor noSpawnVehicle noRadialSandbox noDebugMenu noWeather</value></data>
+<data name="Settings_ModeRuleOverrideOk" xml:space="preserve"><value>已辨識 {0} 條覆寫，本局生效</value></data>
+<data name="Settings_ModeRuleOverrideBad" xml:space="preserve"><value>無法辨識：{0}</value></data>
+<data name="Settings_NeutralLockLabel" xml:space="preserve"><value>起跑前空檔鎖定</value></data>
+<data name="Settings_NeutralLockHint" xml:space="preserve"><value>起跑訊號前檔位鎖在空檔，開始後自動掛一檔</value></data>
+<data name="Settings_NoManualResetLabel" xml:space="preserve"><value>禁止手動重置車輛</value></data>
+<data name="Settings_NoManualResetHint" xml:space="preserve"><value>局內不能原地重置翻車或卡住的車</value></data>
+<data name="Settings_NoVehicleSwapLabel" xml:space="preserve"><value>禁止換車 / 換零件</value></data>
+<data name="Settings_NoVehicleSwapHint" xml:space="preserve"><value>局內不能靠換車換零件取得優勢</value></data>
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>強制使用獨立顯示卡</value></data>
 <data name="Settings_LaunchForceGpuHint" xml:space="preserve"><value>追加 -highperformancegpu，筆記型電腦上避免跑到核顯</value></data>
 <data name="Settings_LaunchGfxLabel" xml:space="preserve"><value>渲染後端</value></data>

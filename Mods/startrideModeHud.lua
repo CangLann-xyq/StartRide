@@ -122,6 +122,31 @@ local COL = {
 local CARD_BG = TUNE.cardBg
 
 -- ---------------------------------------------------------------------------
+-- 模式组件（每个非自由模式一个独立文件）
+-- ---------------------------------------------------------------------------
+-- 这些组件只负责「本模式专属的那一块面板」（右下角），主 HUD 的左侧身份卡 /
+-- 左下模式卡 / 右上规则卡仍由本文件画 —— 两边职责不重叠：
+--   主 HUD  → 所有模式共有的骨架
+--   组件    → 这个模式才有的东西（追捕要素 / 场况 / 搜寻 / 赛道）
+-- ⚠️ 组件全部走 pcall：任何一个文件缺失或抛错，都不能影响其它模式。
+local PACK_MODS = {}
+do
+  local want = {
+    { 'cops_robber', 'startridePackChase' },
+    { 'derby',       'startridePackDerby' },
+    { 'hide_seek',   'startridePackSeek'  },
+    { 'track_day',   'startridePackTrack' },
+  }
+  local i
+  for i = 1, #want do
+    local ok, mod = pcall(require, want[i][2])
+    if ok and type(mod) == 'table' and type(mod.panel) == 'function' then
+      PACK_MODS[want[i][1]] = mod
+    end
+  end
+end
+
+-- ---------------------------------------------------------------------------
 -- 小工具
 -- ---------------------------------------------------------------------------
 local function v4(c, a)
@@ -339,6 +364,7 @@ end
 -- 角色 / 阶段的展示文案
 -- ---------------------------------------------------------------------------
 local function roleLabel(role)
+  if role == 'driver' then return '车手' end
   if role == 'cop' then return '警察' end
   if role == 'robber' then return '强盗' end
   if role == 'seeker' then return '搜索者' end
@@ -347,6 +373,7 @@ local function roleLabel(role)
 end
 
 local function roleColor(role)
+  if role == 'driver' then return COL.accent end
   if role == 'cop' then return COL.cop end
   if role == 'robber' then return COL.robber end
   if role == 'seeker' then return COL.seeker end
@@ -375,6 +402,7 @@ local function modeLabel(mode)
   if mode == 'cops_robber' then return '警察抓强盗' end
   if mode == 'derby' then return '德比' end
   if mode == 'hide_seek' then return '捉迷藏' end
+  if mode == 'track_day' then return '赛道日' end
   return '自由驾驶'
 end
 
@@ -404,17 +432,244 @@ local function isRoleMode(mode)
 end
 
 -- ---------------------------------------------------------------------------
+-- 本局规则卡
+--
+-- 「限制」这件事最怕的是玩家不知道自己被限了什么，然后以为游戏坏了。
+-- 所以这里把本局生效的规则**逐条列出来**：左对齐 + 蓝竖线 + 统一行距，
+-- 跟其它卡片同一套视觉语言（深色卡 / 左侧身份色条 / 三级字号）。
+--
+-- 起跑相关的两条（空档锁定 / 车型要求）单独提亮：它们在开局阶段最需要被看见，
+-- running 一开就自动降级成普通条目，不喧宾夺主。
+--
+-- ⚠️ blk() 要的是 ImVec4，COL 里的颜色是普通表 —— 一律用 v4() 包一层。
+-- ---------------------------------------------------------------------------
+local RULE_W = 260          -- 规则卡宽度（右上角右对齐）
+
+-- 规则分类顺序（与 startrideMode 的 CAT_TEXT 对应）
+local RULE_CATS = {
+  { 'zone',    '位置' },
+  { 'time',    '时间' },
+  { 'vehicle', '车辆' },
+  { 'view',    '视野' },
+  { 'func',    '功能' },
+}
+-- 行预算：5 类 × 每条规则全铺开会顶出屏幕，超过就折成「另 N 项」
+local RULE_MAX_ROWS = 18
+local RULE_MAX_PER  = 3
+
+local function rulesCard(dl, x, y, w, snap, maxH)
+  -- 分五类：位置 / 时间 / 车辆 / 视野 / 功能。
+  -- 正在发生的问题（出圈倒计时、车型不符）置顶并换警示色 —— 规则列表是「静态说明」，
+  -- 而玩家真正需要一眼看到的是「我现在正在违规，还剩几秒」。
+  local items = {}
+  local function line(t, c) items[#items + 1] = { t = 'l', s = t, c = c } end
+
+  -- ① 正在发生的问题
+  if snap.zoneOut == true then
+    local left = tonumber(snap.zoneGraceLeft)
+    line(left and ('偏离活动区 · ' .. string.format('%.0f', left) .. ' 秒后处罚')
+                 or '偏离活动区', COL.danger)
+  end
+  if snap.vehicleOk == false then
+    line('车型不符 · ' .. tostring(snap.vehicleName or '未知'), COL.warn)
+  end
+
+  -- ② 按分类整理规则（snap.ruleItems 是 startrideMode 按 RULE_DEFS 派生的结构化清单）
+  local byCat, total = {}, 0
+  local function pushRule(cat, text)
+    local c = tostring(cat or 'func')
+    local arr = byCat[c]
+    if not arr then arr = {} byCat[c] = arr end
+    arr[#arr + 1] = { text = text }
+    total = total + 1
+  end
+  local src = snap.ruleItems
+  if type(src) == 'table' and #src > 0 then
+    for i = 1, #src do
+      local it = src[i]
+      if type(it) == 'table' then pushRule(it.cat, it.text) end
+    end
+  else
+    -- 兼容只有纯文本 rules 的旧快照（分不出类别，统一落到「功能」）
+    local rl = snap.rules
+    if type(rl) == 'table' then
+      for i = 1, #rl do pushRule('func', rl[i]) end
+    end
+  end
+
+  -- ③ 排成扁平行列表（分类标题 + 实时数据行 + 规则行）
+  local plan = {}
+  for ci = 1, #RULE_CATS do
+    local key, label = RULE_CATS[ci][1], RULE_CATS[ci][2]
+    local arr = byCat[key]
+
+    -- 实时数据行：规则是「本局限什么」，这一行是「此刻什么情况」，放分类最前面
+    local live = nil
+    local liveCol = COL.dim
+    if key == 'zone' then
+      local radius = tonumber(snap.zoneRadius) or 0
+      if radius > 0 then
+        local s = string.format('活动圈 %.0f m', radius)
+        local d = tonumber(snap.zoneDist)
+        if d then s = s .. string.format(' · 距圆心 %.0f m', d) end
+        -- 出圈后果直接写在活动圈这一行：玩家最想知道「跑出去会怎样」
+        if (tonumber(snap.zoneEliminate) or 0) > 0 then
+          s = s .. ' · 出圈淘汰'
+        else
+          s = s .. ' · 出圈拉回'
+        end
+        live = s
+      end
+    elseif key == 'time' then
+      local tot = tonumber(snap.roundSeconds) or 0
+      if tot > 0 then
+        local left = tonumber(snap.roundLeft)
+        live = left and ('剩余 ' .. clockText(left) .. ' / ' .. clockText(tot))
+                    or ('上限 ' .. clockText(tot))
+        if left and left <= 30 then liveCol = COL.warn end
+      end
+    elseif key == 'vehicle' then
+      if snap.vehicleRequired == true then
+        local s = '要求 ' .. tostring(snap.vehicleTypes or '')
+        local vn = tostring(snap.vehicleName or '')
+        if vn ~= '' then s = s .. ' · 当前 ' .. vn end
+        live = s
+        if snap.vehicleOk == false then liveCol = COL.warn end
+      end
+    end
+
+    local n = (arr and #arr or 0) + (live and 1 or 0)
+    if n > 0 then
+      local head = label
+      if arr and #arr > 0 then head = label .. ' · ' .. tostring(#arr) end
+      plan[#plan + 1] = { t = 'h', s = head }
+      if live then plan[#plan + 1] = { t = 'l', s = live, c = liveCol } end
+
+      if arr then
+        local shown = 0
+        for i = 1, #arr do
+          if shown >= RULE_MAX_PER then
+            plan[#plan + 1] = { t = 'l', s = '另 ' .. tostring(#arr - shown) .. ' 项', c = COL.dim }
+            break
+          end
+          plan[#plan + 1] = { t = 'l', s = tostring(arr[i].text or ''), c = COL.dim }
+          shown = shown + 1
+        end
+      end
+    end
+  end
+
+  -- 起跑阶段的空档锁：running 之后自动消失，所以放最后
+  if snap.gearLocked == true then
+    plan[#plan + 1] = { t = 'l', s = '空档锁定 · 起跑自动挂一档', c = COL.warn }
+  end
+
+  -- ④ 行预算裁剪（保留前 N-1 行，最后一行换成「另 N 项」）
+  if #plan > RULE_MAX_ROWS then
+    local cut = #plan - (RULE_MAX_ROWS - 1)
+    for i = #plan, RULE_MAX_ROWS + 1, -1 do plan[i] = nil end
+    plan[RULE_MAX_ROWS] = { t = 'l', s = '另 ' .. tostring(cut) .. ' 项', c = COL.dim }
+  end
+  -- ⑤ 高度预算：右下角有模式组件面板时，规则卡必须让出空间。
+  --    1080p 不缺高度，1440×900 以下的窗口会明显撞上 —— 这里按「每行都当分组标题」
+  --    保守估算，超了就和行预算一样折成「另 N 项」。
+  local budget = tonumber(maxH)
+  if budget and budget > 0 then
+    local rowWorst = LH.L3 + 6
+    local room = math.floor((budget - (TUNE.padY * 2 + LH.L1 + 8)) / rowWorst)
+    if room < 4 then room = 4 end
+    if #plan > room then
+      local cut = #plan - (room - 1)
+      for i = #plan, room + 1, -1 do plan[i] = nil end
+      plan[room] = { t = 'l', s = '另 ' .. tostring(cut) .. ' 项', c = COL.dim }
+    end
+  end
+  for i = 1, #plan do items[#items + 1] = plan[i] end
+
+  if #items == 0 then return 0 end
+
+  local lineH, headH = LH.L3 + 3, LH.L3 + 6
+  local h = TUNE.padY * 2 + LH.L1 + 8
+  for _, it in ipairs(items) do
+    h = h + ((it.t == 'h') and headH or lineH)
+  end
+
+  card(dl, x, y, w, h, COL.accent)
+
+  local tx = x + TUNE.padX
+  local ty = y + TUNE.padY
+  -- 标题带模式名：同一个「本局规则」栏在五个模式里的内容完全不同，
+  -- 不写模式名玩家会以为规则没变（切模式后数字变了但看不出为什么）。
+  local title = tostring(snap.packLabel or '')
+  if title == '' then title = modeLabel(snap.mode) end
+  textAt(tx, ty, title .. ' · 本局规则 ' .. tostring(total) .. ' 项', COL.accent, FS.L1)
+  -- 右上角补「功能 N / 位置 M」：玩家说的「功能限制 + 位置限制」两类分开计数
+  local nf = tonumber(snap.packFuncCount) or 0
+  local np = tonumber(snap.packPosCount) or 0
+  if nf + np > 0 then
+    textAt(tx + w - TUNE.padX - 96, ty + 3,
+           string.format('功能 %d · 位置 %d', nf, np), COL.dim, FS.L3)
+  end
+
+  local ly = ty + LH.L1 + 8
+  for _, it in ipairs(items) do
+    if it.t == 'h' then
+      -- 分组标题：上下各留一点呼吸，靠字色区分层级（不做加粗，HUD 字重不可控）
+      textAt(tx, ly + 2, it.s, COL.accent, FS.L3)
+      ly = ly + headH
+    else
+      local col = it.c or COL.dim
+      -- 2px 竖线：杂志编辑式版式，同时把警示行从同色文字里拎出来
+      blk(dl, tx, ly + 1, 2, lineH - 4, v4(col), 1)
+      textAt(tx + 8, ly, it.s, col, FS.L3)
+      ly = ly + lineH
+    end
+  end
+  return h
+end
+
+-- ---------------------------------------------------------------------------
 -- 主渲染
 --
 -- snap  = StartRideMode.snapshot()
 -- extra = { finishAgeMs, winnerName, ... }
 -- ---------------------------------------------------------------------------
+-- 模式组件面板：右下角常驻。
+-- 几何口径：宽 300，行高与主卡一致；高度由组件自己算（都是 5 行骨架），
+-- 这里先按同一公式把 y 锚到底边，保证四个组件的面板下沿对齐。
+local PACK_W, PACK_ROWS = 300, 5
+
+-- 右下组件面板占掉的高度（含与规则卡之间的间隙）。
+-- 没有组件（自由驾驶）/ 大厅阶段返回 0 —— 这两种情况规则卡可以铺到底。
+local function packReserve(snap)
+  if not PACK_MODS[snap.mode] then return 0 end
+  if tostring(snap.phase or '') == 'lobby' then return 0 end
+  return TUNE.padY * 2 + LH.L1 + (LH.L3 + 6) * PACK_ROWS + 12
+end
+local function packPanel(dl, snap, vw, vh)
+  local mod = PACK_MODS[snap.mode]
+  if not mod then return end
+  if tostring(snap.phase or '') == 'lobby' then return end
+  local rowH = LH.L3 + 6
+  local h = TUNE.padY * 2 + LH.L1 + rowH * PACK_ROWS
+  local ctx = {
+    dl = dl, im = im,
+    COL = COL, FS = FS, LH = LH, TUNE = TUNE,
+    card = card, barFill = barFill, textAt = textAt, textSame = textSame,
+    x = vw - TUNE.margin - PACK_W,
+    y = vh - TUNE.margin - h,
+    w = PACK_W,
+  }
+  pcall(mod.panel, ctx, snap)
+end
+
 function M.render(snap, extra)
   if type(snap) ~= 'table' then return end
   -- ⚠️ ui_imgui 没就绪时直接跳过：不能画就不画，绝不能让 HUD 反过来把联机拖崩。
   --    （模块被 require 的时机早于图形层初始化，这个判定是必要的兜底。）
   if type(im) ~= 'table' then return end
-  if snap.mode ~= 'cops_robber' and snap.mode ~= 'derby' and snap.mode ~= 'hide_seek' then return end
+  -- 除自由驾驶外，每个模式都有自己的 HUD（赛道日以前被这里挡在门外）
+  if snap.mode == nil or snap.mode == '' or snap.mode == 'free_drive' then return end
   if snap.phase == 'lobby' then return end
 
   extra = extra or {}
@@ -461,7 +716,7 @@ function M.render(snap, extra)
     -- 第一行：L1 标题
     local tx = cx + TUNE.padX
     local ty = cy + TUNE.padY
-    textAt(tx, ty, roleLabel(snap.role), rcol, FS.L1)
+    textAt(tx, ty, roleLabel(snap.role or (snap.mode == 'track_day' and 'driver' or nil)), rcol, FS.L1)
     textSame('· ' .. modeLabel(snap.mode), COL.dim, FS.L3)
 
     -- 右上角：回合数（L3）
@@ -514,6 +769,41 @@ function M.render(snap, extra)
       else
         textAt(tx, line3, '目标 · 活到最后', COL.dim, FS.L3)
       end
+    end
+
+    -- 模式准入提示（警匪/德比）：开局前给活动半径的预期，车型不符给警告。
+    -- 只做「同行追加」：不占新行、不动卡片高度，避免把下面进度条顶下去。
+    if snap.mode == 'cops_robber' or snap.mode == 'derby' then
+      if (tonumber(snap.zoneRadius) or 0) > 0 and snap.phase ~= 'running' then
+        textSame(' · 活动圈 ' .. string.format('%.0f', snap.zoneRadius) .. 'm', COL.dim, FS.L3)
+      end
+      if snap.vehicleOk == false then
+        textSame(' · 车型不符', COL.warn, FS.L3)
+      end
+    end
+
+    -- ============ 顶部居中：准入警告横幅 ============
+    -- 出圈（危险）优先、车型不符（警告）其次；两条不同时抢同一行。
+    -- 放顶部居中而不是卡片里：这是「你正在违规」类提示，必须在视野正中。
+    local banY = vh * 0.15
+    local zoneWarn = (snap.mode == 'cops_robber' or snap.mode == 'derby')
+      and snap.phase == 'running' and snap.zoneOut == true
+    if zoneWarn then
+      local msg = '偏离活动区'
+      local w1 = im.CalcTextSize(msg).x
+      textAt(vw * 0.5 - w1 * 0.5, banY, msg, COL.danger, FS.L1)
+      if snap.zoneGraceLeft then
+        local sub = string.format('%.0f', math.ceil(snap.zoneGraceLeft)) .. ' 秒后'
+          .. ((tonumber(snap.zoneEliminate) or 0) > 0 and '淘汰' or '拉回边界')
+        local w2 = im.CalcTextSize(sub).x
+        textAt(vw * 0.5 - w2 * 0.5, banY + LH.L1 + 2, sub, COL.warn, FS.L2)
+      end
+      banY = banY + LH.L1 + LH.L2 + 8
+    end
+    if (snap.mode == 'cops_robber' or snap.mode == 'derby') and snap.vehicleOk == false then
+      local msg = '车型不符 · 请更换为 ' .. tostring(snap.vehicleTypes or '')
+      local w1 = im.CalcTextSize(msg).x
+      textAt(vw * 0.5 - w1 * 0.5, banY, msg, COL.warn, FS.L2)
     end
 
     -- ============ 抓捕 / 搜索 / 车损 进度条 ============
@@ -786,6 +1076,22 @@ function M.render(snap, extra)
              '上限 ' .. tostring(snap.resetLimit or 0) .. ' 次', COL.dim, FS.L3)
     end
 
+    -- ============ 右上：本局规则（常驻，开局阶段最需要被看见） ============
+    --
+    -- ⚠️ 位置贴着右上角往下排：积分卡占 y=M0（h=52），模式计数卡占 y=M0+60（h=52），
+    --    这里从 y=M0+120 开始、宽 260 右对齐，不会跟它们叠在一起。
+    do
+      local rx = vw - TUNE.margin - RULE_W
+      local top = TUNE.margin + 120
+      -- 可用高度 = 窗口底 - 模式面板（含间隙）- 规则卡上沿
+      local avail = vh - TUNE.margin - packReserve(snap) - top
+      rulesCard(dl, rx, top, RULE_W, snap, avail)
+    end
+
+    -- ============ 右下：本模式专属组件 ============
+    -- 每个模式一个独立 Lua 文件（startridePack*），绘制风格沿用本文件的语言。
+    packPanel(dl, snap, vw, vh)
+
     -- ============ 中央：结算画面 ============
     if snap.phase == 'finished' then
       local age = extra.finishAgeMs or 0
@@ -891,7 +1197,8 @@ function M.render(snap, extra)
             .. ' · 即将返回等待'
         else
           local why = (snap.finishReason == 'time_up' and '撑满全场')
-            or (snap.finishReason == 'last_standing' and '最后幸存') or ''
+            or (snap.finishReason == 'last_standing' and '最后幸存')
+            or (snap.finishReason == 'robber_outside' and '强盗离开活动区域') or ''
           sub = (why ~= '' and (why .. ' · ') or '') .. '即将返回等待…'
         end
 

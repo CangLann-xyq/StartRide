@@ -37,6 +37,15 @@ public sealed partial class GeneralSettingsViewModel
 	private int launchHideRoundSeconds = 240;
 	private int launchFindRadius = 12;
 	private int launchFindHoldSeconds = 2;
+	// 模式准入限制（活动圈 / 车型白名单 / 输入组覆盖）
+	private int launchRoundSeconds = 300;
+	private int launchZoneRadius;
+	private int launchZoneGraceSeconds = 5;
+	private bool launchZoneEliminate;
+	private string launchVehicleTypes = string.Empty;
+	private bool launchVehicleEnforce = true;
+	private string launchBlockGroups = string.Empty;
+	private string launchAllowGroups = string.Empty;
 	private bool launchForceHighPerformanceGpu = true;
 	private bool startupAutoDetectGame = true;
 	private bool startupAutoUpdate = true;
@@ -48,6 +57,12 @@ public sealed partial class GeneralSettingsViewModel
 	private string launchPostExitCommand = string.Empty;
 	private string launchArgsPreviewText = string.Empty;
 	private SettingsGraphicsBackendOption? selectedGraphicsBackendOption;
+	// 细粒度玩法规则的三态选项（三行共用同一份）
+	private SettingsGraphicsBackendOption? modeRuleNeutralLockOption;
+	private SettingsGraphicsBackendOption? modeRulePresetOption;
+	private string modeRuleOverridesText = string.Empty;
+	private SettingsGraphicsBackendOption? modeRuleNoManualResetOption;
+	private SettingsGraphicsBackendOption? modeRuleNoVehicleSwapOption;
 
 	private RelayCommand? refreshLaunchArgsPreviewCommand;
 
@@ -269,6 +284,86 @@ public sealed partial class GeneralSettingsViewModel
 		}
 	}
 
+	// ------------------------------------------------------------------
+	// 模式准入限制（警匪追逐 / 德比等特殊模式）
+	// ------------------------------------------------------------------
+
+	/// <summary>回合时限（秒）：到点未分胜负按幸存判定；0 = 不限时。</summary>
+	public int LaunchRoundSeconds
+	{
+		get => launchRoundSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 7200);
+			SetStartRideSetting(ref launchRoundSeconds, clamped, "LaunchRoundSeconds",
+				app => app.RoundSeconds = clamped);
+		}
+	}
+
+	/// <summary>活动范围半径（米）：超出出生点这个半径就触发处置；0 = 不限制。</summary>
+	public int LaunchZoneRadius
+	{
+		get => launchZoneRadius;
+		set
+		{
+			int clamped = Math.Clamp(value, 0, 20000);
+			SetStartRideSetting(ref launchZoneRadius, clamped, "LaunchZoneRadius",
+				app => app.ModeZoneRadius = clamped);
+		}
+	}
+
+	/// <summary>出圈宽限（秒）：出圈后留给玩家开回圈内的时间。</summary>
+	public int LaunchZoneGraceSeconds
+	{
+		get => launchZoneGraceSeconds;
+		set
+		{
+			int clamped = Math.Clamp(value, 1, 600);
+			SetStartRideSetting(ref launchZoneGraceSeconds, clamped, "LaunchZoneGraceSeconds",
+				app => app.ModeZoneGraceSeconds = clamped);
+		}
+	}
+
+	/// <summary>宽限结束仍未回圈：true = 直接淘汰，false = 拉回圈内边缘。</summary>
+	public bool LaunchZoneEliminate
+	{
+		get => launchZoneEliminate;
+		set => SetStartRideSetting(ref launchZoneEliminate, value, "LaunchZoneEliminate",
+			app => app.ModeZoneEliminate = value);
+	}
+
+	/// <summary>指定车型白名单（车辆文件名关键字，逗号分隔）。留空 = 不限制。</summary>
+	public string LaunchVehicleTypes
+	{
+		get => launchVehicleTypes;
+		set => SetStartRideSetting(ref launchVehicleTypes, value ?? string.Empty, "LaunchVehicleTypes",
+			app => app.ModeVehicleTypes = (value ?? string.Empty).Trim());
+	}
+
+	/// <summary>开局强制把不在白名单内的车换成名单车型。</summary>
+	public bool LaunchVehicleEnforce
+	{
+		get => launchVehicleEnforce;
+		set => SetStartRideSetting(ref launchVehicleEnforce, value, "LaunchVehicleEnforce",
+			app => app.ModeVehicleEnforce = value);
+	}
+
+	/// <summary>回合内额外屏蔽的输入组（逗号分隔）：fun / vehicle / ai / reset / teleport / menu。</summary>
+	public string LaunchBlockGroups
+	{
+		get => launchBlockGroups;
+		set => SetStartRideSetting(ref launchBlockGroups, value ?? string.Empty, "LaunchBlockGroups",
+			app => app.ModeBlockGroups = (value ?? string.Empty).Trim());
+	}
+
+	/// <summary>回合内放行的输入组（逗号分隔）。优先级低于额外屏蔽；警匪局复位始终不可放行。</summary>
+	public string LaunchAllowGroups
+	{
+		get => launchAllowGroups;
+		set => SetStartRideSetting(ref launchAllowGroups, value ?? string.Empty, "LaunchAllowGroups",
+			app => app.ModeAllowGroups = (value ?? string.Empty).Trim());
+	}
+
 	public bool LaunchForceHighPerformanceGpu
 	{
 		get => launchForceHighPerformanceGpu;
@@ -404,8 +499,133 @@ public sealed partial class GeneralSettingsViewModel
 	public IRelayCommand RefreshLaunchArgsPreviewCommand =>
 		refreshLaunchArgsPreviewCommand ?? (refreshLaunchArgsPreviewCommand = new RelayCommand(RefreshLaunchArgsPreview));
 
+	/// <summary>三态选项：跟随模式默认 / 强制开启 / 强制关闭。</summary>
+	public ObservableCollection<SettingsGraphicsBackendOption> ModeRuleOptions { get; } =
+		new ObservableCollection<SettingsGraphicsBackendOption>();
+
+	/// <summary>严格度预设：跟随模式 / 宽松 / 标准 / 严格。</summary>
+	public ObservableCollection<SettingsGraphicsBackendOption> ModePresetOptions { get; } =
+		new ObservableCollection<SettingsGraphicsBackendOption>();
+
+	/// <summary>选项 → 三态值：null = 跟随模式，0 = 关，1 = 开。</summary>
+	private static int? OptionToTri(SettingsGraphicsBackendOption? opt)
+	{
+		string key = opt?.Key ?? "";
+		if (key == "on") return 1;
+		if (key == "off") return 0;
+		return null;
+	}
+
+	private static SettingsGraphicsBackendOption TriToOption(int? v,
+		ObservableCollection<SettingsGraphicsBackendOption> list)
+	{
+		string key = (v == null) ? "" : (v.Value > 0 ? "on" : "off");
+		return list.FirstOrDefault(o => o.Key == key) ?? list[0];
+	}
+
+	/// <summary>
+	/// 严格度预设：一次把 29 条规则的松紧调好，逐条开关仍然可以再盖。
+	/// 空串 = 跟随各玩法自己的口径（警匪最严、赛道日最松）。
+	/// </summary>
+	public SettingsGraphicsBackendOption? ModeRulePresetOption
+	{
+		get => modeRulePresetOption;
+		set
+		{
+			if (modeRulePresetOption == value) return;
+			modeRulePresetOption = value;
+			OnPropertyChanged("ModeRulePresetOption");
+			string preset = value?.Key ?? string.Empty;
+			PersistStartRide(app => app.ModeRulePreset = preset);
+		}
+	}
+
+	/// <summary>
+	/// 规则逐条覆写：逗号分隔的 key=1 / key=0，优先级高于三态开关与预设。
+	/// 只管白名单内的键（见 ModeRuleCatalog），写错会在下方状态行里点出来。
+	/// </summary>
+	public string ModeRuleOverridesText
+	{
+		get => modeRuleOverridesText;
+		set
+		{
+			string text = (value ?? string.Empty).Trim();
+			if (modeRuleOverridesText == text) return;
+			modeRuleOverridesText = text;
+			OnPropertyChanged("ModeRuleOverridesText");
+			OnPropertyChanged("ModeRuleOverrideStatus");
+			PersistStartRide(app => app.ModeRuleOverrides = text);
+		}
+	}
+
+	/// <summary>覆写文本的即时校验结果：识别到几条、哪几段不认识。</summary>
+	public string ModeRuleOverrideStatus
+	{
+		get
+		{
+			var (values, unknown) = ModeRuleCatalog.Parse(modeRuleOverridesText);
+			if (unknown.Count > 0)
+			{
+				return string.Format(Strings.Settings_ModeRuleOverrideBad, string.Join(", ", unknown));
+			}
+			return values.Count == 0
+				? string.Empty
+				: string.Format(Strings.Settings_ModeRuleOverrideOk, values.Count);
+		}
+	}
+
+	/// <summary>起跑前空档锁定、起跑后自动挂一档（跟随模式 / 强制开启 / 强制关闭）。</summary>
+	public SettingsGraphicsBackendOption? ModeRuleNeutralLockOption
+	{
+		get => modeRuleNeutralLockOption;
+		set
+		{
+			if (modeRuleNeutralLockOption == value) return;
+			modeRuleNeutralLockOption = value;
+			OnPropertyChanged("ModeRuleNeutralLockOption");
+			PersistStartRide(app => app.ModeNeutralLock = OptionToTri(value));
+		}
+	}
+
+	/// <summary>局内禁止手动复位车辆（跟随模式 / 强制开启 / 强制关闭）。</summary>
+	public SettingsGraphicsBackendOption? ModeRuleNoManualResetOption
+	{
+		get => modeRuleNoManualResetOption;
+		set
+		{
+			if (modeRuleNoManualResetOption == value) return;
+			modeRuleNoManualResetOption = value;
+			OnPropertyChanged("ModeRuleNoManualResetOption");
+			PersistStartRide(app => app.ModeNoManualReset = OptionToTri(value));
+		}
+	}
+
+	/// <summary>局内禁止换车 / 换零件（跟随模式 / 强制开启 / 强制关闭）。</summary>
+	public SettingsGraphicsBackendOption? ModeRuleNoVehicleSwapOption
+	{
+		get => modeRuleNoVehicleSwapOption;
+		set
+		{
+			if (modeRuleNoVehicleSwapOption == value) return;
+			modeRuleNoVehicleSwapOption = value;
+			OnPropertyChanged("ModeRuleNoVehicleSwapOption");
+			PersistStartRide(app => app.ModeNoVehicleSwap = OptionToTri(value));
+		}
+	}
+
 	private void InitializeStartRideLaunchSection()
 	{
+		ModeRuleOptions.Clear();
+		ModeRuleOptions.Add(new SettingsGraphicsBackendOption("", Strings.Settings_ModeRuleAuto));
+		ModeRuleOptions.Add(new SettingsGraphicsBackendOption("on", Strings.Settings_ModeRuleOn));
+		ModeRuleOptions.Add(new SettingsGraphicsBackendOption("off", Strings.Settings_ModeRuleOff));
+
+		ModePresetOptions.Clear();
+		ModePresetOptions.Add(new SettingsGraphicsBackendOption("", Strings.Settings_ModePresetAuto));
+		ModePresetOptions.Add(new SettingsGraphicsBackendOption("loose", Strings.Settings_ModePresetLoose));
+		ModePresetOptions.Add(new SettingsGraphicsBackendOption("standard", Strings.Settings_ModePresetStandard));
+		ModePresetOptions.Add(new SettingsGraphicsBackendOption("strict", Strings.Settings_ModePresetStrict));
+
 		GraphicsBackendOptions.Clear();
 		GraphicsBackendOptions.Add(new SettingsGraphicsBackendOption("", Strings.Settings_LaunchGfxDefault));
 		GraphicsBackendOptions.Add(new SettingsGraphicsBackendOption("dx11", Strings.Settings_LaunchGfxDx11));
@@ -441,6 +661,21 @@ public sealed partial class GeneralSettingsViewModel
 		launchHideRoundSeconds = Math.Clamp(app.HideRoundSeconds, 30, 1800);
 		launchFindRadius = Math.Clamp(app.FindRadius, 2, 100);
 		launchFindHoldSeconds = Math.Clamp(app.FindHoldMs / 1000, 1, 30);
+		launchRoundSeconds = Math.Clamp(app.RoundSeconds, 0, 7200);
+		launchZoneRadius = Math.Clamp(app.ModeZoneRadius, 0, 20000);
+		launchZoneGraceSeconds = Math.Clamp(app.ModeZoneGraceSeconds, 1, 600);
+		launchZoneEliminate = app.ModeZoneEliminate;
+		launchVehicleTypes = app.ModeVehicleTypes ?? string.Empty;
+		launchVehicleEnforce = app.ModeVehicleEnforce;
+		launchBlockGroups = app.ModeBlockGroups ?? string.Empty;
+		launchAllowGroups = app.ModeAllowGroups ?? string.Empty;
+		string presetKey = (app.ModeRulePreset ?? string.Empty).Trim().ToLowerInvariant();
+		modeRulePresetOption = ModePresetOptions.FirstOrDefault(o => o.Key == presetKey)
+			?? ModePresetOptions[0];
+		modeRuleOverridesText = app.ModeRuleOverrides ?? string.Empty;
+		modeRuleNeutralLockOption = TriToOption(app.ModeNeutralLock, ModeRuleOptions);
+		modeRuleNoManualResetOption = TriToOption(app.ModeNoManualReset, ModeRuleOptions);
+		modeRuleNoVehicleSwapOption = TriToOption(app.ModeNoVehicleSwap, ModeRuleOptions);
 		launchForceHighPerformanceGpu = app.ForceHighPerformanceGpu;
 		startupAutoDetectGame = app.AutoDetectGame;
 		startupAutoUpdate = app.AutoUpdate;
@@ -475,6 +710,20 @@ public sealed partial class GeneralSettingsViewModel
 		OnPropertyChanged("LaunchHideRoundSeconds");
 		OnPropertyChanged("LaunchFindRadius");
 		OnPropertyChanged("LaunchFindHoldSeconds");
+		OnPropertyChanged("LaunchRoundSeconds");
+		OnPropertyChanged("LaunchZoneRadius");
+		OnPropertyChanged("LaunchZoneGraceSeconds");
+		OnPropertyChanged("LaunchZoneEliminate");
+		OnPropertyChanged("LaunchVehicleTypes");
+		OnPropertyChanged("LaunchVehicleEnforce");
+		OnPropertyChanged("LaunchBlockGroups");
+		OnPropertyChanged("LaunchAllowGroups");
+		OnPropertyChanged("ModeRulePresetOption");
+		OnPropertyChanged("ModeRuleOverridesText");
+		OnPropertyChanged("ModeRuleOverrideStatus");
+		OnPropertyChanged("ModeRuleNeutralLockOption");
+		OnPropertyChanged("ModeRuleNoManualResetOption");
+		OnPropertyChanged("ModeRuleNoVehicleSwapOption");
 		OnPropertyChanged("LaunchForceHighPerformanceGpu");
 		OnPropertyChanged("StartupAutoDetectGame");
 		OnPropertyChanged("StartupAutoUpdate");

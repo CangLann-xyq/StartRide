@@ -1611,6 +1611,43 @@
 <data name="Settings_FindRadiusHint" xml:space="preserve"><value>鬼がここまで近づくと判定が始まります。大きいほど見つけやすい</value></data>
 <data name="Settings_FindHoldLabel" xml:space="preserve"><value>発見に必要な時間（秒）</value></data>
 <data name="Settings_FindHoldHint" xml:space="preserve"><value>鬼がこの時間ずっと近くにいると発見。離れるとやり直し</value></data>
+<data name="Settings_ModeAdmitLabel" xml:space="preserve"><value>モード制限</value></data>
+<data name="Settings_ModeAdmitHint" xml:space="preserve"><value>特殊モード開始後の機能 / 範囲 / 時間 / 車種の制限（ホストのみ有効）</value></data>
+<data name="Settings_RoundSecondsLabel" xml:space="preserve"><value>ラウンド制限時間（秒）</value></data>
+<data name="Settings_RoundSecondsHint" xml:space="preserve"><value>時間切れは生存者側の勝利。0 = 無制限</value></data>
+<data name="Settings_ZoneRadiusLabel" xml:space="preserve"><value>行動範囲の半径（m）</value></data>
+<data name="Settings_ZoneRadiusHint" xml:space="preserve"><value>スポーン地点が中心。0 = 制限なし</value></data>
+<data name="Settings_ZoneGraceLabel" xml:space="preserve"><value>範囲外の猶予（秒）</value></data>
+<data name="Settings_ZoneGraceHint" xml:space="preserve"><value>範囲内へ戻る猶予時間。HUD にカウント表示</value></data>
+<data name="Settings_ZoneEliminateLabel" xml:space="preserve"><value>範囲外で脱落</value></data>
+<data name="Settings_ZoneEliminateHint" xml:space="preserve"><value>オン = 脱落、オフ = 境界へ引き戻す</value></data>
+<data name="Settings_VehicleTypesLabel" xml:space="preserve"><value>指定車種</value></data>
+<data name="Settings_VehicleTypesHint" xml:space="preserve"><value>車両ファイル名のキーワード（カンマ区切り）。空欄 = 制限なし</value></data>
+<data name="Settings_VehicleEnforceLabel" xml:space="preserve"><value>指定車種を強制</value></data>
+<data name="Settings_VehicleEnforceHint" xml:space="preserve"><value>ラウンド開始時に指定外の車を自動で入れ替える</value></data>
+<data name="Settings_BlockGroupsLabel" xml:space="preserve"><value>追加で禁止する操作</value></data>
+<data name="Settings_BlockGroupsHint" xml:space="preserve"><value>カンマ区切り：fun / vehicle / ai / reset / teleport / menu</value></data>
+<data name="Settings_AllowGroupsLabel" xml:space="preserve"><value>許可する操作</value></data>
+<data name="Settings_AllowGroupsHint" xml:space="preserve"><value>カンマ区切り。禁止設定が優先。警察ごっこのリセットは常に禁止</value></data>
+<data name="Settings_ModeRuleAuto" xml:space="preserve"><value>モード既定に従う</value></data>
+<data name="Settings_ModeRuleOn" xml:space="preserve"><value>常に有効</value></data>
+<data name="Settings_ModeRuleOff" xml:space="preserve"><value>常に無効</value></data>
+<data name="Settings_ModePresetLabel" xml:space="preserve"><value>厳格度プリセット</value></data>
+<data name="Settings_ModePresetHint" xml:space="preserve"><value>「モードに従う」は各モード固有の基準を使用。個別スイッチと上書きは常に優先されます</value></data>
+<data name="Settings_ModePresetAuto" xml:space="preserve"><value>モードに従う</value></data>
+<data name="Settings_ModePresetLoose" xml:space="preserve"><value>緩め</value></data>
+<data name="Settings_ModePresetStandard" xml:space="preserve"><value>標準</value></data>
+<data name="Settings_ModePresetStrict" xml:space="preserve"><value>厳格</value></data>
+<data name="Settings_ModeRuleOverrideLabel" xml:space="preserve"><value>ルール個別上書き</value></data>
+<data name="Settings_ModeRuleOverrideHint" xml:space="preserve"><value>形式 key=1 有効 / key=0 無効、カンマ区切り、最優先。位置 noMapTeleport noHomeAnchor noDropAtCam zoneEliminate｜時間 neutralLock freezeStaging noPause noSlowMotion roundLimit｜車両 noVehicleSwap noPartsSwap noRepair noTrailer vehicleEnforce sameModel｜視界 noFreeCam noPhotoMode noWalkMode noMinimap｜機能 noManualReset noFun noAiTraffic noAiMode noNodeGrabber noWorldEditor noSpawnVehicle noRadialSandbox noDebugMenu noWeather</value></data>
+<data name="Settings_ModeRuleOverrideOk" xml:space="preserve"><value>{0} 件の上書きを認識しました</value></data>
+<data name="Settings_ModeRuleOverrideBad" xml:space="preserve"><value>認識できない項目：{0}</value></data>
+<data name="Settings_NeutralLockLabel" xml:space="preserve"><value>スタート前ニュートラル固定</value></data>
+<data name="Settings_NeutralLockHint" xml:space="preserve"><value>合図までニュートラル固定、スタート後に 1 速へ</value></data>
+<data name="Settings_NoManualResetLabel" xml:space="preserve"><value>手動リセットを禁止</value></data>
+<data name="Settings_NoManualResetHint" xml:space="preserve"><value>ラウンド中の復帰操作を禁止する</value></data>
+<data name="Settings_NoVehicleSwapLabel" xml:space="preserve"><value>車両 / パーツ交換を禁止</value></data>
+<data name="Settings_NoVehicleSwapHint" xml:space="preserve"><value>ラウンド中に有利な車へ乗り換えられない</value></data>
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>独立GPUを強制使用</value></data>
 <data name="Settings_LaunchForceGpuHint" xml:space="preserve"><value>-highperformancegpu を追加し、ノートパソコンで内蔵GPUに切り替わるのを防止</value></data>
 <data name="Settings_LaunchGfxLabel" xml:space="preserve"><value>レンダリングバックエンド</value></data>

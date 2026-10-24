@@ -3085,6 +3085,45 @@ public static class Strings
 	public static string Settings_FindHoldLabel => Get("Settings_FindHoldLabel");
 
 	public static string Settings_FindHoldHint => Get("Settings_FindHoldHint");
+	public static string Settings_ModeAdmitLabel => Get("Settings_ModeAdmitLabel");
+	public static string Settings_ModeAdmitHint => Get("Settings_ModeAdmitHint");
+	public static string Settings_RoundSecondsLabel => Get("Settings_RoundSecondsLabel");
+	public static string Settings_RoundSecondsHint => Get("Settings_RoundSecondsHint");
+	public static string Settings_ZoneRadiusLabel => Get("Settings_ZoneRadiusLabel");
+	public static string Settings_ZoneRadiusHint => Get("Settings_ZoneRadiusHint");
+	public static string Settings_ZoneGraceLabel => Get("Settings_ZoneGraceLabel");
+	public static string Settings_ZoneGraceHint => Get("Settings_ZoneGraceHint");
+	public static string Settings_ZoneEliminateLabel => Get("Settings_ZoneEliminateLabel");
+	public static string Settings_ZoneEliminateHint => Get("Settings_ZoneEliminateHint");
+	public static string Settings_VehicleTypesLabel => Get("Settings_VehicleTypesLabel");
+	public static string Settings_VehicleTypesHint => Get("Settings_VehicleTypesHint");
+	public static string Settings_VehicleEnforceLabel => Get("Settings_VehicleEnforceLabel");
+	public static string Settings_VehicleEnforceHint => Get("Settings_VehicleEnforceHint");
+	public static string Settings_BlockGroupsLabel => Get("Settings_BlockGroupsLabel");
+	public static string Settings_BlockGroupsHint => Get("Settings_BlockGroupsHint");
+	public static string Settings_AllowGroupsLabel => Get("Settings_AllowGroupsLabel");
+	public static string Settings_AllowGroupsHint => Get("Settings_AllowGroupsHint");
+	public static string Settings_ModeRuleAuto => Get("Settings_ModeRuleAuto");
+	public static string Settings_ModeRuleOn => Get("Settings_ModeRuleOn");
+	public static string Settings_ModeRuleOff => Get("Settings_ModeRuleOff");
+
+	/// <summary>联机玩法规则：严格度预设 / 逐条覆写。</summary>
+	public static string Settings_ModePresetLabel => Get("Settings_ModePresetLabel");
+	public static string Settings_ModePresetHint => Get("Settings_ModePresetHint");
+	public static string Settings_ModePresetAuto => Get("Settings_ModePresetAuto");
+	public static string Settings_ModePresetLoose => Get("Settings_ModePresetLoose");
+	public static string Settings_ModePresetStandard => Get("Settings_ModePresetStandard");
+	public static string Settings_ModePresetStrict => Get("Settings_ModePresetStrict");
+	public static string Settings_ModeRuleOverrideLabel => Get("Settings_ModeRuleOverrideLabel");
+	public static string Settings_ModeRuleOverrideHint => Get("Settings_ModeRuleOverrideHint");
+	public static string Settings_ModeRuleOverrideOk => Get("Settings_ModeRuleOverrideOk");
+	public static string Settings_ModeRuleOverrideBad => Get("Settings_ModeRuleOverrideBad");
+	public static string Settings_NeutralLockLabel => Get("Settings_NeutralLockLabel");
+	public static string Settings_NeutralLockHint => Get("Settings_NeutralLockHint");
+	public static string Settings_NoManualResetLabel => Get("Settings_NoManualResetLabel");
+	public static string Settings_NoManualResetHint => Get("Settings_NoManualResetHint");
+	public static string Settings_NoVehicleSwapLabel => Get("Settings_NoVehicleSwapLabel");
+	public static string Settings_NoVehicleSwapHint => Get("Settings_NoVehicleSwapHint");
 
 	public static string Settings_LaunchForceGpuLabel => Get("Settings_LaunchForceGpuLabel");
 

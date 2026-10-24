@@ -55,6 +55,52 @@ local TUNE = {
   copNavIntervalMs   = 1000,
   copNavMinMoveM     = 15,
   reportIntervalMs   = 1000,
+  -- 模式准入限制（进入游戏后的硬性限制；0 / '' = 不限制）
+  zoneRadius         = 0,     -- 活动区域半径（米；0=不限）。与躲猫猫共用同一口径
+  outsideGraceSeconds = 5,    -- 出圈宽限（秒）：超时就按 zoneEliminate 处罚
+  zoneEliminate      = 0,     -- 出圈超时处罚：0=拉回半径边缘，1=淘汰/判负
+  vehicleTypes       = '',    -- 允许车型（逗号分隔子串，空=不限），按 jbeam 文件名匹配
+  vehicleEnforce     = 1,     -- 车型不符时强制替换（0=只警告不替换）
+  -- 严格度预设：'' = 跟随各模式自己的口径，其余 = 房主统一指定
+  --   loose / standard / strict / off（见下方 PRESET 表）
+  -- 只替换「预设」这一层，不覆盖模式级语义例外（比如德比始终允许复位）。
+  rulePreset         = '',
+  -- 细粒度玩法规则：nil = 跟随模式默认（MODE_RULES / PRESET），房主显式配了才固定。
+  -- ⚠️ 只收「引擎侧真能被强制」的规则：拦不住的不许写进来（HUD 会当真事告诉玩家）。
+  -- ① 位置 / 场地
+  noMapTeleport      = nil,   -- 禁止大地图点击传送
+  noHomeAnchor       = nil,   -- 禁止保存 / 读取位置锚点
+  noDropAtCam        = nil,   -- 禁止把车落在相机位置
+  -- ② 时间 / 节奏
+  neutralLock        = nil,   -- 起跑前空档锁定 + 起跑后自动挂一档
+  freezeStaging      = nil,   -- 就位 / 倒数期间冻结油门
+  noPause            = nil,   -- 禁止暂停游戏
+  noSlowMotion       = nil,   -- 禁止慢动作 / 时间缩放
+  roundLimit         = nil,   -- 回合时限强制生效
+  -- ③ 车辆 / 装备
+  noVehicleSwap      = nil,   -- 禁止换车 / 切到他人车辆
+  noPartsSwap        = nil,   -- 禁止换零件 / 调校
+  noRepair           = nil,   -- 禁止修复车辆 / 加油
+  noTrailer          = nil,   -- 禁止挂接拖车
+  sameModel          = nil,   -- 全员同款车型
+  -- ④ 视野 / 信息
+  noFreeCam          = nil,   -- 禁止自由相机（脱离车身看全场）
+  noPhotoMode        = nil,   -- 禁止拍照模式
+  noWalkMode         = nil,   -- 禁止下车步行
+  noMinimap          = nil,   -- 禁止开启小地图
+  -- ⑤ 功能 / 作弊
+  noManualReset      = nil,   -- 局内禁止手动复位车辆
+  noFun              = nil,   -- 局内禁止娱乐功能（力场 / 加速 / 烧胎）
+  noAiTraffic        = nil,   -- 局内禁止开关 AI 交通
+  noAiMode           = nil,   -- 局内禁止 AI 代驾
+  noNodeGrabber      = nil,   -- 局内禁止节点抓取（能拖走他人车辆）
+  noWorldEditor      = nil,   -- 局内禁止世界编辑器
+  noSpawnVehicle     = nil,   -- 局内禁止生成新车辆
+  noRadialSandbox    = nil,   -- 局内禁止沙盒径向菜单
+  noDebugMenu        = nil,   -- 局内禁止车辆调试菜单
+  noWeather          = nil,   -- 局内禁止改天气 / 时间
+  blockGroups        = '',    -- 额外屏蔽的按键组（逗号分隔：fun/vehicle/ai/reset/resetBypass/teleport/menuReset）
+  allowGroups        = '',    -- 放行的按键组（同上；警匪的 lockReset 除外，不可放行）
 }
 
 local PHASE = {
@@ -153,6 +199,25 @@ local S = {
   goneAt           = {},
   leftIds          = {},
   leftElim         = {},
+
+  -- 模式准入：活动区域（每回合用 round 当戳，天然跟着新局失效；
+  -- 加入者跟房主的 round 是同一个号，两边各记各的、互不干扰）
+  zoneRound    = -1,          -- 上面那套区域状态属于哪个回合
+  zonePlan     = nil,         -- 出生方案推导的全员共享圈 {x, y, radius}
+  zoneFallback = nil,         -- 没有方案时退化成「本机出生位」的圈
+  zoneSince    = nil,         -- 本机出圈的起点时刻
+  zoneOut      = false,       -- 本机当前是否出圈（HUD 用）
+  zonePullAt   = 0,           -- 上次拉回尝试时刻（节流，避免每帧硬拽）
+  outside      = {},          -- [playerId] = 出圈起点（房主判远端用）
+
+  -- 模式准入：车型白名单
+  vehRound     = -1,          -- 车型状态属于哪个回合
+  vehicleOk    = true,        -- 当前车型是否命中白名单
+  vehicleName  = '',          -- 当前车型 jbeam 文件名（小写）
+  vehicleTries = 0,           -- 本回合已尝试强制替换次数
+  vehicleAt    = 0,           -- 上次车型检查/替换尝试时刻
+  vehSet       = nil,         -- 白名单解析缓存（集合表）
+  vehSetSig    = nil,         -- 缓存对应的原始串
 }
 
 -- ---------------------------------------------------------------------------
@@ -172,6 +237,65 @@ local function clamp(v, lo, hi)
   if v < lo then return lo end
   if v > hi then return hi end
   return v
+end
+
+-- ---------------------------------------------------------------------------
+-- 模式适配包：每个非自由模式自带的「功能限制 + 位置限制」
+-- ---------------------------------------------------------------------------
+-- 规则本体在 startrideModePacks.lua（数据表），这里只做三件事：
+--   ① 把包里的模式底线 / 显式项预展开成查表（每帧不再现算）
+--   ② 把包里的位置限制（活动圈半径 / 出圈宽限）接到区域判定上
+--   ③ 给 HUD 一份结构化描述
+-- ⚠️ 包加载失败不能拖垮玩法：全部走 nil 兜底，退回旧行为（只有 preset）。
+local function loadModePacks()
+  local ok, mod = pcall(require, 'startrideModePacks')
+  if ok and type(mod) == 'table' then return mod end
+  return nil
+end
+local SRPACK = loadModePacks()
+
+-- 前向声明：规则求值器在文件后半段才定义（要读 PRESET / MODE_RULES），
+-- 但区域判定（tickZone 一带）已经要用它 —— 必须在这里占位。
+local ruleOn
+
+-- MODE_HARD[mode][key]     = 模式底线（房主也关不掉）
+-- MODE_EXPLICIT[mode][key] = 模式自己写明的键（不受房主预设影响）
+-- MODE_DESC[mode]          = 给 HUD / 日志的结构化描述
+local MODE_HARD, MODE_EXPLICIT, MODE_DESC = {}, {}, {}
+
+-- 模式包里的位置限制（无包 / 自由驾驶返回 nil）
+local function modeZone()
+  if not SRPACK then return nil end
+  local ok, z = pcall(SRPACK.zone, S.mode)
+  if ok and type(z) == 'table' and (tonumber(z.radius) or 0) > 0 then return z end
+  return nil
+end
+
+-- 有效活动圈半径：模式包给基线，房主配置只能「更严」（更小）才算数。
+-- 0 = 这个模式不设活动范围。
+local function modeZoneRadius()
+  local tune = tonumber(TUNE.zoneRadius) or 0
+  if SRPACK then
+    local ok, r = pcall(SRPACK.zoneRadius, S.mode, tune)
+    if ok and tonumber(r) then return tonumber(r) end
+  end
+  return tune
+end
+
+-- 出圈宽限秒数：模式包给的值只在房主没改过默认（5 秒）时生效
+local function modeGrace()
+  local g = tonumber(TUNE.outsideGraceSeconds) or 5
+  if g ~= 5 then return g end
+  local z = modeZone()
+  local pg = (type(z) == 'table' and tonumber(z.grace)) or 0
+  if pg > 0 then return pg end
+  return g
+end
+
+-- 这个模式要不要判出圈（有位置限制就算）
+local function modeHasZone()
+  if modeZone() then return true end
+  return modeZoneRadius() > 0
 end
 
 -- ---------------------------------------------------------------------------
@@ -214,6 +338,51 @@ local function readConfig()
   num('copNavIntervalMs', 100, 10000)
   num('copNavMinMoveM', 0, 500)
   num('reportIntervalMs', 100, 10000)
+  num('zoneRadius', 0, 20000)
+  num('outsideGraceSeconds', 1, 600)
+  num('zoneEliminate', 0, 1)
+  num('vehicleEnforce', 0, 1)
+  -- 规则白名单：新加一条规则必须同时出现在 TUNE / 这里 / RULE_DEFS 三处，
+  -- 少一处就是「配置写了但没人读」的静默失效（_sr_audit_contracts.py 会抓）。
+  num('noMapTeleport', 0, 1)
+  num('noHomeAnchor', 0, 1)
+  num('noDropAtCam', 0, 1)
+  num('neutralLock', 0, 1)
+  num('freezeStaging', 0, 1)
+  num('noPause', 0, 1)
+  num('noSlowMotion', 0, 1)
+  num('roundLimit', 0, 1)
+  num('noVehicleSwap', 0, 1)
+  num('noPartsSwap', 0, 1)
+  num('noRepair', 0, 1)
+  num('noTrailer', 0, 1)
+  num('sameModel', 0, 1)
+  num('noFreeCam', 0, 1)
+  num('noPhotoMode', 0, 1)
+  num('noWalkMode', 0, 1)
+  num('noMinimap', 0, 1)
+  num('noManualReset', 0, 1)
+  num('noFun', 0, 1)
+  num('noAiTraffic', 0, 1)
+  num('noAiMode', 0, 1)
+  num('noNodeGrabber', 0, 1)
+  num('noWorldEditor', 0, 1)
+  num('noSpawnVehicle', 0, 1)
+  num('noRadialSandbox', 0, 1)
+  num('noDebugMenu', 0, 1)
+  num('noWeather', 0, 1)
+  -- 严格度预设：只认四个合法值，写错就继续保持「跟随模式」
+  if type(rules.preset) == 'string' then
+    local pv = string.lower(rules.preset)
+    if pv == 'loose' or pv == 'standard' or pv == 'strict' or pv == 'off' then
+      TUNE.rulePreset = pv
+    elseif pv == '' then
+      TUNE.rulePreset = ''
+    end
+  end
+  if type(rules.vehicleTypes) == 'string' then TUNE.vehicleTypes = rules.vehicleTypes end
+  if type(rules.blockGroups) == 'string' then TUNE.blockGroups = rules.blockGroups end
+  if type(rules.allowGroups) == 'string' then TUNE.allowGroups = rules.allowGroups end
 
   if type(rules.copVehicleHint) == 'string' then TUNE.copVehicleHint = rules.copVehicleHint end
   if type(rules.robberVehicleHint) == 'string' then TUNE.robberVehicleHint = rules.robberVehicleHint end
@@ -598,6 +767,430 @@ local function survivorCount()
 end
 M.survivors = survivorCount
 
+-- ---------------------------------------------------------------------------
+-- 模式准入：活动区域（位置限制）
+--
+-- 口径与躲猫猫一致：全员共享一个圈 —— 圆心取出生方案的包围盒中心，
+-- 半径取配置值，但不小于出生跨度 + 100m（谁都不能出生在圈外）。
+-- 方案本来就广播给全员，圆心天然一致；方案缺失时退化成「本机出生位」
+-- 的圈，保证限制永远有一个基准。
+--
+-- 处罚两种（zoneEliminate）：
+--   0 = 宽限过后把本机拉回半径边缘（贴地、车头朝圈内）
+--   1 = 宽限过后出局 —— 德比按撞毁淘汰记账；警匪只有强盗出圈才判负
+--       （警察出圈照样拉回：警察只是工具人，不该被圈罚掉）
+-- 权威性：本机那格由 tickZone 本地即时处理（和冻油门同一个思路）；
+-- 房主另用 tickZoneRemote 替远端记账（位置走网络缓存，与抓捕判定同一份）。
+-- ---------------------------------------------------------------------------
+
+-- 逗号分隔清单 → 小写集合表（去空白去空项）
+local function parseSet(str)
+  local set = {}
+  if type(str) ~= 'string' then return set end
+  for item in string.gmatch(str, '[^,]+') do
+    local key = string.lower(item)
+    key = string.gsub(key, '^%s+', '')
+    key = string.gsub(key, '%s+$', '')
+    if key ~= '' then set[key] = true end
+  end
+  return set
+end
+
+-- 从出生方案推导全员共享的圈。plan.slots[].position = {x, y, z}
+local function deriveZoneFromPlan(plan)
+  if type(plan) ~= 'table' or type(plan.slots) ~= 'table' then return nil end
+  local n, minX, maxX, minY, maxY = 0, nil, nil, nil, nil
+  for _, s in ipairs(plan.slots) do
+    local p = s.position
+    if type(p) == 'table' and tonumber(p[1]) and tonumber(p[2]) then
+      local x, y = tonumber(p[1]), tonumber(p[2])
+      if not minX then
+        minX, maxX, minY, maxY = x, x, y, y
+      else
+        if x < minX then minX = x elseif x > maxX then maxX = x end
+        if y < minY then minY = y elseif y > maxY then maxY = y end
+      end
+      n = n + 1
+    end
+  end
+  if n == 0 or not minX then return nil end
+  local cx, cy = (minX + maxX) / 2, (minY + maxY) / 2
+  local span = math.sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY)) / 2
+  -- 位置限制：半径取「模式包基线 / 房主更严值」，再保证把所有出生点都包进来，
+  -- 最后用模式的 radiusFloor 兜底（小场地别把圈压没）。
+  local r = modeZoneRadius()
+  if r <= 0 or r < span + 100 then r = span + 100 end
+  local z = modeZone()
+  local floorR = (type(z) == 'table' and tonumber(z.radiusFloor)) or 0
+  if floorR > 0 and r < floorR then r = floorR end
+  return { x = cx, y = cy, radius = r }
+end
+
+-- 记下本回合的全员共享圈（房主/加入者都走这里）。
+-- 只在「方案属于当前回合或更新」时记；同一个圈不重复记（摆放层每帧都会调）。
+local function noteZonePlan(plan)
+  if type(plan) ~= 'table' then return false end
+  local r = tonumber(plan.round) or -1
+  if r < S.round then return false end          -- 过期方案不要
+  local zone = deriveZoneFromPlan(plan)
+  if not zone then return false end
+  local old = S.zonePlan
+  if old and math.abs(old.x - zone.x) < 0.5 and math.abs(old.y - zone.y) < 0.5
+     and math.abs((old.radius or 0) - zone.radius) < 0.5 then
+    return true
+  end
+  S.zonePlan = zone
+  S.zoneFallback = nil
+  logMode('活动区域：圆心 ' .. string.format('%.0f,%.0f', zone.x, zone.y)
+    .. ' 半径 ' .. string.format('%.0f', zone.radius) .. 'm')
+  return true
+end
+M.noteZonePlan = noteZonePlan
+M.deriveZoneFromPlan = deriveZoneFromPlan
+
+-- 本回合的圈（优先方案圈，退化到本机出生位圈）
+local function currentZone()
+  if S.zonePlan then return S.zonePlan end
+  return S.zoneFallback
+end
+
+-- 每回合把区域状态滚掉（round 当戳：房主 staging 时 round+1，
+-- 加入者跟房主 round；mode 切走时 round 归 0 也会滚）
+local function rollZoneState()
+  if S.zoneRound == S.round then return end
+  S.zoneRound = S.round
+  S.zoneSince = nil
+  S.zoneOut = false
+  S.zonePullAt = 0
+  S.outside = {}
+end
+
+-- 贴地高度（拿不到就退回 fallback）
+local function groundZ(x, y, fallback)
+  local z = fallback or 0
+  pcall(function()
+    if be and be.getSurfaceHeightBelow then
+      local h = be:getSurfaceHeightBelow(vec3(x, y, (fallback or 0) + 2))
+      if tonumber(h) then z = tonumber(h) end
+    end
+  end)
+  return z
+end
+
+-- 把本机拉回半径边缘（85% 处，留余量免得下一帧又判出圈）。
+-- 返回 true = 拉回来了（调用方据此重置出圈计时）。
+local function pullBackToZone(radius)
+  local zone = currentZone()
+  if not zone then return false end
+  local x, y = vehiclePos('self')
+  if not x then return false end
+  local dx, dy = x - zone.x, y - zone.y
+  local d = math.sqrt(dx * dx + dy * dy)
+  if d < 0.01 then return false end
+  local rr = radius * 0.85
+  local nx, ny = zone.x + dx / d * rr, zone.y + dy / d * rr
+
+  local veh = nil
+  pcall(function()
+    if be and be.getPlayerVehicle then veh = be:getPlayerVehicle(0) end
+  end)
+  if not veh then return false end
+
+  local cz = nil
+  pcall(function() local p = veh:getPosition(); if p then cz = tonumber(p.z) end end)
+  local z = groundZ(nx, ny, cz or 0) + 0.2
+
+  -- 朝向圈心（和出生摆放同一套算法：水平朝向 → 四元数）
+  local rot = nil
+  pcall(function()
+    local fx, fy = zone.x - nx, zone.y - ny
+    local fl = math.sqrt(fx * fx + fy * fy)
+    if fl < 1e-4 then fx, fy = 0.0, 1.0 else fx, fy = fx / fl, fy / fl end
+    local c = fx
+    if c > 1 then c = 1 elseif c < -1 then c = -1 end
+    local hw = math.sqrt((1 + c) / 2)
+    local hs = math.sqrt((1 - c) / 2)
+    if fy < 0 then hs = -hs end
+    if quat ~= nil then rot = quat(0, 0, hs, hw) else rot = { x = 0, y = 0, z = hs, w = hw } end
+  end)
+  if rot == nil then return false end
+
+  local moved = false
+  pcall(function()
+    if spawn ~= nil and spawn.safeTeleport ~= nil then
+      spawn.safeTeleport(veh, vec3(nx, ny, z), rot, nil, nil, nil, true, true, nil, nil)
+      moved = true
+    end
+  end)
+  if not moved then
+    pcall(function()
+      veh:setPosRot(nx, ny, z, rot.x, rot.y, rot.z, rot.w)
+      moved = true
+    end)
+  end
+  if not moved then return false end
+
+  -- 通知引擎这辆车换位置了（相机 / 悬挂 / 跟随逻辑靠它复位）
+  local vehId = nil
+  pcall(function() vehId = veh:getID() end)
+  pcall(function()
+    if extensions ~= nil and extensions.hook ~= nil and vehId ~= nil then
+      extensions.hook('onVehicleResetted', vehId)
+    end
+  end)
+  return true
+end
+
+-- 本机出圈处罚（宽限已过）
+local function zonePenaltySelf(radius)
+  if ruleOn and ruleOn('zoneEliminate') then
+    if S.mode == 'derby' then
+      if not S.eliminated[S.selfId or 'self'] then
+        S.eliminated[S.selfId or 'self'] = true
+        S.hitNotice = { self = true, name = '', speed = 0, wrecked = true }
+        logMode('离开活动区域超时，本机出局')
+      end
+      return
+    end
+    -- 警匪：只有强盗出圈才判负（警察出圈走下面的拉回）
+    if S.selfRole == ROLE.robber and not S.captureDone then
+      S.captureDone = true
+      S.winner = ROLE.cop
+      S.finishReason = 'robber_outside'
+      if S.authority then setPhase(PHASE.finished, true) else S.phase = PHASE.finished end
+      logMode('强盗离开活动区域超时 —— 警察胜')
+      return
+    end
+  end
+  if (S.clock - (S.zonePullAt or 0)) < 0.5 then return end
+  S.zonePullAt = S.clock
+  if pullBackToZone(radius) then
+    S.zoneSince = nil
+    S.zoneOut = false
+    logMode('离开活动区域超时，已拉回边界')
+  end
+end
+
+-- 本机区域判定（每帧）
+local function tickZone()
+  local radius = modeZoneRadius()
+  if radius <= 0 then
+    S.zoneOut = false
+    S.zoneSince = nil
+    return
+  end
+  -- 位置限制对所有「有活动圈」的模式生效（警匪 / 德比 / 捉迷藏 / 赛道日）；
+  -- 以前写死成前两个 —— 捉迷藏跑出图、赛道日抄近道都没人管。
+  if not modeHasZone() then
+    S.zoneOut = false
+    S.zoneSince = nil
+    return
+  end
+  if S.phase ~= PHASE.running then
+    S.zoneOut = false
+    S.zoneSince = nil
+    return
+  end
+  rollZoneState()
+
+  local me = S.selfId or 'self'
+  -- 已出局 / 已结束的人不再管（德比淘汰后车是冻着的；警匪抓到后直接 finished）
+  if S.mode == 'derby' and S.eliminated[me] then return end
+  if S.mode == 'cops_robber' and S.captureDone then return end
+
+  local zone = currentZone()
+  if not zone then
+    -- 没有出生方案：用本机当前位置当圆心（只记一次，之后就是本局的圈）
+    if not S.zoneFallback then
+      local x, y = vehiclePos('self')
+      if x then S.zoneFallback = { x = x, y = y, radius = radius } end
+    end
+    zone = S.zoneFallback
+  end
+  if not zone then return end
+
+  local x, y = vehiclePos('self')
+  if not x then return end
+  if dist2(x, y, zone.x, zone.y) <= zone.radius then
+    if S.zoneOut then
+      S.zoneOut = false
+      logMode('已返回活动区域')
+    end
+    S.zoneSince = nil
+    return
+  end
+
+  if not S.zoneSince then
+    S.zoneSince = S.clock
+    S.zoneOut = true
+    logMode('离开活动区域，' .. tostring(math.floor(modeGrace())) .. ' 秒后处罚')
+  end
+  if (S.clock - S.zoneSince) < modeGrace() then return end
+  zonePenaltySelf(zone.radius)
+end
+
+-- 房主侧：替远端玩家判出圈（位置走网络缓存，与抓捕判定同一份数据）。
+-- 本机那格由 tickZone 本地即时处理，这里跳过。
+local function tickZoneRemote()
+  if not S.authority then return end
+  local radius = modeZoneRadius()
+  if radius <= 0 then return end
+  if S.phase ~= PHASE.running then return end
+  if not modeHasZone() then return end
+
+  local zone = currentZone()
+  if not zone then return end
+  local grace = modeGrace()
+  local me = S.selfId or 'self'
+  local marks = S.outside
+
+  -- ⚠️ 循环变量不能赋值（Lua 5.5 里是 const，编译期直接挂）——用新名字接。
+  for pidRaw, role in pairs(S.roles or {}) do
+    local pid = tostring(pidRaw)
+    if pid ~= me then
+      local px, py = rolePos(pid)
+      if px and py then
+        if dist2(px, py, zone.x, zone.y) > zone.radius then
+          if not marks[pid] then
+            marks[pid] = S.clock
+          elseif (S.clock - marks[pid]) >= grace then
+            marks[pid] = nil
+            if S.mode == 'derby' then
+              if not S.eliminated[pid] then
+                S.eliminated[pid] = true
+                logMode('远端离开活动区域超时，按出局处理:', pid)
+              end
+            elseif role == ROLE.robber and not S.captureDone then
+              S.captureDone = true
+              S.winner = ROLE.cop
+              S.finishReason = 'robber_outside'
+              setPhase(PHASE.finished, true)
+              logMode('强盗离开活动区域超时 —— 警察胜')
+            end
+          end
+        else
+          marks[pid] = nil
+        end
+      end
+    end
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- 模式准入：车型白名单
+--
+-- 按 jbeam 文件名做子串匹配（大小写不敏感）—— 车型文件名千奇百怪
+-- （van_petrolhauler.pc / pickup.pc），子串比全等好用得多。
+-- 不符时：vehicleEnforce=1 → 用白名单第一项替换（core_vehicles.replaceVehicle，
+-- pcall 兜底）；换不成功（车型名不存在 / API 没有）就本回合只警告不硬挡，
+-- 并提示玩家自己换 —— 宁可降级也不把玩家卡在错误的车里。
+-- ---------------------------------------------------------------------------
+
+-- 规则查询前向声明：真正的实现在「玩法规则目录」一节（在 tickVehicle 之后），
+-- 这里必须先占一个 local，否则 tickVehicle 里引用到的是全局 nil。
+-- ruleOn 已在上方（模式适配包一节）前向声明，这里不再重复 local（会另起变量）。
+
+-- 当前车型文件名（小写）；拿不到返回 nil = 未知（不阻断）
+local function selfJbeam()
+  local name = nil
+  pcall(function()
+    local v = be:getPlayerVehicle(0)
+    if v and v.getJBeamFilename then name = tostring(v:getJBeamFilename() or '') end
+  end)
+  if not name or name == '' then return nil end
+  return string.lower(name)
+end
+
+-- 白名单命中？空清单 = 不限；拿不到车型名 = 不阻断（和速度判定一个口径）
+local function vehicleAllowed(set, name)
+  if not set or next(set) == nil then return true end
+  if not name then return true end
+  for key in pairs(set) do
+    if string.find(name, key, 1, true) then return true end
+  end
+  return false
+end
+
+-- 用白名单第一项试替换（返回 true = 调用没抛错；真假下一帧复查）
+local function tryReplaceVehicle(set)
+  local first = nil
+  for k in pairs(set) do first = k break end
+  if not first then return false end
+  local ok = pcall(function()
+    if core_vehicles ~= nil and core_vehicles.replaceVehicle ~= nil then
+      core_vehicles.replaceVehicle(first)
+    end
+  end)
+  return ok
+end
+
+-- 每回合滚掉车型状态（round 当戳，和区域同一套）
+local function rollVehicleState()
+  if S.vehRound == S.round then return end
+  S.vehRound = S.round
+  S.vehicleOk = true
+  S.vehicleName = ''
+  S.vehicleTries = 0
+  S.vehicleAt = 0
+  S.vehSet = nil
+  S.vehSetSig = nil
+end
+
+-- 车型校验 + 强制替换（开局立刻查一次，之后每 1 秒复查）
+local function tickVehicle()
+  -- 只要有白名单或「全员同款」就要跑：enforce=0 时也要跑 —— 那时要做的是
+  -- 「只警告不替换」，不是「什么都不做」（不跑就永远不告诉玩家车型不符）。
+  local sameOn = ruleOn('sameModel')
+  local hasList = type(TUNE.vehicleTypes) == 'string' and TUNE.vehicleTypes ~= ''
+  if not sameOn and not hasList then return end
+  if S.phase ~= PHASE.running then return end
+  rollVehicleState()
+
+  -- 车型集合：全员同款（房主广播的车型）> 白名单
+  -- ⚠️ 同款车的基准是**房主自己的车型**，不是配置里写的串 —— 房主换车时基准自然跟着走。
+  local sig, set
+  if sameOn and type(S.requiredModel) == 'string' and S.requiredModel ~= '' then
+    sig = '@same:' .. S.requiredModel
+    set = parseSet(S.requiredModel)
+  else
+    sig = '@set:' .. tostring(TUNE.vehicleTypes)
+  end
+  if S.vehSetSig ~= sig then
+    S.vehSetSig = sig
+    S.vehSet = set or parseSet(TUNE.vehicleTypes)
+  end
+  if not S.vehSet or next(S.vehSet) == nil then
+    S.vehicleOk = true
+    return
+  end
+
+  if S.vehicleAt > 0 and (S.clock - S.vehicleAt) < 1 then return end
+  S.vehicleAt = S.clock
+
+  local name = selfJbeam()
+  if name then S.vehicleName = name end
+  if vehicleAllowed(S.vehSet, name) then
+    if not S.vehicleOk then
+      S.vehicleOk = true
+      logMode('车型已符合要求：' .. tostring(name))
+    end
+    return
+  end
+
+  S.vehicleOk = false
+  if not ruleOn('vehicleEnforce') then
+    logMode('车型不在允许列表（当前 ' .. tostring(name) .. '），请自行更换')
+    return
+  end
+  if S.vehicleTries >= 3 then
+    logMode('车型不在允许列表，自动替换多次未成功，请自行更换为：' .. tostring(TUNE.vehicleTypes))
+    return
+  end
+  S.vehicleTries = S.vehicleTries + 1
+  logMode('车型不在允许列表（当前 ' .. tostring(name) .. '）→ 尝试替换为 ' .. tostring(TUNE.vehicleTypes))
+  tryReplaceVehicle(S.vehSet)
+end
+
 local function tickCapture(dtReal)
   if S.mode ~= 'cops_robber' then return end
   if S.phase ~= PHASE.running then return end
@@ -956,6 +1549,10 @@ function M.tick(dtReal, win)
   pcall(tickDerby)
   pcall(tickImpacts)
   pcall(tickNavigation)
+  -- 模式准入：活动区域（本机即时 + 房主替远端记账）、车型白名单
+  pcall(tickZone)
+  pcall(tickZoneRemote)
+  pcall(tickVehicle)
 
   local flash = tonumber(S.hitFlash) or 0
   if flash > 0 then S.hitFlash = flash - (tonumber(dtReal) or 0.016) end
@@ -969,19 +1566,248 @@ end
 -- ---------------------------------------------------------------------------
 -- 对外：给输入层的策略
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- 细粒度玩法规则：按模式给一套默认，房主可在启动器里逐条覆盖
+--
+-- 之前只有「整组屏蔽按键」这种粗口径，玩家感知就是「一堆键莫名其妙不能用」。
+-- 这里改成**看得见说得清的规则条目**：每条都对应一条具体的玩法限制，
+-- 且 HUD 会把它列出来（snapshot.rules），玩家一眼知道自己被限了什么、为什么。
+-- ---------------------------------------------------------------------------
+-- 分类标题（HUD 分栏用）
+local CAT_TEXT = {
+  zone    = '位置',
+  time    = '时间',
+  vehicle = '车辆',
+  view    = '视野',
+  func    = '功能',
+}
+
+-- 规则目录：键 / 分类 / 中文说明。
+-- ⚠️ 只收**引擎侧真能被强制**的规则。拦不住的宁可不写 ——
+--    HUD 上列一条实际不起作用的规则，比不列更糟。
+local RULE_DEFS = {
+  -- ① 位置 / 场地
+  { 'zoneEliminate',  'zone',    '出圈超时直接淘汰' },
+  { 'noMapTeleport',  'zone',    '禁止大地图点击传送' },
+  { 'noHomeAnchor',   'zone',    '禁止保存 / 读取位置锚点' },
+  { 'noDropAtCam',    'zone',    '禁止把车落在相机位置' },
+  -- ② 时间 / 节奏
+  { 'neutralLock',    'time',    '起跑前空档锁定 · 起跑后自动挂一档' },
+  { 'freezeStaging',  'time',    '就位 / 倒数期间冻结油门' },
+  { 'noPause',        'time',    '禁止暂停游戏' },
+  { 'noSlowMotion',   'time',    '禁止慢动作 / 时间缩放' },
+  { 'roundLimit',     'time',    '回合时限强制生效' },
+  -- ③ 车辆 / 装备
+  { 'noVehicleSwap',  'vehicle', '禁止换车 / 切到他人车辆' },
+  { 'noPartsSwap',    'vehicle', '禁止换零件 / 调校' },
+  { 'noRepair',       'vehicle', '禁止修复车辆 / 加油' },
+  { 'noTrailer',      'vehicle', '禁止挂接拖车' },
+  { 'vehicleEnforce', 'vehicle', '车型不符强制替换' },
+  { 'sameModel',      'vehicle', '全员同款车型' },
+  -- ④ 视野 / 信息
+  { 'noFreeCam',      'view',    '禁止自由相机' },
+  { 'noPhotoMode',    'view',    '禁止拍照模式' },
+  { 'noWalkMode',     'view',    '禁止下车步行' },
+  { 'noMinimap',      'view',    '禁止开启小地图' },
+  -- ⑤ 功能 / 作弊
+  { 'noManualReset',  'func',    '禁止手动复位车辆' },
+  { 'noFun',          'func',    '禁止娱乐功能（力场 / 加速 / 烧胎）' },
+  { 'noAiTraffic',    'func',    '禁止 AI 车流' },
+  { 'noAiMode',       'func',    '禁止 AI 代驾' },
+  { 'noNodeGrabber',  'func',    '禁止节点抓取（可拖走他人车辆）' },
+  { 'noWorldEditor',  'func',    '禁止世界编辑器' },
+  { 'noSpawnVehicle', 'func',    '禁止生成新车辆' },
+  { 'noRadialSandbox','func',    '禁止沙盒径向菜单' },
+  { 'noDebugMenu',    'func',    '禁止车辆调试菜单' },
+  { 'noWeather',      'func',    '禁止修改天气 / 时间' },
+}
+
+-- 严格度预设：模式只需要挂一个预设 + 少量覆盖，不用逐条写满 29 个键
+local PRESET = {
+  off = {},
+  -- 宽松：只挡「传送 / 抢跑 / 慢动作」这类直接破坏公平的手段，驾驶自由不动
+  loose = { noMapTeleport = 1, noHomeAnchor = 1, noDropAtCam = 1,
+            neutralLock = 1, noSlowMotion = 1,
+            noSpawnVehicle = 1, noRadialSandbox = 1 },
+  -- 标准：竞技口径（复位 / 换车 / 相机 / 娱乐 / AI / 编辑器全收）
+  standard = { noMapTeleport = 1, noHomeAnchor = 1, noDropAtCam = 1,
+               neutralLock = 1, freezeStaging = 1, noPause = 1,
+               noSlowMotion = 1, roundLimit = 1,
+               noVehicleSwap = 1, noPartsSwap = 1, noRepair = 1,
+               vehicleEnforce = 1,
+               noFreeCam = 1, noWalkMode = 1,
+               noManualReset = 1, noFun = 1, noAiTraffic = 1, noAiMode = 1,
+               noNodeGrabber = 1, noWorldEditor = 1, noSpawnVehicle = 1,
+               noRadialSandbox = 1, noDebugMenu = 1 },
+}
+
+-- 严格 = 标准 + 信息面（拍照 / 小地图）、拖车、同款车、天气
+do
+  local s = {}
+  for k, v in pairs(PRESET.standard) do s[k] = v end
+  s.noPhotoMode = 1
+  s.noMinimap   = 1
+  s.noTrailer   = 1
+  s.sameModel   = 1
+  s.noWeather   = 1
+  PRESET.strict = s
+end
+
+-- 模式默认：preset + 模式级显式覆盖（数字键直接盖掉预设）
+local MODE_RULES = {
+  -- 警匪追逐：最严口径。复位 = 原地逃脱，必须禁
+  cops_robber = { preset = 'strict' },
+  -- 德比：翻车要能爬起来 → 留复位（走预算 + 冷却）；车撞烂了要能修，否则秒出局
+  derby       = { preset = 'strict', noManualReset = 0, sameModel = 0, noRepair = 0 },
+  -- 捉迷藏：躲藏期搜索者被冻住；车型不统一（躲的人越多越好藏）
+  hide_seek   = { preset = 'strict', sameModel = 0 },
+  -- 赛道日：只管起跑程序与娱乐功能，换车 / 相机随便
+  track_day   = { preset = 'loose', noManualReset = 1, noRepair = 1 },
+  -- 自由驾驶：不设任何限制
+  free_drive  = { preset = 'off' },
+}
+
+-- 模式包预展开：把 startrideModePacks 里每个模式的 hard / explicit / 描述取出来。
+-- 包缺失（旧安装 / require 失败）时这三张表是空的 → ruleOn 自然退回手写的 MODE_RULES。
+do
+  if SRPACK then
+    local okAll, modes = pcall(SRPACK.modes)
+    if okAll and type(modes) == 'table' then
+      local i
+      for i = 1, #modes do
+        local m = modes[i]
+        local okH, h = pcall(SRPACK.hard, m)
+        if okH and type(h) == 'table' then MODE_HARD[m] = h end
+        local okE, e = pcall(SRPACK.explicit, m)
+        if okE and type(e) == 'table' then MODE_EXPLICIT[m] = e end
+        local okD, d = pcall(SRPACK.describe, m)
+        if okD and type(d) == 'table' then MODE_DESC[m] = d end
+        local okP, pn = pcall(SRPACK.preset, m)
+        if okP and type(pn) == 'string' and type(MODE_RULES[m]) == 'table' then
+          MODE_RULES[m].preset = pn
+        end
+      end
+    end
+  end
+end
+
+-- 由 RULE_DEFS 派生三个查表（避免三处手抄不一致）
+local RULE_TEXT, RULE_CAT, RULE_ORDER = {}, {}, {}
+for i = 1, #RULE_DEFS do
+  local d = RULE_DEFS[i]
+  RULE_TEXT[d[1]] = d[3]
+  RULE_CAT[d[1]] = d[2]
+  RULE_ORDER[i] = d[1]
+end
+
+-- 取一条规则的最终值：房主显式配了用配置 → 模式级覆盖 → 预设默认
+-- ⚠️ 注意这里是**赋值**不是 `local function`：ruleOn 已在文件前部声明过，
+--    重新 local 会另起一个只有下文可见的新变量，tickVehicle 拿到的还是 nil。
+-- 规则求值核心：**按模式名**算，不读 S.mode。
+-- 这样旁路玩法（捉迷藏有自己独立的规则主体）也能拿到「本模式限制」的同一份答案，
+-- 不用再抄一遍 29 条 —— 抄了就必然和这里漂移（HUD 显示 A、实际生效 B）。
+local function ruleResolve(mode, name)
+  mode = tostring(mode or '')
+  -- ① 模式底线：进了这个模式就必须遵守，房主配置也关不掉。
+  --    这是「模式自带限制」的硬核部分 —— 底线能被放松的话，限制等于没有。
+  local hd = MODE_HARD[mode]
+  if type(hd) == 'table' then
+    local hv = hd[name]
+    if hv ~= nil then return hv == true end
+  end
+  -- ② 房主逐条覆写（更严永远有效；想关掉非底线项也允许）
+  local v = tonumber(TUNE[name])
+  if v ~= nil then return v > 0 end
+  -- ③ 模式适配包里「本模式特意写明」的项（不受下面的严格度预设影响）
+  local ex = MODE_EXPLICIT[mode]
+  if type(ex) == 'table' then
+    local ev = ex[name]
+    if ev ~= nil then return ev == true end
+  end
+  -- ④ 旧手写表里的模式语义例外（模式包缺失时的兜底）
+  local mr = MODE_RULES[mode]
+  if type(mr) ~= 'table' then return false end
+  local m = tonumber(mr[name])
+  if m ~= nil then return m > 0 end
+  -- 房主统一指定了严格度就用房主的，否则用模式自己的。
+  -- ⚠️ 只替换「预设」这一层：模式级显式覆盖（上面的 mr[name]）已经在前面返回了，
+  --    所以德比「允许复位」这类语义例外不会被房主的 strict 撬掉。
+  local pname = TUNE.rulePreset
+  local p = (type(pname) == 'string' and PRESET[pname]) or PRESET[mr.preset]
+  if type(p) ~= 'table' then return false end
+  return (tonumber(p[name]) or 0) > 0
+end
+
+ruleOn = function(name) return ruleResolve(S.mode, name) end
+
+-- 给旁路玩法 / 启动器取「某个模式实际生效的限制清单」。
+-- 返回值与 snapshot.ruleItems 同构，HUD 的规则卡可以直接吃。
+function M.ruleItemsFor(mode)
+  local out = {}
+  for i = 1, #RULE_ORDER do
+    local name = RULE_ORDER[i]
+    if ruleResolve(mode, name) then
+      out[#out + 1] = {
+        key = name, cat = RULE_CAT[name],
+        catText = CAT_TEXT[RULE_CAT[name]] or '其他',
+        text = RULE_TEXT[name],
+      }
+    end
+  end
+  return out
+end
+
+-- 当前生效的规则清单（纯文本，旧调用方 / 日志用）
+local function activeRules()
+  local out = {}
+  for i = 1, #RULE_ORDER do
+    local name = RULE_ORDER[i]
+    if ruleOn(name) then out[#out + 1] = RULE_TEXT[name] end
+  end
+  return out
+end
+
+-- 带分类的规则清单（HUD 分栏展示 / 面板逐条列出用）
+local function activeRuleItems()
+  local out = {}
+  for i = 1, #RULE_ORDER do
+    local name = RULE_ORDER[i]
+    if ruleOn(name) then
+      out[#out + 1] = {
+        key = name, cat = RULE_CAT[name],
+        catText = CAT_TEXT[RULE_CAT[name]] or '其他',
+        text = RULE_TEXT[name],
+      }
+    end
+  end
+  return out
+end
+
 function M.inputPolicy()
   -- 会话没了就一律放行：这是最后一道保险。
   -- phase 因为任何原因卡在局内时，按键都不该继续锁着。
+  -- 空策略：所有规则键都补齐 false。
+  -- ⚠️ 键必须**永远齐全**：输入层 setPolicy 是「~= nil 才覆盖」，
+  --    少一个键就会残留上一个玩法 / 上一局的值（_sr_audit_policy.py 会抓）。
+  local function emptyPolicy(reason)
+    local p = { roundActive = false, running = false, vehicleLock = false,
+                lockReset = false, freezeDrive = false, reason = reason or '',
+                blockGroups = '', allowGroups = '',
+                gearLock = false, gearTarget = nil }
+    for i = 1, #RULE_ORDER do p[RULE_ORDER[i]] = false end
+    return p
+  end
+
   if S.sessionAlive == false then
-    return { roundActive = false, running = false, vehicleLock = false,
-             lockReset = false, freezeDrive = false, reason = 'session-gone' }
+    return emptyPolicy('session-gone')
   end
   local inRound = ROUND_PHASES[S.phase] and true or false
   local running = (S.phase == PHASE.running)
 
-  -- 警匪：running 时连复位都锁（复位=传送逃脱）
-  -- 德比：复位保留（翻车要能起来），但走预算 + 冷却
-  local lockReset = (S.mode == 'cops_robber' and inRound)
+  -- 警匪默认连复位都锁（复位=传送逃脱），德比默认保留（翻车要能起来，走预算 + 冷却）。
+  -- ⚠️ 这条不再是「警匪恒锁」的硬编码：房主可以在启动器里把 noManualReset 配成 0 放行，
+  --    模式只提供默认值（MODE_RULES），最终口径以规则为准。
+  local lockReset = inRound and ruleOn('noManualReset')
 
   -- ⚠️ 德比淘汰 = 车已报废（HUD 已经提示「等待本局结束」），但阶段还停在 running。
   --    不额外冻住的话，被淘汰的人还能满油门把活着的人撞出局。
@@ -990,17 +1816,44 @@ function M.inputPolicy()
   local wrecked = (S.mode == 'derby')
     and (S.eliminated[S.selfId or 'self'] == true)
 
-  return {
-    roundActive = inRound,
-    running     = running,
-    vehicleLock = inRound,
-    lockReset   = lockReset,
-    -- ⚠️ 就位 / 倒数期间一并冻住油门：staging 里车刚被摆到出生位，
-    --    不冻就能立刻开走；countdown 里更是直接抢跑。
-    --    running 一开自动解冻（总闸在 startrideInput.applyDriveFreeze）。
-    freezeDrive = inRound and ((S.phase ~= PHASE.running) or wrecked),
-    reason      = S.mode .. '/' .. S.phase .. (wrecked and '/wrecked' or ''),
-  }
+  -- 起跑程序：staging / countdown 把挡位按在空档（玩家挂不上），
+  -- running 一到就自动挂一档并把换挡权交还玩家。
+  -- ⚠️ gearTarget 只给「这一帧应该在哪一档」；输入层自己幂等，不会每帧下发。
+  local gearLock, gearTarget = false, nil
+  if inRound and ruleOn('neutralLock') then
+    if running then
+      gearTarget = 1
+    else
+      gearLock   = true
+      gearTarget = 0
+    end
+  end
+
+  local p = emptyPolicy(S.mode .. '/' .. S.phase .. (wrecked and '/wrecked' or ''))
+  p.roundActive = inRound
+  p.running     = running
+  p.vehicleLock = inRound and ruleOn('noVehicleSwap')
+  p.lockReset   = lockReset
+  -- ⚠️ 就位 / 倒数期间一并冻住油门：staging 里车刚被摆到出生位，
+  --    不冻就能立刻开走；countdown 里更是直接抢跑。
+  --    running 一开自动解冻（总闸在 startrideInput.applyDriveFreeze）。
+  --    是否冻由 freezeStaging 规则决定 —— 有人就是想让玩家在就位期热车。
+  p.freezeDrive = inRound and (wrecked or
+    (S.phase ~= PHASE.running and ruleOn('freezeStaging')))
+  p.gearLock    = gearLock
+  p.gearTarget  = gearTarget
+  -- 模式准入：按键组放行/屏蔽（逗号分隔，由输入层解析）。
+  -- ⚠️ 警匪的 lockReset 不可被 allowGroups 放行 —— 复位=传送逃脱，
+  --    这条底线由输入层把关（见 startrideInput.groupOverride）。
+  p.blockGroups = TUNE.blockGroups
+  p.allowGroups = TUNE.allowGroups
+
+  -- 29 条规则一次性铺开：局内才生效，局外一律 false
+  for i = 1, #RULE_ORDER do
+    local n = RULE_ORDER[i]
+    p[n] = inRound and ruleOn(n) or false
+  end
+  return p
 end
 
 -- ---------------------------------------------------------------------------
@@ -1115,7 +1968,9 @@ end
 
 function M.hostSync()
   if not S.authority then return nil end
-  if S.mode ~= 'cops_robber' and S.mode ~= 'derby' then return nil end
+  if S.mode ~= 'cops_robber' and S.mode ~= 'derby' and not ruleOn('sameModel') then
+    return nil
+  end
   if S.phase == PHASE.lobby then return nil end
   local left = roundTimeLeft()
   local hold = S.captureSince and ((S.clock - S.captureSince) * 1000) or 0
@@ -1141,6 +1996,8 @@ function M.hostSync()
     roundLeft = left, survivors = survivorCount(),
     damage = dmg, eliminated = elim, roster = roster,
     roles = S.roles, finishReason = tostring(S.finishReason or ''),
+    -- 全员同款车型：房主自己的 jbeam 文件名就是本局的基准车型
+    model = selfJbeam() or '',
   }
 end
 
@@ -1166,6 +2023,14 @@ function M.applyHostSync(t)
       end
     end
     if #list > 0 then S.roster = list end
+  end
+  -- 全员同款车型：房主广播的基准车型
+  if type(t.model) == 'string' and t.model ~= '' then
+    local m = string.lower(t.model)
+    if S.requiredModel ~= m then
+      S.requiredModel = m
+      logMode('本局基准车型：' .. m)
+    end
   end
   if type(t.roles) == 'table' then
     S.roles = {}
@@ -1228,6 +2093,7 @@ function M.applySpawnPlan(plan)
   if r <= (S.lastPlanRound or -1) then return false end
   S.lastPlanRound = r
   S.pendingSpawnPlan = plan
+  noteZonePlan(plan)      -- 顺手记下全员共享的活动圈（加入者路径）
   return true
 end
 
@@ -1296,6 +2162,20 @@ function M.applyRemotePhase(phase, round, winner)
 end
 
 function M.snapshot()
+  local zoneNow = currentZone()
+  -- 🔴 警匪雷达：HUD 的「目标雷达 / 被追捕」面板读的是 snap.robberDist /
+  --    robberBearing / threat，但这里以前谁都没写 → 面永远显「无信号」、仪表盘指针不动。
+  --    M.robberBearing / M.robberThreat 本身是好的（只是没人调），这里接上。
+  --    ⚠️ 这两个函数在本文件后半段才定义，靠 M 表查，运行时才有值 → 用 type 兜底。
+  local robDist, robBear, robThreat = nil, nil, nil
+  if S.mode == 'cops_robber' then
+    if type(M.robberBearing) == 'function' then
+      robDist, robBear = M.robberBearing()
+    end
+    if type(M.robberThreat) == 'function' then
+      robThreat = M.robberThreat()
+    end
+  end
   return {
     mode = S.mode,
     phase = S.phase,
@@ -1306,9 +2186,16 @@ function M.snapshot()
     authority = S.authority,
     winner = S.winner,
     captured = S.captureDone,
+    -- 警匪雷达（见函数开头说明：以前是死字段）
+    robberDist = robDist,
+    robberBearing = robBear,
+    threat = robThreat,
     captureMs = S.captureSince and ((S.clock - S.captureSince) * 1000)
       or (tonumber(S.remoteCaptureMs) or 0),
     captureHoldMs = TUNE.captureHoldMs,
+    -- 本局已用时（秒）：只有 running 才有意义，其它阶段 nil。
+    -- 赛道日面板用它显示「已跑」，不编造圈速（真正圈速要先有起终点计时门）。
+    elapsed = (S.phase == PHASE.running) and math.max(0, S.clock - (S.phaseAt or S.clock)) or nil,
     secondsLeft = (S.phase == PHASE.countdown)
       and math.max(0, math.ceil(TUNE.countdownSeconds - (S.clock - S.phaseAt))) or nil,
     derbyDamage = damageOf(S.selfId or 'self'),
@@ -1326,6 +2213,46 @@ function M.snapshot()
     resetUsed = S.resetUsed,
     resetLimit = TUNE.resetLimit,
     roles = S.roles,
+    -- 模式准入：区域 / 车型 / 按键组（HUD 与局内提示用）
+    -- 位置限制的半径：方案圈 > 模式包基线（房主只能更严，见 modeZoneRadius）
+    zoneRadius = zoneNow and zoneNow.radius or modeZoneRadius(),
+    zoneOut = (S.zoneOut == true),
+    -- 本机到圆心距离：HUD 规则卡要告诉玩家「还差多少米回圈」，
+    -- 只给半径的话出圈时反而看不到自己在往哪边走。
+    zoneDist = (function()
+      local z = zoneNow
+      if not z then return nil end
+      local x, y = vehiclePos('self')
+      if not x then return nil end
+      return math.sqrt(dist2(x, y, z.x, z.y))
+    end)(),
+    -- 出圈倒计时必须和 tickZone 用同一个宽限源（模式包可能把它调长了），
+    -- 否则 HUD 显示「3 秒后拉回」而实际 8 秒才罚 —— 玩家会以为 HUD 坏了。
+    zoneGraceLeft = (S.zoneSince
+      and math.max(0, math.ceil(modeGrace() - (S.clock - S.zoneSince))))
+      or nil,
+    zoneEliminate = TUNE.zoneEliminate,
+    vehicleTypes = TUNE.vehicleTypes,
+    vehicleEnforce = TUNE.vehicleEnforce,
+    vehicleOk = (S.vehicleOk ~= false),
+    vehicleName = S.vehicleName,
+    blockGroups = TUNE.blockGroups,
+    allowGroups = TUNE.allowGroups,
+    -- 细粒度规则明细（HUD 逐条展示「本局限了什么」）
+    rules = activeRules(),
+    -- 带分类的结构化版本（HUD 按 位置/时间/车辆/视野/功能 分栏）
+    ruleItems = activeRuleItems(),
+    ruleTotal = #RULE_ORDER,
+    rulePreset = TUNE.rulePreset or '',
+    gearLocked = (S.phase ~= PHASE.running) and (ROUND_PHASES[S.phase] ~= nil)
+                 and ruleOn('neutralLock'),
+    vehicleRequired = (type(TUNE.vehicleTypes) == 'string' and TUNE.vehicleTypes ~= ''),
+    -- 模式适配包（HUD 的模式组件与「本模式限制」标题都用它；纯数据、只读）
+    pack = MODE_DESC[S.mode],
+    packLabel = (MODE_DESC[S.mode] and MODE_DESC[S.mode].label) or '',
+    packFuncCount = (MODE_DESC[S.mode] and MODE_DESC[S.mode].funcCount) or 0,
+    packPosCount = (MODE_DESC[S.mode] and MODE_DESC[S.mode].posCount) or 0,
+    zoneGrace = modeGrace(),
   }
 end
 
@@ -1510,6 +2437,21 @@ function M.reset()
   S.navAt = 0
   S.navPos = nil
   S.navOn = false
+  -- 模式准入状态一并归零（否则下一局拿着上一圈的圆心/车型状态）
+  S.zoneRound = -1
+  S.zonePlan = nil
+  S.zoneFallback = nil
+  S.zoneSince = nil
+  S.zoneOut = false
+  S.zonePullAt = 0
+  S.outside = {}
+  S.vehRound = -1
+  S.vehicleOk = true
+  S.vehicleName = ''
+  S.vehicleTries = 0
+  S.vehicleAt = 0
+  S.vehSet = nil
+  S.vehSetSig = nil
 end
 
 return M

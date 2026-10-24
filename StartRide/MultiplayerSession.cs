@@ -294,6 +294,44 @@ namespace StartRide.Core
                 string dir = Path.Combine(AppSettings.ResolveGameUserPathRoot(), "startride");
                 Directory.CreateDirectory(dir);
 
+                var modeRules = new Dictionary<string, object>
+                {
+                    ["captureHoldMs"] = AppSettings.Current.CaptureHoldMs,
+                    ["captureStillSpeed"] = AppSettings.Current.CaptureStillSpeed,
+                    ["derbyDamageLimit"] = AppSettings.Current.DerbyDamageLimit,
+                    ["resetLimit"] = AppSettings.Current.ResetLimit,
+                    ["resetCooldownMs"] = AppSettings.Current.ResetCooldownMs,
+                    ["roundSeconds"] = AppSettings.Current.RoundSeconds,
+                    ["hideSeconds"] = AppSettings.Current.HideSeconds,
+                    ["hideRoundSeconds"] = AppSettings.Current.HideRoundSeconds,
+                    ["findRadius"] = AppSettings.Current.FindRadius,
+                    ["findHoldMs"] = AppSettings.Current.FindHoldMs,
+                    // 模式准入限制（startrideMode.lua）：活动圈 / 车型白名单 / 输入组覆盖
+                    ["zoneRadius"] = AppSettings.Current.ModeZoneRadius,
+                    ["outsideGraceSeconds"] = AppSettings.Current.ModeZoneGraceSeconds,
+                    ["zoneEliminate"] = AppSettings.Current.ModeZoneEliminate ? 1 : 0,
+                    ["vehicleTypes"] = AppSettings.Current.ModeVehicleTypes ?? string.Empty,
+                    ["vehicleEnforce"] = AppSettings.Current.ModeVehicleEnforce ? 1 : 0,
+                    ["blockGroups"] = AppSettings.Current.ModeBlockGroups ?? string.Empty,
+                    ["allowGroups"] = AppSettings.Current.ModeAllowGroups ?? string.Empty,
+                    // 细粒度规则（三态）：null → 模组按模式取默认
+                    ["neutralLock"] = AppSettings.Current.ModeNeutralLock,
+                    ["noManualReset"] = AppSettings.Current.ModeNoManualReset,
+                    ["noVehicleSwap"] = AppSettings.Current.ModeNoVehicleSwap,
+                };
+
+                // 严格度预设：空串不写（模组会按各模式自己的口径走）
+                string preset = (AppSettings.Current.ModeRulePreset ?? string.Empty).Trim().ToLowerInvariant();
+                if (preset.Length > 0 && ModeRuleCatalog.IsKnownPreset(preset))
+                {
+                    modeRules["preset"] = preset;
+                }
+
+                // 逐条覆写：优先级最高，最后写入盖掉上面的三态值。
+                // 只写白名单内的键 —— 拼错的键留在启动器里报错，绝不能污染游戏配置。
+                var (overrides, _unknown) = ModeRuleCatalog.Parse(AppSettings.Current.ModeRuleOverrides);
+                foreach (var kv in overrides) modeRules[kv.Key] = kv.Value;
+
                 string json = JsonSerializer.Serialize(new
                 {
                     playerName = playerName ?? "",
@@ -308,19 +346,7 @@ namespace StartRide.Core
                     nameTagMaxDistance = AppSettings.Current.NameTagMaxDistance,
                     // 玩法规则（警匪 / 德比 / 捉迷藏）：模组 startrideMode.lua 读前两项、
                     // startrideHideSeek.lua 读后四项。
-                    modeRules = new
-                    {
-                        captureHoldMs = AppSettings.Current.CaptureHoldMs,
-                        captureStillSpeed = AppSettings.Current.CaptureStillSpeed,
-                        derbyDamageLimit = AppSettings.Current.DerbyDamageLimit,
-                        resetLimit = AppSettings.Current.ResetLimit,
-                        resetCooldownMs = AppSettings.Current.ResetCooldownMs,
-                        roundSeconds = AppSettings.Current.RoundSeconds,
-                        hideSeconds = AppSettings.Current.HideSeconds,
-                        hideRoundSeconds = AppSettings.Current.HideRoundSeconds,
-                        findRadius = AppSettings.Current.FindRadius,
-                        findHoldMs = AppSettings.Current.FindHoldMs,
-                    },
+                    modeRules = modeRules,
                     writtenAt = DateTimeOffset.Now.ToString("o"),
                 }, new JsonSerializerOptions { WriteIndented = true });
 

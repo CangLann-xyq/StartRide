@@ -99,6 +99,84 @@ namespace StartRide.Core
         /// </summary>
         public int FindHoldMs { get; set; } = 2000;
 
+        // ------------------------------------------------------------------
+        // 模式准入限制（警匪追逐 / 德比等特殊模式进入游戏后的硬约束）。
+        // 由 startrideMode.lua 的 readConfig 白名单读取，启动器只负责写入。
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// 活动范围半径（米）。以本人出生点为圆心，超圈按下面两项处置。0 = 不限制。
+        /// </summary>
+        /// <summary>
+        /// 活动区域半径（米）。0 = 不限；默认 1200 米 —— 警匪 / 德比进局即生效，
+        /// 玩家跑出这个圈会被宽限倒计时，超时按 <see cref="ModeZoneEliminate"/> 处理。
+        /// </summary>
+        public int ModeZoneRadius { get; set; } = 1200;
+
+        /// <summary>
+        /// 出圈宽限（秒）。出圈后留给玩家开回圈内的时间。
+        /// </summary>
+        public int ModeZoneGraceSeconds { get; set; } = 5;
+
+        /// <summary>
+        /// 宽限结束仍未回圈时：true = 直接淘汰，false = 拉回圈内边缘。
+        /// </summary>
+        public bool ModeZoneEliminate { get; set; }
+
+        /// <summary>
+        /// 指定车型白名单（车辆 JBeam 文件名关键字，逗号分隔）。留空 = 不限制。
+        /// </summary>
+        public string ModeVehicleTypes { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 开局强制把不在白名单内的车换成名单车型。false 时只警告不换车。
+        /// </summary>
+        public bool ModeVehicleEnforce { get; set; } = true;
+
+        /// <summary>
+        /// 回合内额外屏蔽的输入组（逗号分隔）：fun / vehicle / ai / reset / teleport / menu。
+        /// </summary>
+        public string ModeBlockGroups { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 回合内放行的输入组（逗号分隔）。优先级低于 ModeBlockGroups；
+        /// 警匪局的原地复位（reset）始终不可放行 —— 那是逃脱手段。
+        /// </summary>
+        public string ModeAllowGroups { get; set; } = string.Empty;
+
+        // ------------------------------------------------------------------
+        // 细粒度玩法规则（三态：null = 跟随模式默认，0 = 强制关闭，1 = 强制开启）
+        //
+        // 之所以做三态而不是开关：警匪和德比对「能不能手动复位」的答案是相反的
+        // （警匪禁、德比留着翻车自救），写死成 true 会把德比也一起禁掉。
+        // null 写进 multiplayer.json 就是 JSON null，Lua 侧 tonumber 拿不到值，
+        // 自然回落到各模式的默认值。
+        // ------------------------------------------------------------------
+
+        /// <summary>起跑前空档锁定 + 起跑后自动挂一档。</summary>
+        /// <summary>
+        /// 严格度预设：空串 = 跟随各玩法自己的口径；loose / standard / strict / off = 房主统一指定。
+        /// 只替换「预设」这一层，德比「允许复位」这类模式语义例外不会被它撬掉。
+        /// </summary>
+        public string ModeRulePreset { get; set; } = "";
+
+        /// <summary>
+        /// 规则逐条覆写：逗号分隔的 key=1 / key=0（1 = 开限制，0 = 关限制）。
+        /// 优先级最高：先按严格度预设算，再被这里逐条盖掉。
+        /// 键名白名单见 ModeRuleCatalog.Keys（与游戏内 RULE_DEFS 一一对应）。
+        /// </summary>
+        public string ModeRuleOverrides { get; set; } = "";
+
+        public int? ModeNeutralLock { get; set; }
+
+        /// <summary>局内禁止手动复位车辆。</summary>
+        public int? ModeNoManualReset { get; set; }
+
+        /// <summary>局内禁止换车 / 换零件。</summary>
+        public int? ModeNoVehicleSwap { get; set; }
+
+        // ------------------------------------------------------------------
+
         [JsonIgnore]
         public bool PreInstallMod => AutoInstallMod && !RemoveModOnLeave;
 

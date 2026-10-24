@@ -31,6 +31,28 @@
 local M = {}
 
 -- ---------------------------------------------------------------------------
+-- 模式适配包（单一真源）
+-- ---------------------------------------------------------------------------
+-- 「进这个模式要锁哪些功能 / 位置」写在 startrideModePacks.lua 的 hide_seek 包里，
+-- 这里只读，不再手抄 29 条 —— 抄两遍的后果是改包不改这里，HUD 显示 A 而实际生效 B。
+-- ⚠️ 包缺失（旧安装 / require 失败）时退回「局内全收」的老口径，不能因为一个文件
+--    缺了就变成「什么都不锁」。
+local SRPACK = nil
+do
+  local ok, mod = pcall(require, 'startrideModePacks')
+  if ok and type(mod) == 'table' then SRPACK = mod end
+end
+
+-- 规则文案目录（29 条中文说明 + 分类）在 startrideMode 里。
+-- 主模组用 loadPeer → require，同一份 package.loaded，所以这里 require 拿到的是
+-- **同一个模块实例**（不会重复初始化玩法状态）。
+local SRRULE = nil
+do
+  local ok, mod = pcall(require, 'startrideMode')
+  if ok and type(mod) == 'table' then SRRULE = mod end
+end
+
+-- ---------------------------------------------------------------------------
 -- 可调参数（由启动器写进 startride/multiplayer.json 的 modeRules，readConfig 读）
 -- ---------------------------------------------------------------------------
 local TUNE = {
@@ -1070,6 +1092,30 @@ end
 --      hider  + hiding  → 正常行驶
 --      seek   阶段      → 全员锁复位/传送（对齐警匪：复位=传送逃脱）
 -- ---------------------------------------------------------------------------
+-- 本模式的 29 键限制表（包缺失返回 nil）。按模式号缓存：每帧都会问，
+-- 每次重建 29 键表没必要。
+local PACK_LIM, PACK_LIM_MODE = nil, nil
+local function packLimits()
+  if type(SRPACK) ~= 'table' or type(SRPACK.limits) ~= 'function' then return nil end
+  if PACK_LIM_MODE ~= S.mode then
+    local ok, t = pcall(SRPACK.limits, S.mode)
+    PACK_LIM = (ok and type(t) == 'table') and t or nil
+    PACK_LIM_MODE = S.mode
+  end
+  return PACK_LIM
+end
+
+-- 一条规则在局内是否生效：
+--   inRound=false（大厅 / 结算）→ 一律放行
+--   包里写了 → 按包（这是模式自带的限制）
+--   包缺失   → 按 dflt（老口径：局内全收）
+local function RL(inRound, key, dflt)
+  if not inRound then return false end
+  local t = packLimits()
+  if t and t[key] ~= nil then return t[key] == true end
+  return dflt
+end
+
 function M.inputPolicy()
   -- 会话没了就一律放行（含 freezeDrive）：最后一道保险，见 tick 里的复位。
   if S.sessionAlive == false then
@@ -1087,13 +1133,64 @@ function M.inputPolicy()
   -- 就位 / 倒数期间全员冻住（不然倒计时里能抢跑）；躲藏期的搜索者也冻。
   local freezeDrive = hidingSeeker or (inRound and not running)
 
+  -- 起跑前空档待命：就位 / 倒数阶段把换挡锁死，phase 切到 running 的那一帧
+  -- 由输入层自动挂一档起步。捉迷藏同样要防抢跑——躲藏者提前窜出去就没得找了。
+  local gearLock = inRound and not running
+
+  -- 娱乐功能（飞行 / 慢动作 / 力场）与自由视角的取值现在统一由模式包决定
+  -- （hide_seek 包里都锁）。慢动作能看穿躲藏者轨迹、飞行能越出索敌半径、
+  -- 自由视角能绕到树后偷看第一人称视线 —— 三条都是破局手法，包里一律为 1。
+
+  -- 与 startrideMode.inputPolicy 保持**同一套键**（审计脚本要求两份策略对称）：
+  -- 换玩法时 setPolicy 只会覆盖非 nil 字段，键不齐就会残留上一个玩法的值 ——
+  -- 比如先打警匪（连天气都锁）再进捉迷藏，天气会一直锁着，谁也没配过它。
+  -- 捉迷藏的口径是「局内全收」，只有三条按玩法语义放开：
+  --   · noAiTraffic  false —— 捉迷藏不靠 AI 车流，但也不主动去管它
+  --   · sameModel    false —— 车型不统一（躲的人越多越难找）
+  --   · noRepair     false —— 被撞坏后允许修，不然一次碰撞就废掉整局
   return {
-    roundActive = inRound,
-    running     = running,
-    vehicleLock = inRound,
-    lockReset   = lockReset,
-    freezeDrive = freezeDrive,
-    reason      = S.mode .. '/' .. S.phase .. '/' .. tostring(S.stage),
+    roundActive   = inRound,
+    running       = running,
+    vehicleLock   = inRound,
+    lockReset     = lockReset,
+    freezeDrive   = freezeDrive,
+    gearLock      = gearLock,
+    gearTarget    = 1,
+    blockGroups   = '',
+    allowGroups   = '',
+    reason        = S.mode .. '/' .. S.phase .. '/' .. tostring(S.stage),
+    -- ① 位置 / 场地 ~ ⑤ 功能 / 作弊：29 条全部来自 hide_seek 包。
+    --    第三参是「包缺失时的兜底」（老行为：局内全收），
+    --    特殊语义项（出圈淘汰 / 维修 / 同款车 / AI 车流 / 车型强制）兜底为放行。
+    zoneEliminate   = RL(inRound, 'zoneEliminate', false),
+    noMapTeleport   = RL(inRound, 'noMapTeleport', true),
+    noHomeAnchor    = RL(inRound, 'noHomeAnchor', true),
+    noDropAtCam     = RL(inRound, 'noDropAtCam', true),
+    neutralLock     = RL(inRound, 'neutralLock', true),
+    freezeStaging   = RL(inRound, 'freezeStaging', true),
+    noPause         = RL(inRound, 'noPause', true),
+    noSlowMotion    = RL(inRound, 'noSlowMotion', true),
+    roundLimit      = RL(inRound, 'roundLimit', true),
+    noVehicleSwap   = RL(inRound, 'noVehicleSwap', true),
+    noPartsSwap     = RL(inRound, 'noPartsSwap', true),
+    noRepair        = RL(inRound, 'noRepair', false),
+    noTrailer       = RL(inRound, 'noTrailer', true),
+    vehicleEnforce  = RL(inRound, 'vehicleEnforce', false),
+    sameModel       = RL(inRound, 'sameModel', false),
+    noFreeCam       = RL(inRound, 'noFreeCam', true),
+    noPhotoMode     = RL(inRound, 'noPhotoMode', true),
+    noWalkMode      = RL(inRound, 'noWalkMode', true),
+    noMinimap       = RL(inRound, 'noMinimap', true),
+    noManualReset   = RL(inRound, 'noManualReset', true),
+    noFun           = RL(inRound, 'noFun', true),
+    noAiTraffic     = RL(inRound, 'noAiTraffic', false),
+    noAiMode        = RL(inRound, 'noAiMode', true),
+    noNodeGrabber   = RL(inRound, 'noNodeGrabber', true),
+    noWorldEditor   = RL(inRound, 'noWorldEditor', true),
+    noSpawnVehicle  = RL(inRound, 'noSpawnVehicle', true),
+    noRadialSandbox = RL(inRound, 'noRadialSandbox', true),
+    noDebugMenu     = RL(inRound, 'noDebugMenu', true),
+    noWeather       = RL(inRound, 'noWeather', true),
   }
 end
 
@@ -1439,6 +1536,19 @@ function M.snapshot()
     end
   end
 
+  -- 模式包描述 + 规则明细：捉迷藏有自己的规则主体（不走 Mode.snapshot），
+  -- 以前 HUD 的「本局规则」栏在捉迷藏里是空白的 —— 面板有，内容没有。
+  local packDesc = nil
+  if type(SRPACK) == 'table' and type(SRPACK.describe) == 'function' then
+    local ok, d = pcall(SRPACK.describe, S.mode)
+    if ok and type(d) == 'table' then packDesc = d end
+  end
+  local ruleItems = nil
+  if type(SRRULE) == 'table' and type(SRRULE.ruleItemsFor) == 'function' then
+    local ok, t = pcall(SRRULE.ruleItemsFor, S.mode)
+    if ok and type(t) == 'table' then ruleItems = t end
+  end
+
   return {
     mode = S.mode,
     phase = S.phase,
@@ -1480,6 +1590,17 @@ function M.snapshot()
       and math.max(0, math.ceil((tonumber(TUNE.escapeAfterSeconds) or 100) - (S.clock - (S.seekAt or S.stageAt)))) or nil,
     outsideSeconds = S.localOutsideSince
       and math.max(0, math.ceil((tonumber(TUNE.outsideGraceSeconds) or 25) - (S.clock - S.localOutsideSince))) or nil,
+    -- 位置限制：捉迷藏的活动圈由本模块自己维护（S.zone），HUD 组件读这两个字段。
+    -- 以前没导出 → 组件的「活动圈」行永远显示「不设边界」。
+    zoneRadius = (type(S.zone) == 'table' and tonumber(S.zone.radius)) or 0,
+    zoneOut = (S.localOutsideSince ~= nil),
+    zoneEliminate = RL(true, 'zoneEliminate', false),
+    -- 模式适配包（HUD 组件标题 / 「本模式限制」计数）
+    pack = packDesc,
+    packLabel = packDesc and packDesc.label or '',
+    packFuncCount = packDesc and packDesc.funcCount or 0,
+    packPosCount = packDesc and packDesc.posCount or 0,
+    ruleItems = ruleItems,
     zone = S.zone,
     escape = S.escape,
     escapedBy = S.escapedBy,

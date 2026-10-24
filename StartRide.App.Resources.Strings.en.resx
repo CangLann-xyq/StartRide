@@ -3073,6 +3073,43 @@ The current game folder will be automatically backed up before restoration.</val
 <data name="Settings_FindRadiusHint" xml:space="preserve"><value>The seeker must get this close before detection starts; larger makes hiding harder</value></data>
 <data name="Settings_FindHoldLabel" xml:space="preserve"><value>Spot hold (seconds)</value></data>
 <data name="Settings_FindHoldHint" xml:space="preserve"><value>The seeker must stay this close to a hider to find them; breaking contact resets it</value></data>
+<data name="Settings_ModeAdmitLabel" xml:space="preserve"><value>Mode restrictions</value></data>
+<data name="Settings_ModeAdmitHint" xml:space="preserve"><value>Feature / area / time / vehicle limits applied once a special mode starts (host only)</value></data>
+<data name="Settings_RoundSecondsLabel" xml:space="preserve"><value>Round time limit (s)</value></data>
+<data name="Settings_RoundSecondsHint" xml:space="preserve"><value>When it hits zero the survivors win; 0 = no limit</value></data>
+<data name="Settings_ZoneRadiusLabel" xml:space="preserve"><value>Play area radius (m)</value></data>
+<data name="Settings_ZoneRadiusHint" xml:space="preserve"><value>Centred on your spawn point; 0 = unrestricted</value></data>
+<data name="Settings_ZoneGraceLabel" xml:space="preserve"><value>Out-of-bounds grace (s)</value></data>
+<data name="Settings_ZoneGraceHint" xml:space="preserve"><value>Time given to drive back inside; the HUD counts it down</value></data>
+<data name="Settings_ZoneEliminateLabel" xml:space="preserve"><value>Eliminate when out of bounds</value></data>
+<data name="Settings_ZoneEliminateHint" xml:space="preserve"><value>On = eliminated; off = pulled back to the boundary</value></data>
+<data name="Settings_VehicleTypesLabel" xml:space="preserve"><value>Required vehicle types</value></data>
+<data name="Settings_VehicleTypesHint" xml:space="preserve"><value>Vehicle filename keywords, comma separated; empty = no limit</value></data>
+<data name="Settings_VehicleEnforceLabel" xml:space="preserve"><value>Force required vehicles</value></data>
+<data name="Settings_VehicleEnforceHint" xml:space="preserve"><value>Auto-swap any off-list vehicle when the round starts</value></data>
+<data name="Settings_BlockGroupsLabel" xml:space="preserve"><value>Extra blocked actions</value></data>
+<data name="Settings_BlockGroupsHint" xml:space="preserve"><value>Comma separated: fun / vehicle / ai / reset / teleport / menu</value></data>
+<data name="Settings_AllowGroupsLabel" xml:space="preserve"><value>Allowed actions</value></data>
+<data name="Settings_AllowGroupsHint" xml:space="preserve"><value>Comma separated; extra blocks win. Cops and robbers can never allow reset</value></data>
+<data name="Settings_ModeRuleAuto" xml:space="preserve"><value>Follow mode default</value></data>
+<data name="Settings_ModeRuleOn" xml:space="preserve"><value>Always on</value></data>
+<data name="Settings_ModeRuleOff" xml:space="preserve"><value>Always off</value></data>
+<data name="Settings_ModePresetLabel" xml:space="preserve"><value>Strictness preset</value></data>
+<data name="Settings_ModePresetHint" xml:space="preserve"><value>"Follow mode" uses each game mode's own baseline; the switches and overrides below still take precedence</value></data>
+<data name="Settings_ModePresetAuto" xml:space="preserve"><value>Follow mode</value></data>
+<data name="Settings_ModePresetLoose" xml:space="preserve"><value>Relaxed</value></data>
+<data name="Settings_ModePresetStandard" xml:space="preserve"><value>Standard</value></data>
+<data name="Settings_ModePresetStrict" xml:space="preserve"><value>Strict</value></data>
+<data name="Settings_ModeRuleOverrideLabel" xml:space="preserve"><value>Per-rule overrides</value></data>
+<data name="Settings_ModeRuleOverrideHint" xml:space="preserve"><value>Format: key=1 on / key=0 off, comma separated, highest priority. Position noMapTeleport noHomeAnchor noDropAtCam zoneEliminate | Time neutralLock freezeStaging noPause noSlowMotion roundLimit | Vehicle noVehicleSwap noPartsSwap noRepair noTrailer vehicleEnforce sameModel | View noFreeCam noPhotoMode noWalkMode noMinimap | Function noManualReset noFun noAiTraffic noAiMode noNodeGrabber noWorldEditor noSpawnVehicle noRadialSandbox noDebugMenu noWeather</value></data>
+<data name="Settings_ModeRuleOverrideOk" xml:space="preserve"><value>{0} override(s) recognized and applied</value></data>
+<data name="Settings_ModeRuleOverrideBad" xml:space="preserve"><value>Unrecognized: {0}</value></data>
+<data name="Settings_NeutralLockLabel" xml:space="preserve"><value>Neutral lock before start</value></data>
+<data name="Settings_NeutralLockHint" xml:space="preserve"><value>Gear is held in neutral until the start signal, then first gear engages</value></data>
+<data name="Settings_NoManualResetLabel" xml:space="preserve"><value>Block manual vehicle reset</value></data>
+<data name="Settings_NoManualResetHint" xml:space="preserve"><value>No recovering a rolled or stuck car during a round</value></data>
+<data name="Settings_NoVehicleSwapLabel" xml:space="preserve"><value>Block vehicle / parts swap</value></data>
+<data name="Settings_NoVehicleSwapHint" xml:space="preserve"><value>No swapping to a stronger car mid-round</value></data>
 
 <data name="Settings_LaunchForceGpuLabel" xml:space="preserve"><value>Force use of dedicated graphics card</value></data>
 
