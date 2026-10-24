@@ -502,11 +502,25 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		ModInstaller installer = AppState.Current.ModInstaller;
 		bool wasInstalled = installer.IsInstalled;
 
-		if (gameRunning && wasInstalled)
+		if (gameRunning)
 		{
-			// 模组早就在了，这局能直接用 —— 不必（也不能）重装
-			PluginLog("联机模组已就位，游戏运行中无需重装");
-			return;
+			if (wasInstalled)
+			{
+				// 模组早就在了，这局能直接用 —— 不必（也不能）重装
+				PluginLog("联机模组已就位，游戏运行中无需重装");
+				return;
+			}
+
+			// ⚠️ 游戏在跑 + 模组缺失：绝不能往 mods 写文件（内测实证会崩游戏），
+			// 也不能默默继续 —— 这局整场都没有联机模组，表现就是「都在同一位置
+			// 却互相看不见对方的车」。必须把玩家拦下来，讲清楚怎么办。
+			// 15:31 那局实测正是这个坑：先开的游戏，mods 里没有 startride.zip，
+			// 游戏 db.json 重建后 125 个模组里唯独没有我们。
+			PluginLog("游戏已开着但联机模组未安装 —— 本次拒绝写 mods（运行中写入会崩游戏）");
+			throw new MultiplayerLobbyCreationException(
+				MultiplayerLobbyCreationFailure.TerracottaProtocolFailed,
+				"游戏已经开着，但联机模组还没装 —— 请退出游戏，然后回到启动器重新加入房间"
+				+ "（启动器会先把模组装好再开游戏）。直接开游戏再联机，整局都会看不到其他玩家。");
 		}
 
 		string? error = installer.Install();

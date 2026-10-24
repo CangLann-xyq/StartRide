@@ -565,11 +565,48 @@ namespace StartRide.Core
                         + $"| 累计 远程车包={relayVehicle} 远程车={State.RemoteVehicles} "
                         + $"桥={(State.GameConnected ? "已连接" : "未连接")} "
                         + $"中继={(_relay.IsConnected ? "已连接" : _relay.Transport)}");
+                    MaybeWarnNoPeerData(relayVehicle);
                 }
             }
             catch (Exception ex)
             {
                 Log?.Invoke("数据流统计失败：" + ex.Message);
+            }
+        }
+
+        // ── 「看不见对方」主动诊断 ─────────────────────────────────────────────
+        // 房间里明明有别的玩家，本机也一切正常（桥连着、中继连着、自己在上传），
+        // 但 60 秒过去远程车包仍然是 0 —— 这说明**对方**的数据根本没到中继：
+        // 对方十有八九没有装联机模组（最常见：对方先开了游戏再用启动器联机，
+        // 或压根没从启动器进房）。这种局面等是等不来的，直接把结论喊出来，
+        // 免得两边互相怀疑自己的网络。
+        private int _noPeerDataCycles;
+        private bool _noPeerDataWarned;
+
+        private void MaybeWarnNoPeerData(long relayVehicle)
+        {
+            try
+            {
+                if (relayVehicle > 0)
+                {
+                    _noPeerDataCycles = 0;
+                    return;
+                }
+
+                int others;
+                lock (_playersLock) others = State.Players.Count - 1;
+                if (others <= 0) return;            // 房里只有自己，没有「对方」可言
+
+                _noPeerDataCycles++;
+                if (_noPeerDataCycles < 6 || _noPeerDataWarned) return;   // 60s
+
+                _noPeerDataWarned = true;
+                Log?.Invoke($"[诊断] 房间里有 {others} 位其他玩家，但 60 秒内没收到任何对方车辆数据"
+                            + " —— 对方很可能没装/没加载联机模组（请对方也从 StartRide 启动器进房，"
+                            + "并且不要先开游戏再联机）；你的本机链路一切正常，不用排查自己这边");
+            }
+            catch
+            {
             }
         }
 
