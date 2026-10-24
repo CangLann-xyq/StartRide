@@ -88,6 +88,8 @@ local readyLogged = false
 local firstPacketLogged = false
 local promoteLogged = false
 local idRequested = false
+local lastAskAt = -100      -- 上一次向 GE 索要联机 ID 的时间（定期重试用）
+local askCount = 0
 
 local remoteData = {
   pos = nil, vel = nil, acc = nil, rot = nil, rvel = nil, racc = nil,
@@ -552,11 +554,21 @@ local function pullMailbox()
   local sid = v.srServerID
   if not sid or sid == '' then
 
-    if not idRequested then
+    -- 以前这里只索要一次（idRequested 置 true 之后再也不试）。
+    -- 但那一次很容易丢：VE 刚加载时 GE 侧常常还没把这辆车记进 remoteVehicles，
+    -- onVEAskID 找不到记录就静默返回。结果这辆车永远拿不到联机 ID →
+    -- 永远不拉 mailbox → 停在生成点不动，玩家眼里就是「看不见 / 不动」。
+    -- 改成每 2 秒重试一次（一次 queueGameEngineLua，成本可忽略）。
+    if (timer - lastAskAt) >= 2.0 then
+      lastAskAt = timer
       idRequested = true
+      askCount = askCount + 1
       pcall(function()
         obj:queueGameEngineLua('startride.onVEAskID(' .. tostring(obj:getID()) .. ')')
       end)
+      if askCount == 1 or askCount % 30 == 0 then
+        logI('尚未拿到联机 ID，已向 GE 索要第 ' .. tostring(askCount) .. ' 次')
+      end
     end
     return
   end

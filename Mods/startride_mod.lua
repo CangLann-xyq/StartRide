@@ -604,6 +604,45 @@ local function spawnRemote(rec, id, data)
   end
 
   local pos = vec3(p[1], p[2], p[3])
+
+  -- 「两个人都站在一起却看不见对方的车」最常见的一种：
+  -- 远程车是按**对方上报的坐标**生成的，两人又常从同一个出生点出发 →
+  -- 两辆车精确重叠，你眼里只有自己那一辆。
+  -- 重合就把生成点侧向推开，先把车摆出来；之后位置同步会接管正常移动。
+  do
+    local function tooClose(ox, oy, oz)
+      local dx, dy, dz = pos.x - ox, pos.y - oy, pos.z - oz
+      return (dx * dx + dy * dy + dz * dz) < 9.0        -- 3 米内算重叠
+    end
+    local clash = false
+    local okv, pv = pcall(function() return be:getPlayerVehicle(0) end)
+    if okv and pv then
+      local okp, pp = pcall(function() return pv:getPosition() end)
+      if okp and pp and tooClose(pp.x, pp.y, pp.z) then clash = true end
+    end
+    if not clash then
+      for oid, orec in pairs(remoteVehicles) do
+        if oid ~= id and orec.veh then
+          local oko, op = pcall(function() return orec.veh:getPosition() end)
+          if oko and op and tooClose(op.x, op.y, op.z) then
+            clash = true
+            break
+          end
+        end
+      end
+    end
+    if clash then
+      -- 按 id 哈希错开，多台车同时重合时也不至于又叠成一堆
+      local h = 0
+      local sid = tostring(id)
+      for i = 1, #sid do h = (h * 31 + string.byte(sid, i)) % 97 end
+      local off = 3.5 + (h % 5)
+      if h % 2 == 0 then off = -off end
+      pos = vec3(pos.x + off, pos.y, pos.z)
+      logMsg('远程车与本机车（或另一台远程车）重叠，生成点侧移 '
+        .. string.format('%.1f', off) .. 'm：' .. tostring(id))
+    end
+  end
   
   local rot = quat(0, 0, 1, 0) * quat(r[1], r[2], r[3], r[4])
 
@@ -643,6 +682,9 @@ local function spawnRemote(rec, id, data)
   rec.lastSeen = timeAccum
   rec.veReady = nil
   rec.spawnFails = 0
+  rec.spawnAt = timeAccum
+  rec.veWarned = nil
+  rec.pendingRebuild = nil
   spawnOkCount = spawnOkCount + 1
   lastSpawnError = ''
   table.insert(chat, { name = 'system', text = rec.name .. ' 的车辆已入场' })
@@ -701,6 +743,27 @@ local function onRemoteVehiclePacket(data)
     remoteVehicles[id] = rec
   end
 
+  -- 车生成了、但车辆侧扩展一直没报到（VE 没接管）：
+  -- 这台车会停在生成点不动，玩家看到的就是「对方车不动 / 看不见」。
+  --
+  -- 处理顺序：先自动重建（VE 加载时机取决于车模复杂度，重来一次常常就好了），
+  -- 最多 2 次；还不行才告警并让用户按 F8 手动重建。
+  -- 次数必须封顶：无上限重建就是「生成风暴」，比看不见更糟（会把主线程拖死）。
+  if rec.veh and not rec.veReady and (timeAccum - (rec.spawnAt or timeAccum)) > 6 then
+    local tries = (rec.veRetry or 0) + 1
+    rec.veRetry = tries
+    rec.spawnAt = timeAccum           -- 给这一次新的 6 秒窗口
+    if tries <= 2 then
+      logMsg('远程车车辆扩展未就绪，自动重建第 ' .. tostring(tries) .. ' 次：'
+        .. tostring(rec.name))
+      rec.pendingRebuild = true
+    elseif not rec.veWarned then
+      rec.veWarned = true
+      logMsg('远程车已生成但车辆扩展两次重建后仍未就绪（这台车不会跟着对方动）：'
+        .. tostring(rec.name) .. '，可按 F8 用「重建远程车辆」重试')
+    end
+  end
+
   rec.lastSeen = timeAccum
   rec.px = data.pos[1]
   rec.py = data.pos[2]
@@ -711,8 +774,24 @@ local function onRemoteVehiclePacket(data)
 
   
   
+  -- 上一轮判定「VE 没接管」的车：先拆掉，下面这段 if not rec.veh 就会立刻重建它
+  if rec.pendingRebuild and rec.veh then
+    rec.pendingRebuild = nil
+    despawnRemote(rec)
+    rec.veh = nil
+    rec.veReady = nil
+  end
+
   if not rec.veh then
-    if lod.mem.level >= 2 then return end
+    if lod.mem.level >= 2 then
+      -- 以前这里直接 return：内存吃紧时不生成远程车，日志和面板都不会有任何痕迹，
+      -- 玩家只会觉得「别人的车莫名其妙不见了」。现在至少说一次。
+      if not rec.oomWarned then
+        rec.oomWarned = true
+        logMsg('内存危急：暂缓生成远程车（' .. tostring(rec.name) .. '），释放后会补上')
+      end
+      return
+    end
     if timeAccum >= rec.nextTryAt and (timeAccum - lastSpawnTryAt) >= MIN_SPAWN_GAP then
       lastSpawnTryAt = timeAccum
       local okSpawn = spawnRemote(rec, id, data)
