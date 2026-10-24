@@ -23,8 +23,27 @@ namespace StartRide.Core
         public string Content { get; set; } = "";
         public string Reasoning { get; set; } = "";
         public List<AiToolCall> ToolCalls { get; } = new();
+
+        /// <summary>出错原因（连接失败 / 服务端报错 / 上游提前断开）。</summary>
         public string? Error { get; set; }
-        public bool Ok => string.IsNullOrEmpty(Error);
+
+        /// <summary>
+        /// 用户主动点了停止。
+        ///
+        /// 必须和 Error 分开：以前取消被吞成 Error「已取消」，
+        /// UI 就只能走「出错」分支，显示一句红字警告 —— 明明是用户自己停的。
+        /// </summary>
+        public bool Cancelled { get; set; }
+
+        /// <summary>
+        /// 上游没给结束标记就断了（收到部分正文后就 silent）。
+        ///
+        /// 这种「半截」最坑：内容非空 → Ok == true → UI 当成正常完成，
+        /// 用户看到的就是「跑到一半就没输出了」。必须显式标出来。
+        /// </summary>
+        public bool StreamBroken { get; set; }
+
+        public bool Ok => string.IsNullOrEmpty(Error) && !Cancelled;
     }
 
     /// <summary>
@@ -65,6 +84,13 @@ namespace StartRide.Core
 
         /// <summary>服务端用它挡掉随手 curl（不是强认证，只是抬高门槛）。</summary>
         private const string ClientTag = "startride-launcher";
+
+        /// <summary>
+        /// 多久收不到一帧就算断流。
+        /// deepseek-reasoner 在最难的题上首字也可能憋 30~40 秒，
+        /// 所以阈值要比「正常最慢」再宽一点，避免把思考中的模型误判成断线。
+        /// </summary>
+        private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(75);
 
         private static readonly HttpClient Http = CreateHttp();
 
@@ -145,6 +171,7 @@ namespace StartRide.Core
             for (var attempt = 0; attempt < BaseCandidates.Length; attempt++)
             {
                 var r = await StreamFromAsync(CurrentBase, model, payload, onReasoning, onContent, ct);
+                if (r.Cancelled) return r;
                 if (r.Error != null && r.Error.StartsWith(TransportPrefix, StringComparison.Ordinal))
                 {
                     lastTransport = new HttpRequestException(r.Error);
@@ -190,20 +217,51 @@ namespace StartRide.Core
                 var contentBuf = new StringBuilder();
                 var reasonBuf = new StringBuilder();
 
+                // 正常收尾的两种标记：`data: [DONE]`，或某一帧带 finish_reason。
+                // 两个都没见到就断流 = 上游把连接掐了（nginx 超时 / 网关重置 / 服务端崩）。
+                var sawDone = false;
+                var sawFinishReason = false;
+
                 while (true)
                 {
-                    var line = await reader.ReadLineAsync(ct);
-                    if (line == null) break;
+                    // ── 空闲超时 ─────────────────────────────────────────────
+                    // 不设这个的话，链路被掐断但 TCP 没 FIN 时 ReadLineAsync 会一直挂着：
+                    // 界面就是「正在输出…」永远不动，停止按钮还因为状态没回收点不动。
+                    string? line;
+                    using (var idle = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                    {
+                        idle.CancelAfter(IdleTimeout);
+                        try
+                        {
+                            line = await reader.ReadLineAsync(idle.Token);
+                        }
+                        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                        {
+                            result.StreamBroken = true;
+                            result.Error = $"上游 {IdleTimeout.TotalSeconds:0} 秒没有任何数据，连接已中断。";
+                            break;
+                        }
+                    }
+
+                    if (line == null) break;          // 流结束（可能正常，也可能断流，下面统一判）
                     if (line.Length == 0) continue;
                     if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
 
                     var json = line.Substring(5).Trim();
                     if (json.Length == 0) continue;
-                    if (json == "[DONE]") break;
+                    if (json == "[DONE]")
+                    {
+                        sawDone = true;
+                        break;
+                    }
 
                     try
                     {
-                        ParseChunk(json, contentBuf, reasonBuf, calls, onReasoning, onContent);
+                        if (ParseChunk(json, contentBuf, reasonBuf, calls, onReasoning, onContent)
+                            == ParseOutcome.Finished)
+                        {
+                            sawFinishReason = true;
+                        }
                     }
                     catch
                     {
@@ -215,15 +273,26 @@ namespace StartRide.Core
                 result.Reasoning = reasonBuf.ToString();
                 result.ToolCalls.AddRange(calls.Values);
 
-                if (result.Content.Length == 0 && result.ToolCalls.Count == 0 && result.Reasoning.Length == 0)
+                var gotAnything = result.Content.Length > 0
+                                  || result.Reasoning.Length > 0
+                                  || result.ToolCalls.Count > 0;
+
+                if (result.Error == null && !sawDone && !sawFinishReason && gotAnything)
                 {
-                    result.Error = "模型没有返回任何内容（可能是额度或上游问题）";
+                    // 有内容但没结束标记 —— 典型的「跑到一半没了」
+                    result.StreamBroken = true;
+                    result.Error = "输出被中断（上游没有给出结束标记）。已收到的内容保留在上面，可以再发一次。";
+                }
+                else if (result.Error == null && !gotAnything)
+                {
+                    result.Error = "模型没有返回任何内容（可能是额度或上游问题）。";
                 }
                 return result;
             }
             catch (OperationCanceledException)
             {
-                result.Error = "已取消";
+                // 用户点了停止：不是错误，别用红字吓人
+                result.Cancelled = true;
                 return result;
             }
             catch (Exception ex) when (ex is HttpRequestException or IOException)
@@ -243,7 +312,13 @@ namespace StartRide.Core
             }
         }
 
-        private static void ParseChunk(
+        private enum ParseOutcome
+        {
+            Continue = 0,
+            Finished = 1,
+        }
+
+        private static ParseOutcome ParseChunk(
             string json,
             StringBuilder contentBuf,
             StringBuilder reasonBuf,
@@ -252,11 +327,18 @@ namespace StartRide.Core
             Action<string>? onContent)
         {
             using var doc = JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("choices", out var choices)) return;
-            if (choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0) return;
+            if (!doc.RootElement.TryGetProperty("choices", out var choices)) return ParseOutcome.Continue;
+            if (choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0) return ParseOutcome.Continue;
 
-            var delta = choices[0];
-            if (!delta.TryGetProperty("delta", out var d)) return;
+            var choice = choices[0];
+
+            // finish_reason 非空 = 这一帧之后就没有内容了（stop / tool_calls / length）
+            var finished = choice.TryGetProperty("finish_reason", out var fr)
+                           && fr.ValueKind == JsonValueKind.String
+                           && !string.IsNullOrEmpty(fr.GetString());
+
+            if (!choice.TryGetProperty("delta", out var d))
+                return finished ? ParseOutcome.Finished : ParseOutcome.Continue;
 
             // ① 思考过程（deepseek-reasoner 专有）
             if (d.TryGetProperty("reasoning_content", out var rc) && rc.ValueKind == JsonValueKind.String)
@@ -312,6 +394,8 @@ namespace StartRide.Core
                     }
                 }
             }
+
+            return finished ? ParseOutcome.Finished : ParseOutcome.Continue;
         }
 
         private static string Trim(string s, int max)

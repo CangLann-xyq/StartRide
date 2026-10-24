@@ -141,6 +141,115 @@
       </Setter>
     </Style>
 
+    <!--
+      输入框。
+      WPF 默认 TextBox 是 Aero2 那套浅色方框 —— 在深色玻璃面上就是一块白砖，
+      连边框都是系统灰。这里换成「凹陷玻璃槽 + 聚焦时亮蓝环」。
+    -->
+    <Style x:Key="AiField" TargetType="{x:Type TextBox}">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Strong}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent.Primary}" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource Brush.Accent.Primary}" />
+      <Setter Property="SelectionOpacity" Value="0.34" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Padding" Value="9,6" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type TextBox}">
+            <Border x:Name="Bd" CornerRadius="8" BorderThickness="1"
+                    Background="{DynamicResource Brush.Glass.FaceSunken}"
+                    BorderBrush="#1AFFFFFF">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                            VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="UIElement.IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="#30FFFFFF" />
+              </Trigger>
+              <Trigger Property="UIElement.IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Accent.Primary}" />
+                <Setter TargetName="Bd" Property="Background" Value="#0FFFFFFF" />
+              </Trigger>
+              <Trigger Property="UIElement.IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!--
+      三态分段控件（禁止 / 询问 / 允许）。
+      用 RadioButton 而不是 ComboBox：三选一且都要一眼看见，下拉要两步。
+      选中色走 Tag 传进来（同一个模板，三种语义三种底色）——
+      模板里只有一个「选中态背景」需要变，为此写三份模板不值得。
+    -->
+    <Style x:Key="AiSegBase" TargetType="{x:Type RadioButton}">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type RadioButton}">
+            <Grid>
+              <Border x:Name="Sel" CornerRadius="6" Background="{TemplateBinding Tag}" Opacity="0" />
+              <ContentPresenter Margin="0,4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="UIElement.IsMouseOver" Value="True">
+                <Setter TargetName="Sel" Property="Opacity" Value="0.35" />
+              </Trigger>
+              <Trigger Property="ToggleButton.IsChecked" Value="True">
+                <Setter TargetName="Sel" Property="Opacity" Value="1" />
+                <Setter Property="Foreground" Value="#FFFFFF" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+              </Trigger>
+              <!--
+                禁用（Agent 关着 / 正在跑）时**不能**去动 Sel.Opacity：
+                那是「选中底」，一压就变成三段都有一点底色 —— 其中「允许」的底色最显眼，
+                于是看起来像三项全选了「允许」（实测截图就是这个效果）。
+                正确做法：选中区分原样保留，整段文字压暗即可。
+              -->
+              <Trigger Property="UIElement.IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="AiSegDeny" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
+      <Setter Property="Tag" Value="#4DFFFFFF" />
+    </Style>
+    <Style x:Key="AiSegAsk" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
+      <Setter Property="Tag" Value="#8CE0A03C" />
+    </Style>
+    <Style x:Key="AiSegAllow" TargetType="{x:Type RadioButton}" BasedOn="{StaticResource AiSegBase}">
+      <Setter Property="Tag" Value="{DynamicResource Brush.Accent.Primary}" />
+    </Style>
+
+    <!-- 分段槽：三段共用的凹陷底 -->
+    <Style x:Key="AiSegTrack" TargetType="{x:Type Border}">
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="2" />
+      <Setter Property="Background" Value="#0AFFFFFF" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#14FFFFFF" />
+    </Style>
+
+    <!-- 右栏用的精简开关：46×28 在 34 行高的卡里偏壮，缩到 42×24 更秀气 -->
+    <Style x:Key="AiSwitch" TargetType="{x:Type CheckBox}" BasedOn="{StaticResource LauncherSwitchToggleButtonStyle}">
+      <Setter Property="Width" Value="42" />
+      <Setter Property="Height" Value="24" />
+    </Style>
+
     <Style x:Key="AiDivider" TargetType="{x:Type Border}">
       <Setter Property="Height" Value="1" />
       <Setter Property="Margin" Value="0,10,0,10" />
@@ -174,6 +283,7 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
       <StackPanel Grid.Row="0" Margin="0,0,0,10">
@@ -186,7 +296,10 @@
       </StackPanel>
 
       <ScrollViewer Grid.Row="1" x:Name="ChatScroll" VerticalScrollBarVisibility="Auto"
-                    HorizontalScrollBarVisibility="Disabled" Padding="0,0,8,0">
+                    HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+        <ScrollViewer.Resources>
+          <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource MainContentScrollBarStyle}" />
+        </ScrollViewer.Resources>
         <ItemsControl ItemsSource="{Binding Messages}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
@@ -220,8 +333,12 @@
                                 <TextBlock Style="{StaticResource AiMono}" Text="{Binding Detail}" />
                               </StackPanel>
                               <DataTemplate.Triggers>
+                                <!--
+                                  用琥珀而不是红：#FF7A85 那种红在这套蓝黑界面里像报警灯，
+                                  而「被拒绝 / 被中断」不是系统故障，只是这一步没成。
+                                -->
                                 <DataTrigger Binding="{Binding IsError}" Value="True">
-                                  <Setter TargetName="StepTitle" Property="Foreground" Value="#FF7A85" />
+                                  <Setter TargetName="StepTitle" Property="Foreground" Value="#E8B96A" />
                                 </DataTrigger>
                               </DataTemplate.Triggers>
                             </DataTemplate>
@@ -258,9 +375,43 @@
         </ItemsControl>
       </ScrollViewer>
 
+      <!--
+        确认条：三态里选「询问」时，工具真动手之前先摊在这里。
+        故意做成页面内的一条而不是模态对话框 —— 模态会把 SendAsync 的续体
+        卡在另一个消息循环里，用户一关窗就再也没人给结果，整轮任务永远挂着。
+      -->
+      <Border Grid.Row="2" Margin="0,10,0,0" CornerRadius="12" Padding="14,11"
+              BorderThickness="1" BorderBrush="#4DE0A03C" Background="#1CE0A03C"
+              Visibility="{Binding HasPendingConfirm, Converter={StaticResource BoolVis}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0" Margin="0,0,12,0">
+            <TextBlock Text="{Binding ConfirmTitle, Mode=OneWay}" FontSize="12.5" FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Text.Strong}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ConfirmTarget, Mode=OneWay}" Style="{StaticResource AiMono}"
+                       FontSize="11" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding ConfirmExtra, Mode=OneWay}" FontSize="11" Margin="0,3,0,0"
+                       Foreground="#E8B96A" TextWrapping="Wrap"
+                       Visibility="{Binding HasConfirmExtra, Converter={StaticResource BoolVis}}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="拒绝" Command="{Binding DenyConfirmCommand}" Margin="0,0,8,0"
+                    Style="{StaticResource AiGhostButton}" />
+            <Button Content="本轮都允许" Command="{Binding AllowTurnCommand}" Margin="0,0,8,0"
+                    Style="{StaticResource AiGhostButton}" />
+            <Button Content="允许一次" Command="{Binding AllowOnceCommand}"
+                    Style="{StaticResource AiPrimaryButton}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
       <!-- 输入区 -->
-      <Border Grid.Row="2" Style="{StaticResource AiBubble}" HorizontalAlignment="Stretch"
-              MaxWidth="10000" Margin="0,10,0,0" Padding="12,10">
+      <Border Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,10,0,0" Padding="12,10"
+              CornerRadius="14" BorderThickness="1"
+              BorderBrush="#1CFFFFFF" Background="#10FFFFFF">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -270,7 +421,9 @@
             <TextBox x:Name="InputBox" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="140"
                      VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"
-                     Foreground="{DynamicResource Brush.Text.Strong}" CaretBrush="{DynamicResource Brush.Text.Strong}"
+                     Foreground="{DynamicResource Brush.Text.Strong}"
+                     CaretBrush="{DynamicResource Brush.Accent.Primary}"
+                     SelectionBrush="{DynamicResource Brush.Accent.Primary}" SelectionOpacity="0.32"
                      FontSize="13" KeyDown="InputBox_KeyDown" />
             <!-- 占位提示：WPF 的 TextBox 没有 placeholder，只能叠一层不吃点击的文字 -->
             <TextBlock Text="问点什么…  Enter 发送 · Shift+Enter 换行"
@@ -295,6 +448,9 @@
       不再用原生 CheckBox —— 原生方框在深色玻璃面上像上个时代的控件。
     -->
     <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer.Resources>
+        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource MainContentScrollBarStyle}" />
+      </ScrollViewer.Resources>
       <StackPanel>
 
         <!-- 模式 -->
@@ -312,19 +468,19 @@
 
             <Grid Height="34">
               <TextBlock Style="{StaticResource AiRowLabel}" Text="Agent 模式" />
-              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+              <CheckBox Style="{StaticResource AiSwitch}"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         IsChecked="{Binding IsAgentMode, Mode=TwoWay}"
                         IsEnabled="{Binding CanEditPermissions}" />
             </Grid>
             <TextBlock Style="{StaticResource AiHint}"
-                       Text="可以读写文件、执行命令来修问题；关掉只聊天，不碰你的电脑。" />
+                       Text="打开后我才能动你的文件、跑命令；关掉只聊天，什么都不碰。" />
 
             <Border Style="{StaticResource AiDivider}" />
 
             <Grid Height="34">
               <TextBlock Style="{StaticResource AiRowLabel}" Text="显示思考过程" />
-              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
+              <CheckBox Style="{StaticResource AiSwitch}"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         IsChecked="{Binding UseReasoning, Mode=TwoWay}"
                         IsEnabled="{Binding CanEditPermissions}" />
@@ -334,45 +490,75 @@
           </StackPanel>
         </Border>
 
-        <!-- 权限 -->
+        <!-- 权限（三态：禁止 / 询问 / 允许） -->
         <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">
           <StackPanel>
             <Grid Margin="0,0,0,10">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
                       Background="{DynamicResource Brush.Accent.Primary}" />
               <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="权限" />
+              <TextBlock Grid.Column="2" Text="随 Agent 模式生效" FontSize="10" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Text.Muted}" />
             </Grid>
 
-            <Grid Height="34">
-              <TextBlock Style="{StaticResource AiRowLabel}" Text="读取文件 / 列目录" />
-              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
-                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                        IsChecked="{Binding AllowRead, Mode=TwoWay}"
-                        IsEnabled="{Binding CanEditPermissions}" />
-            </Grid>
+            <!-- Agent 关着时明确说一句，别让人以为设了就在生效 -->
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,0,0,8" Foreground="#E8B96A"
+                       Text="Agent 模式已关闭 —— 下面三项现在不生效，模型连工具都没有。"
+                       Visibility="{Binding AgentOffHintVisible, Converter={StaticResource BoolVis}}" />
 
-            <Grid Height="34">
-              <TextBlock Style="{StaticResource AiRowLabel}" Text="写入 / 覆盖文件" />
-              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
-                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                        IsChecked="{Binding AllowWrite, Mode=TwoWay}"
-                        IsEnabled="{Binding CanEditPermissions}" />
-            </Grid>
+            <!-- 读 -->
+            <TextBlock Style="{StaticResource AiRowLabel}" Text="读取文件 / 列目录" Margin="0,0,0,5" />
+            <Border Style="{StaticResource AiSegTrack}" IsEnabled="{Binding PermissionsEnabled}">
+              <UniformGrid Columns="3" Height="26">
+                <RadioButton Style="{StaticResource AiSegDeny}" Content="禁止" GroupName="SegRead"
+                             IsChecked="{Binding ReadDeny, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAsk}" Content="询问" GroupName="SegRead"
+                             IsChecked="{Binding ReadAsk, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAllow}" Content="允许" GroupName="SegRead"
+                             IsChecked="{Binding ReadAllow, Mode=TwoWay}" />
+              </UniformGrid>
+            </Border>
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,5,0,11"
+                       Text="{Binding ReadPolicyHint, Mode=OneWay}" />
 
-            <Grid Height="34">
-              <TextBlock Style="{StaticResource AiRowLabel}" Text="执行命令（cmd）" />
-              <CheckBox Style="{StaticResource LauncherSwitchToggleButtonStyle}"
-                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                        IsChecked="{Binding AllowExecute, Mode=TwoWay}"
-                        IsEnabled="{Binding CanEditPermissions}" />
-            </Grid>
+            <Border Style="{StaticResource AiDivider}" Margin="0,0,0,11" />
 
-            <TextBlock Style="{StaticResource AiHint}" Margin="0,6,0,0"
-                       Text="关掉时我会明确告诉你「权限不足」，不会尝试绕过。写入与执行默认关闭。" />
+            <!-- 写 -->
+            <TextBlock Style="{StaticResource AiRowLabel}" Text="写入 / 覆盖文件" Margin="0,0,0,5" />
+            <Border Style="{StaticResource AiSegTrack}" IsEnabled="{Binding PermissionsEnabled}">
+              <UniformGrid Columns="3" Height="26">
+                <RadioButton Style="{StaticResource AiSegDeny}" Content="禁止" GroupName="SegWrite"
+                             IsChecked="{Binding WriteDeny, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAsk}" Content="询问" GroupName="SegWrite"
+                             IsChecked="{Binding WriteAsk, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAllow}" Content="允许" GroupName="SegWrite"
+                             IsChecked="{Binding WriteAllow, Mode=TwoWay}" />
+              </UniformGrid>
+            </Border>
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,5,0,11"
+                       Text="{Binding WritePolicyHint, Mode=OneWay}" />
+
+            <Border Style="{StaticResource AiDivider}" Margin="0,0,0,11" />
+
+            <!-- 执行 -->
+            <TextBlock Style="{StaticResource AiRowLabel}" Text="执行命令（cmd）" Margin="0,0,0,5" />
+            <Border Style="{StaticResource AiSegTrack}" IsEnabled="{Binding PermissionsEnabled}">
+              <UniformGrid Columns="3" Height="26">
+                <RadioButton Style="{StaticResource AiSegDeny}" Content="禁止" GroupName="SegExec"
+                             IsChecked="{Binding ExecDeny, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAsk}" Content="询问" GroupName="SegExec"
+                             IsChecked="{Binding ExecAsk, Mode=TwoWay}" />
+                <RadioButton Style="{StaticResource AiSegAllow}" Content="允许" GroupName="SegExec"
+                             IsChecked="{Binding ExecAllow, Mode=TwoWay}" />
+              </UniformGrid>
+            </Border>
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,5,0,0"
+                       Text="{Binding ExecPolicyHint, Mode=OneWay}" />
           </StackPanel>
         </Border>
 
@@ -389,8 +575,8 @@
               <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="工作目录" />
             </Grid>
 
-            <TextBox Text="{Binding WorkspaceRoot, UpdateSourceTrigger=PropertyChanged}"
-                     FontSize="11.5" Margin="0,0,0,6" />
+            <TextBox Style="{StaticResource AiField}" FontSize="11.5" Margin="0,0,0,6"
+                     Text="{Binding WorkspaceRoot, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Style="{StaticResource AiMono}" FontSize="10.5" Margin="0,0,0,10"
                        Text="{Binding EffectiveRoot, Mode=OneWay}" />
             <Button Content="选择目录…" Command="{Binding PickFolderCommand}" HorizontalAlignment="Left"

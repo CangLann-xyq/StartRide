@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StartRide.Core
@@ -18,21 +19,45 @@ namespace StartRide.Core
         public bool Denied { get; init; }
     }
 
+    /// <summary>三态授权。</summary>
+    public enum AiPermission
+    {
+        /// <summary>禁止：直接拒绝，不问。</summary>
+        Deny = 0,
+
+        /// <summary>每次问我：执行前把「要干什么」摊给用户，点了才动。</summary>
+        Ask = 1,
+
+        /// <summary>直接允许：不再逐次确认。</summary>
+        Allow = 2,
+    }
+
+    /// <summary>一次「要动你电脑了，允许吗」的询问（UI 拿它渲染确认条）。</summary>
+    public sealed class AiConfirmRequest
+    {
+        public string Action { get; init; } = "";     // 读取文件 / 写入文件 / 执行命令
+        public string Tool { get; init; } = "";       // 中文工具名
+        public string Target { get; init; } = "";     // 具体路径或命令原文
+        public string Extra { get; init; } = "";      // 附加说明（覆盖已有文件、命令风险等）
+    }
+
     /// <summary>
     /// Agent 模式能碰电脑的唯一入口 —— 所有危险动作都从这里过一遍权限与路径检查。
     ///
-    /// 权限模型（对应启动器里的三个开关，都存在 AppSettings）：
-    ///   AiAllowRead     读文件 / 列目录
-    ///   AiAllowWrite    写文件（新建 / 覆盖）
-    ///   AiAllowExecute  执行命令
+    /// 权限模型（三态，存在 AppSettings.AiPolicy*）：
+    ///   Deny   直接拒绝
+    ///   Ask    回调 UI 问一次（用户点「允许」才动）
+    ///   Allow  直接放行
+    /// 三类能力：读（列目录/读文件）、写、执行命令。
+    ///
     /// 路径模型：
     ///   所有路径必须落在 AiWorkspaceRoot 里（默认用户目录），
     ///   越界直接拒绝 —— 不然模型一句 "读 C:\Windows\..." 就能把系统翻一遍。
     ///
-    /// 为什么不给「每次弹窗确认」：
-    ///   Agent 一轮任务会连续调十几次工具，每步弹窗等于没法用。
-    ///   所以采用「按能力授权 + 路径围栏 + 命令黑名单」，
-    ///   用户随时可以关掉开关，关掉后模型会收到明确的拒绝原因。
+    /// 为什么既有 Ask 又保留 Allow：
+    ///   Agent 修环境时会连着调十几次工具（列目录→读文件→改配置→再读一遍验证），
+    ///   每步弹窗能把人烦死，所以「这一轮都别问」是必要的；
+    ///   但默认应该是 Ask，让用户先看清它到底要改哪个文件。
     /// </summary>
     public sealed class AiToolHost
     {
@@ -113,7 +138,15 @@ namespace StartRide.Core
         // ------------------------------------------------------------------
         // 执行入口
         // ------------------------------------------------------------------
-        public async Task<AiToolResult> ExecuteAsync(string name, string argumentsJson)
+        /// <param name="confirm">
+        /// 三态里「Ask」时用它问用户；返回 true = 允许这一次。
+        /// 传 null 时 Ask 一律当拒绝（安全默认：没人能确认就不动）。
+        /// </param>
+        public async Task<AiToolResult> ExecuteAsync(
+            string name,
+            string argumentsJson,
+            CancellationToken ct = default,
+            Func<AiConfirmRequest, Task<bool>>? confirm = null)
         {
             try
             {
@@ -124,13 +157,42 @@ namespace StartRide.Core
 
                 switch (name)
                 {
-                    case "list_dir": return ListDir(Str(args, "path"));
-                    case "read_file": return ReadFile(Str(args, "path"), Int(args, "max_bytes", 200_000));
-                    case "write_file": return WriteFile(Str(args, "path"), Str(args, "content"));
-                    case "run_command": return await RunCommandAsync(Str(args, "command"), Int(args, "timeout_seconds", CommandTimeoutSeconds));
+                    case "list_dir":
+                    {
+                        var path = Str(args, "path");
+                        var g = await GuardAsync(name, path, "", ct, confirm);
+                        return g ?? ListDir(path);
+                    }
+                    case "read_file":
+                    {
+                        var path = Str(args, "path");
+                        var g = await GuardAsync(name, path, "", ct, confirm);
+                        return g ?? ReadFile(path, Int(args, "max_bytes", 200_000));
+                    }
+                    case "write_file":
+                    {
+                        var path = Str(args, "path");
+                        var content = Str(args, "content");
+                        var full = ResolvePath(path);
+                        var extra = File.Exists(full)
+                            ? $"将覆盖已有文件（当前 {FormatSize(new FileInfo(full).Length)}）"
+                            : "将新建文件";
+                        var g = await GuardAsync(name, path, extra, ct, confirm);
+                        return g ?? WriteFile(path, content);
+                    }
+                    case "run_command":
+                    {
+                        var cmd = Str(args, "command");
+                        var g = await GuardAsync(name, "", cmd, ct, confirm);
+                        return g ?? await RunCommandAsync(cmd, Int(args, "timeout_seconds", CommandTimeoutSeconds), ct);
+                    }
                     default:
                         return new AiToolResult { Ok = false, Output = "未知工具：" + name };
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;   // 取消要往上抛，不能让 VM 当成普通失败
             }
             catch (JsonException)
             {
@@ -142,12 +204,38 @@ namespace StartRide.Core
             }
         }
 
+        /// <summary>工具名 → 它需要的那个能力策略。</summary>
+        public static AiPermission PolicyOf(string tool)
+        {
+            var s = AppSettings.Current;
+            return tool switch
+            {
+                "list_dir" or "read_file" => ReadPolicy(s),
+                "write_file" => WritePolicy(s),
+                "run_command" => ExecPolicy(s),
+                _ => AiPermission.Deny,
+            };
+        }
+
+        // 老配置（三个 int? 都是 null）时从 AiAllow* 推导：原来开着 = 直接允许，
+        // 而不是「每次问我」—— 升级不该悄悄改变用户已经习惯的行为。
+        public static AiPermission ReadPolicy(AppSettings s)
+            => Clamp(s.AiPolicyRead ?? (s.AiAllowRead ? 2 : 0));
+
+        public static AiPermission WritePolicy(AppSettings s)
+            => Clamp(s.AiPolicyWrite ?? (s.AiAllowWrite ? 2 : 0));
+
+        public static AiPermission ExecPolicy(AppSettings s)
+            => Clamp(s.AiPolicyExecute ?? (s.AiAllowExecute ? 2 : 0));
+
+        private static AiPermission Clamp(int v)
+            => v <= 0 ? AiPermission.Deny : (v == 1 ? AiPermission.Ask : AiPermission.Allow);
+
         // ------------------------------------------------------------------
         // 具体工具
         // ------------------------------------------------------------------
         private AiToolResult ListDir(string path)
         {
-            if (!Guard("读取文件", AppSettings.Current.AiAllowRead, out var denied)) return denied;
             var full = ResolvePath(path);
             if (!Directory.Exists(full))
                 return new AiToolResult { Ok = false, Output = "目录不存在：" + full };
@@ -175,7 +263,6 @@ namespace StartRide.Core
 
         private AiToolResult ReadFile(string path, int maxBytes)
         {
-            if (!Guard("读取文件", AppSettings.Current.AiAllowRead, out var denied)) return denied;
             var full = ResolvePath(path);
             if (!File.Exists(full))
                 return new AiToolResult { Ok = false, Output = "文件不存在：" + full };
@@ -204,7 +291,6 @@ namespace StartRide.Core
 
         private AiToolResult WriteFile(string path, string content)
         {
-            if (!Guard("写入文件", AppSettings.Current.AiAllowWrite, out var denied)) return denied;
             var full = ResolvePath(path);
             var dir = Path.GetDirectoryName(full);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -222,9 +308,8 @@ namespace StartRide.Core
             };
         }
 
-        private async Task<AiToolResult> RunCommandAsync(string command, int timeoutSeconds)
+        private async Task<AiToolResult> RunCommandAsync(string command, int timeoutSeconds, CancellationToken ct)
         {
-            if (!Guard("执行命令", AppSettings.Current.AiAllowExecute, out var denied)) return denied;
             if (string.IsNullOrWhiteSpace(command))
                 return new AiToolResult { Ok = false, Output = "命令为空" };
 
@@ -271,7 +356,21 @@ namespace StartRide.Core
             var stdout = proc.StandardOutput.ReadToEndAsync();
             var stderr = proc.StandardError.ReadToEndAsync();
 
+            // 取消 = 立刻杀进程树。只 cancel 读流没用：
+            // WaitForExit 是阻塞调用，不响应 token，会一直等到命令自己结束。
+            // 这就是「点了停止但任务还在跑」的直接原因。
+            using var reg = ct.Register(() =>
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+            });
+
             var finished = await Task.Run(() => proc.WaitForExit(seconds * 1000));
+
+            if (ct.IsCancellationRequested)
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+                throw new OperationCanceledException(ct);
+            }
             if (!finished)
             {
                 try { proc.Kill(entireProcessTree: true); } catch { }
@@ -297,22 +396,70 @@ namespace StartRide.Core
         // ------------------------------------------------------------------
         // 权限 / 路径围栏
         // ------------------------------------------------------------------
-        private static bool Guard(string action, bool allowed, out AiToolResult denied)
+        /// <summary>
+        /// 三态门。返回 null = 放行（继续干活）；返回值 = 直接把它当结果返回。
+        ///
+        /// Nullable 返回值在这里是必要的：拒绝要返回「一句给模型看的话」，
+        /// 但单纯 bool 表达不了这句话，调用处还得再拼一次，容易两边措辞不一致。
+        /// </summary>
+        private static async Task<AiToolResult?> GuardAsync(
+            string tool, string target, string extra, CancellationToken ct,
+            Func<AiConfirmRequest, Task<bool>>? confirm)
         {
-            if (allowed)
+            var policy = PolicyOf(tool);
+            var action = ActionOf(tool);
+
+            if (policy == AiPermission.Allow) return null;
+
+            if (policy == AiPermission.Deny)
             {
-                denied = new AiToolResult();
-                return true;
+                return new AiToolResult
+                {
+                    Ok = false,
+                    Denied = true,
+                    Output = $"【权限不足】当前策略禁止{action}。"
+                             + "请让用户在 AI 助手右侧的「权限」里把这一项改成「询问」或「允许」后再试，不要尝试绕过。",
+                };
             }
-            denied = new AiToolResult
+
+            // Ask：没有确认通道就当拒绝 —— 宁可不动，也不能「问不到就自己决定」
+            if (confirm == null)
+            {
+                return new AiToolResult
+                {
+                    Ok = false,
+                    Denied = true,
+                    Output = $"【未确认】{action}需要用户确认，但当前没有可用的确认界面，已跳过。",
+                };
+            }
+
+            ct.ThrowIfCancellationRequested();
+            var allowed = await confirm(new AiConfirmRequest
+            {
+                Action = action,
+                Tool = DisplayName(tool),
+                Target = target,
+                Extra = extra,
+            });
+
+            if (allowed) return null;
+
+            return new AiToolResult
             {
                 Ok = false,
                 Denied = true,
-                Output = $"【权限不足】当前不允许{action}。请让用户在 AI 助手右侧的「权限」里打开对应开关后再试，"
-                         + "不要尝试绕过。",
+                Output = $"【用户拒绝】用户没有允许这次{action}。"
+                         + "不要再重复调用同一个工具，直接把情况告诉用户，或者换个不需要许可的做法。",
             };
-            return false;
         }
+
+        private static string ActionOf(string tool) => tool switch
+        {
+            "list_dir" or "read_file" => "读取文件",
+            "write_file" => "写入文件",
+            "run_command" => "执行命令",
+            _ => "该操作",
+        };
 
         public static string WorkspaceRoot()
         {

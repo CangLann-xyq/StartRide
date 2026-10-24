@@ -69,19 +69,26 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <!--
+    滚动条滑块。
+    原来的做法是一根 5px 的纯色细线，在深色玻璃面上两个问题：
+      ① 没有底槽，看不出「总长多少、我停在哪」，只能靠它自己推位置
+      ② 圆角 2.5 + 硬色，边缘发毛，hover 时突然跳亮一档，很廉价
+    现在：6px 圆角 3 + 上下留 3px 呼吸 + 拖动时切主题蓝（一眼看出「正在拖」）。
+  -->
   <Style x:Key="SlimScrollThumbStyle" TargetType="{x:Type Thumb}">
-    <Setter Property="MinHeight" Value="34" />
-    <Setter Property="Background" Value="{DynamicResource Brush.5CFFFFFF}" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="Background" Value="#59FFFFFF" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type Thumb}">
-          <Border Name="Root" Width="5" Margin="1,2" HorizontalAlignment="Center" Background="{TemplateBinding Control.Background}" CornerRadius="2.5" />
+          <Border Name="Root" Width="6" Margin="1,3" HorizontalAlignment="Center" Background="{TemplateBinding Control.Background}" CornerRadius="3" />
           <ControlTemplate.Triggers>
             <Trigger Property="UIElement.IsMouseOver" Value="True">
-              <Setter TargetName="Root" Value="{DynamicResource Brush.84FFFFFF}" Property="Border.Background" />
+              <Setter TargetName="Root" Value="#8CFFFFFF" Property="Border.Background" />
             </Trigger>
             <Trigger Property="Thumb.IsDragging" Value="True">
-              <Setter TargetName="Root" Value="{DynamicResource Brush.A8FFFFFF}" Property="Border.Background" />
+              <Setter TargetName="Root" Value="{DynamicResource Brush.Accent.Primary}" Property="Border.Background" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -89,13 +96,16 @@
     </Setter>
   </Style>
   <Style x:Key="SlimVerticalScrollBarStyle" TargetType="{x:Type ScrollBar}">
-    <Setter Property="Width" Value="8" />
-    <Setter Property="MinWidth" Value="8" />
+    <Setter Property="Width" Value="10" />
+    <Setter Property="MinWidth" Value="10" />
     <Setter Property="Background" Value="#00FFFFFF" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type ScrollBar}">
           <Grid Background="#00FFFFFF">
+            <!-- 底槽：极淡的一条，只说明「轨道有多长」，不能抢滑块的存在感 -->
+            <Border Name="TrackBed" Width="6" HorizontalAlignment="Right" Margin="0,3,2,3"
+                    CornerRadius="3" Background="#08FFFFFF" />
             <Track Name="PART_Track" IsDirectionReversed="True">
               <Track.DecreaseRepeatButton>
                 <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollRepeatButtonStyle}" />
@@ -108,6 +118,11 @@
               </Track.IncreaseRepeatButton>
             </Track>
           </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="UIElement.IsMouseOver" Value="True">
+              <Setter TargetName="TrackBed" Property="Background" Value="#12FFFFFF" />
+            </Trigger>
+          </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
@@ -165,13 +180,38 @@
     <Setter Property="behaviors:SmoothScrollBehavior.WheelAnimationDurationMilliseconds" Value="130" />
   </Style>
   <Style x:Key="MainContentScrollBarStyle" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource SlimVerticalScrollBarStyle}">
-    <Setter Property="Margin" Value="0,8,2,8" />
+    <Setter Property="Margin" Value="0,8,0,8" />
     <Setter Property="UIElement.Opacity" Value="0" />
     <Setter Property="UIElement.IsHitTestVisible" Value="False" />
     <Style.Triggers>
+      <!--
+        显隐用动画而不是 Setter 直切：直切在快速划过页面时会「啪啪」闪，像在抖。
+        160ms 淡入 / 220ms 淡出后就只是安静地出现和消失。
+      -->
       <DataTrigger Value="True" Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
-        <Setter Property="UIElement.Opacity" Value="1" />
         <Setter Property="UIElement.IsHitTestVisible" Value="True" />
+        <DataTrigger.EnterActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.16">
+                <DoubleAnimation.EasingFunction>
+                  <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </DataTrigger.EnterActions>
+        <DataTrigger.ExitActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22">
+                <DoubleAnimation.EasingFunction>
+                  <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </DataTrigger.ExitActions>
       </DataTrigger>
     </Style.Triggers>
   </Style>

@@ -183,14 +183,36 @@ namespace StartRide.Core
         // 不是「能不能连」——连不上是网络问题，不是权限问题。
         // ------------------------------------------------------------------
 
-        /// <summary>允许 AI 读取文件 / 列目录。</summary>
+        /// <summary>允许 AI 读取文件 / 列目录（旧口径，由策略派生，保留只为读老配置）。</summary>
         public bool AiAllowRead { get; set; } = true;
 
-        /// <summary>允许 AI 写入或覆盖文件（默认关：写错文件是不可逆的）。</summary>
+        /// <summary>允许 AI 写入或覆盖文件（旧口径，由策略派生）。</summary>
         public bool AiAllowWrite { get; set; } = false;
 
-        /// <summary>允许 AI 执行命令行（默认关：等于把整台机器交出去）。</summary>
+        /// <summary>允许 AI 执行命令行（旧口径，由策略派生）。</summary>
         public bool AiAllowExecute { get; set; } = false;
+
+        /// <summary>
+        /// 三态授权：0 = 禁止，1 = 每次问我，2 = 直接允许。
+        ///
+        /// 为什么不能只有一个 bool：真正要防的不是「AI 能不能写文件」，
+        /// 而是「这一次写的到底是哪个文件」。开关式授权一开就是长期放行，
+        /// 中间 AI 想覆盖什么都不会再问；反过来全关又等于 Agent 模式半残。
+        /// 默认：读=允许（只读不会造成损失），写/执行=每次问我（能看清它要干什么再点头）。
+        ///
+        /// null = 老配置，没有这三个字段，此时从上面的 AiAllow* 推导，
+        /// 老用户升级后行为不变（原来开着还是直接允许）。
+        /// </summary>
+        // 默认值（老配置里没有这几个键时也用这套）：
+        //   读 → 2 直接允许（只读不会有损失，每次都问会很烦）
+        //   写 / 执行 → 1 每次问我（这两项才是真正会改东西的）
+        // 不给 1 的话，从没动过设置的用户一进 Agent 只会收到「权限不足」，
+        // 等于这个模式对他们根本不存在。
+        public int? AiPolicyRead { get; set; } = 2;
+
+        public int? AiPolicyWrite { get; set; } = 1;
+
+        public int? AiPolicyExecute { get; set; } = 1;
 
         /// <summary>
         /// AI 能访问的根目录。所有读写路径都会被解析到这个目录下，
