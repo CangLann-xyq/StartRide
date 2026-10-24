@@ -176,6 +176,35 @@ namespace StartRide.Core
         public int? ModeNoVehicleSwap { get; set; }
 
         // ------------------------------------------------------------------
+        // AI 助手
+        //
+        // 密钥不在本地：客户端只连自己的服务端（cloudfurhub.cn/api/startride/ai），
+        // DeepSeek 的 key 只存在于服务器 .env。这里是「能用它做什么」的授权，
+        // 不是「能不能连」——连不上是网络问题，不是权限问题。
+        // ------------------------------------------------------------------
+
+        /// <summary>允许 AI 读取文件 / 列目录。</summary>
+        public bool AiAllowRead { get; set; } = true;
+
+        /// <summary>允许 AI 写入或覆盖文件（默认关：写错文件是不可逆的）。</summary>
+        public bool AiAllowWrite { get; set; } = false;
+
+        /// <summary>允许 AI 执行命令行（默认关：等于把整台机器交出去）。</summary>
+        public bool AiAllowExecute { get; set; } = false;
+
+        /// <summary>
+        /// AI 能访问的根目录。所有读写路径都会被解析到这个目录下，
+        /// 越界直接拒绝（防止模型去翻 C:\Windows）。留空 = 用户目录。
+        /// </summary>
+        public string AiWorkspaceRoot { get; set; } = "";
+
+        /// <summary>对话模式用的模型：deepseek-chat / deepseek-reasoner。</summary>
+        public string AiModel { get; set; } = "deepseek-chat";
+
+        /// <summary>上次用的模式：true = Agent（能动手），false = 对话。</summary>
+        public bool AiAgentMode { get; set; } = false;
+
+        // ------------------------------------------------------------------
 
         [JsonIgnore]
         public bool PreInstallMod => AutoInstallMod && !RemoveModOnLeave;

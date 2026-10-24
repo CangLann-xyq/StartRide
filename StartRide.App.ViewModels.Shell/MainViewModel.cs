@@ -27,7 +27,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace StartRide.App.ViewModels.Shell;
 
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
 	private static readonly TimeSpan FloatingMessageDuration = TimeSpan.FromSeconds(2.2);
 

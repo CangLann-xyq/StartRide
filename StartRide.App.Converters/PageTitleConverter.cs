@@ -20,6 +20,7 @@ public sealed class PageTitleConverter : IValueConverter
 			"Resources" => Strings.Page_Resources, 
 			"Settings" => Strings.Page_Settings, 
 			"Highlights" => Strings.Page_Highlights, 
+			"Ai" => "AI 助手", 
 			_ => value?.ToString() ?? string.Empty, 
 		};
 	}

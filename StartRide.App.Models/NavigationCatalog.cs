@@ -27,7 +27,9 @@ internal static class NavigationCatalog
 
 	public const string HighlightsPage = "Highlights";
 
-	public static readonly string[] PageOrder = new string[9] { "Account", "Home", "Multiplayer", "Download", "GameSettings", "Resources", "Settings", "Install", "Highlights" };
+	public const string AiPage = "Ai";
+
+	public static readonly string[] PageOrder = new string[10] { "Account", "Home", "Multiplayer", "Download", "GameSettings", "Resources", "Settings", "Install", "Highlights", "Ai" };
 
 	public static NavigationItem CreateDownloadTasksItem()
 	{
@@ -42,7 +44,7 @@ internal static class NavigationCatalog
 
 	public static IEnumerable<NavigationItem> CreatePrimaryItems()
 	{
-		return new global::_003C_003Ez__ReadOnlyArray<NavigationItem>(new NavigationItem[8]
+		return new global::_003C_003Ez__ReadOnlyArray<NavigationItem>(new NavigationItem[9]
 		{
 			new NavigationItem
 			{
@@ -94,6 +96,13 @@ internal static class NavigationCatalog
 				Title = "高光时刻",
 				Icon = "\ue722",
 				IconKey = "beamng/record"
+			},
+			new NavigationItem
+			{
+				Page = "Ai",
+				Title = "AI 助手",
+				Icon = "\ue99a",
+				IconKey = "general/general_startride_logo"
 			},
 			new NavigationItem
 			{
