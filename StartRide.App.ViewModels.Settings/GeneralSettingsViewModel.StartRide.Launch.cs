@@ -1280,6 +1280,93 @@ public sealed partial class GeneralSettingsViewModel
 
 	public ObservableCollection<RelayProbeItem> RelayProbes { get; } = new ObservableCollection<RelayProbeItem>();
 
+	private string relayHostText = string.Empty;
+	private string relayTcpPortText = "7777";
+	private string relayWsPortText = "80";
+	private string relayWsPathText = "/relay-ws";
+
+	/// <summary>中继服务器地址：留空或等于官方默认 = 走官方；填自建服务器 IP/域名 = 走自建。</summary>
+	public string RelayHostText
+	{
+		get => relayHostText;
+		set
+		{
+			value = (value ?? "").Trim();
+			if (relayHostText == value) return;
+			relayHostText = value;
+			OnPropertyChanged("RelayHostText");
+			PersistStartRide(a => a.RelayHost = value.Length == 0 ? AppSettings.DefaultRelayHost : value);
+		}
+	}
+
+	public string RelayTcpPortText
+	{
+		get => relayTcpPortText;
+		set
+		{
+			value = (value ?? "").Trim();
+			if (relayTcpPortText == value) return;
+			relayTcpPortText = value;
+			OnPropertyChanged("RelayTcpPortText");
+			if (int.TryParse(value, out var p) && p > 0 && p < 65536)
+				PersistStartRide(a => a.RelayTcpPort = p);
+		}
+	}
+
+	public string RelayWsPortText
+	{
+		get => relayWsPortText;
+		set
+		{
+			value = (value ?? "").Trim();
+			if (relayWsPortText == value) return;
+			relayWsPortText = value;
+			OnPropertyChanged("RelayWsPortText");
+			if (int.TryParse(value, out var p) && p > 0 && p < 65536)
+				PersistStartRide(a => a.RelayWebSocketPort = p);
+		}
+	}
+
+	public string RelayWsPathText
+	{
+		get => relayWsPathText;
+		set
+		{
+			value = (value ?? "").Trim();
+			if (relayWsPathText == value) return;
+			relayWsPathText = value;
+			OnPropertyChanged("RelayWsPathText");
+			if (value.StartsWith("/"))
+				PersistStartRide(a => a.RelayWebSocketPath = value);
+		}
+	}
+
+	[GeneratedCode("HandWritten", "1.0.0.0")]
+	public IRelayCommand ResetRelayDefaultsCommand =>
+		resetRelayDefaultsCommand ?? (resetRelayDefaultsCommand = new RelayCommand(ResetRelayDefaults));
+
+	private RelayCommand? resetRelayDefaultsCommand;
+
+	private void ResetRelayDefaults()
+	{
+		PersistStartRide(a =>
+		{
+			a.RelayHost = AppSettings.DefaultRelayHost;
+			a.RelayTcpPort = AppSettings.DefaultRelayTcpPort;
+			a.RelayWebSocketPort = AppSettings.DefaultRelayWsPort;
+			a.RelayWebSocketPath = AppSettings.DefaultRelayWsPath;
+		});
+		relayHostText = AppSettings.DefaultRelayHost;
+		relayTcpPortText = AppSettings.DefaultRelayTcpPort.ToString();
+		relayWsPortText = AppSettings.DefaultRelayWsPort.ToString();
+		relayWsPathText = AppSettings.DefaultRelayWsPath;
+		OnPropertyChanged("RelayHostText");
+		OnPropertyChanged("RelayTcpPortText");
+		OnPropertyChanged("RelayWsPortText");
+		OnPropertyChanged("RelayWsPathText");
+		statusService.Report(Strings.Settings_RelayResetDone);
+	}
+
 	public string RelayStatusText
 	{
 		get => relayStatusText;
@@ -1299,6 +1386,10 @@ public sealed partial class GeneralSettingsViewModel
 	private void InitializeRelaySection()
 	{
 		var app = AppSettings.Current;
+		relayHostText = app.RelayHost;
+		relayTcpPortText = app.RelayTcpPort.ToString();
+		relayWsPortText = app.RelayWebSocketPort.ToString();
+		relayWsPathText = app.RelayWebSocketPath;
 		RelayStatusText = app.LastRelayLatencyMs >= 0
 			? string.Format(Strings.Settings_RelayLastResultFormat, app.LastRelayLatencyMs)
 			: Strings.Settings_RelayNotTested;

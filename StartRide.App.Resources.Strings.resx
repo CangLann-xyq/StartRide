@@ -1730,6 +1730,13 @@
   <data name="Settings_StorageCleanConfirmMessage" xml:space="preserve"><value>确定要清空「{0}」吗？将删除其中约 {1} 的文件，此操作不可撤销。</value></data>
   <data name="Settings_RelaySection" xml:space="preserve"><value>联机延迟</value></data>
   <data name="Settings_RelayDescription" xml:space="preserve"><value>联机连不上时先在这里确认「我这台机器到中继到底通不通」。会分别测 WebSocket 主通道与直连兜底通道。</value></data>
+<data name="Settings_RelayServerAddressLabel" xml:space="preserve"><value>中继服务器地址</value></data>
+<data name="Settings_RelayServerAddressHint" xml:space="preserve"><value>留空走官方；填自建服务器（Linux 安装包）给出的 IP 或域名后，房间列表与联机都会走它。</value></data>
+<data name="Settings_RelayTcpPortLabel" xml:space="preserve"><value>直连端口（TCP）</value></data>
+<data name="Settings_RelayWsPortLabel" xml:space="preserve"><value>WebSocket 端口</value></data>
+<data name="Settings_RelayWsPathLabel" xml:space="preserve"><value>WebSocket 路径</value></data>
+<data name="Settings_RelayResetButton" xml:space="preserve"><value>恢复官方默认</value></data>
+<data name="Settings_RelayResetDone" xml:space="preserve"><value>中继设置已恢复官方默认。</value></data>
   <data name="Settings_RelayNotTested" xml:space="preserve"><value>尚未测试</value></data>
   <data name="Settings_RelayTesting" xml:space="preserve"><value>正在测试…</value></data>
   <data name="Settings_RelayTestButton" xml:space="preserve"><value>测试延迟</value></data>

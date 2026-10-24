@@ -3254,6 +3254,13 @@ The current game folder will be automatically backed up before restoration.</val
 <data name="Settings_RelaySection" xml:space="preserve"><value>Online latency</value></data>
 
 <data name="Settings_RelayDescription" xml:space="preserve"><value>When you can't connect online, first check here if "my machine can reach the relay." It tests the WebSocket main channel and the direct backup channel separately.</value></data>
+<data name="Settings_RelayServerAddressLabel" xml:space="preserve"><value>Relay server address</value></data>
+<data name="Settings_RelayServerAddressHint" xml:space="preserve"><value>Leave empty for the official relay; enter the IP or domain printed by the self-hosted Linux installer to route rooms and multiplayer there.</value></data>
+<data name="Settings_RelayTcpPortLabel" xml:space="preserve"><value>Direct TCP port</value></data>
+<data name="Settings_RelayWsPortLabel" xml:space="preserve"><value>WebSocket port</value></data>
+<data name="Settings_RelayWsPathLabel" xml:space="preserve"><value>WebSocket path</value></data>
+<data name="Settings_RelayResetButton" xml:space="preserve"><value>Reset to official defaults</value></data>
+<data name="Settings_RelayResetDone" xml:space="preserve"><value>Relay settings restored to official defaults.</value></data>
 
 <data name="Settings_RelayNotTested" xml:space="preserve"><value>Not tested yet</value></data>
 

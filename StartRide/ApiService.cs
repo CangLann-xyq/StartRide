@@ -30,6 +30,26 @@ namespace StartRide.Core
         private const string SERVER = "https://cloudfurhub.cn";
         private const string BASE = SERVER + "/api/startride";
 
+        // 房间公告板走哪台服务器：设置页把中继服务器改成自建地址后，
+        // 房间列表 / 进出房 / 房间聊天一并打到自建中继（Linux 安装包
+        // 内置的公告板接口 /api/startride/rooms...）；
+        // 账号 / 云存档 / UGC / Steam 中转仍走官方。
+        private static string RoomsBase
+        {
+            get
+            {
+                try
+                {
+                    var app = AppSettings.Current;
+                    var host = (app.RelayHost ?? "").Trim();
+                    if (host.Length > 0 && !string.Equals(host, AppSettings.DefaultRelayHost, StringComparison.OrdinalIgnoreCase))
+                        return "http://" + host + ":" + app.RelayWebSocketPort + "/api/startride";
+                }
+                catch { }
+                return BASE;
+            }
+        }
+
         public string? Token { get; set; }
 
         private static readonly JsonSerializerOptions _jsonOpts = new()
@@ -195,7 +215,7 @@ namespace StartRide.Core
         {
             try
             {
-                var resp = await _http.GetFromJsonAsync<ApiResult<List<Room>>>($"{BASE}/rooms", _jsonOpts);
+                var resp = await _http.GetFromJsonAsync<ApiResult<List<Room>>>($"{RoomsBase}/rooms", _jsonOpts);
                 return resp?.Data ?? new List<Room>();
             }
             catch { return new List<Room>(); }
@@ -205,7 +225,7 @@ namespace StartRide.Core
         {
             try
             {
-                var resp = await _http.PostAsJsonAsync($"{BASE}/rooms", room, _jsonOpts);
+                var resp = await _http.PostAsJsonAsync($"{RoomsBase}/rooms", room, _jsonOpts);
                 var r = await resp.Content.ReadFromJsonAsync<ApiResult<Room>>(_jsonOpts);
                 return r?.Data;
             }
@@ -214,34 +234,34 @@ namespace StartRide.Core
 
         public async Task CloseRoomAsync(string roomId, string by)
         {
-            try { await _http.DeleteAsync($"{BASE}/rooms/{roomId}"); } catch { }
+            try { await _http.DeleteAsync($"{RoomsBase}/rooms/{roomId}"); } catch { }
         }
 
         public async Task RoomHeartbeatAsync(string roomId)
         {
-            try { await _http.PostAsync($"{BASE}/rooms/{roomId}/heartbeat", null); } catch { }
+            try { await _http.PostAsync($"{RoomsBase}/rooms/{roomId}/heartbeat", null); } catch { }
         }
 
         public async Task JoinRoomAsync(string roomId, string player)
         {
-            try { await _http.PostAsJsonAsync($"{BASE}/rooms/{roomId}/join", new { player }, _jsonOpts); } catch { }
+            try { await _http.PostAsJsonAsync($"{RoomsBase}/rooms/{roomId}/join", new { player }, _jsonOpts); } catch { }
         }
 
         public async Task LeaveRoomAsync(string roomId, string player)
         {
-            try { await _http.PostAsJsonAsync($"{BASE}/rooms/{roomId}/leave", new { player }, _jsonOpts); } catch { }
+            try { await _http.PostAsJsonAsync($"{RoomsBase}/rooms/{roomId}/leave", new { player }, _jsonOpts); } catch { }
         }
 
         public async Task SendChatAsync(string roomId, string player, string text)
         {
-            try { await _http.PostAsJsonAsync($"{BASE}/rooms/{roomId}/chat", new { player, text }, _jsonOpts); } catch { }
+            try { await _http.PostAsJsonAsync($"{RoomsBase}/rooms/{roomId}/chat", new { player, text }, _jsonOpts); } catch { }
         }
 
         public async Task<ChatResponse?> GetChatAsync(string roomId, int sinceId)
         {
             try
             {
-                return await _http.GetFromJsonAsync<ChatResponse>($"{BASE}/rooms/{roomId}/chat?since={sinceId}", _jsonOpts);
+                return await _http.GetFromJsonAsync<ChatResponse>($"{RoomsBase}/rooms/{roomId}/chat?since={sinceId}", _jsonOpts);
             }
             catch { return null; }
         }

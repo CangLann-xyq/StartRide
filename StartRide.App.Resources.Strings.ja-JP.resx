@@ -1722,6 +1722,13 @@
 <data name="Settings_StorageCleanConfirmMessage" xml:space="preserve"><value>「{0}」を空にしてもよろしいですか？およそ {1} のファイルが削除されます。この操作は取り消せません。</value></data>
 <data name="Settings_RelaySection" xml:space="preserve"><value>オンライン遅延</value></data>
 <data name="Settings_RelayDescription" xml:space="preserve"><value>オンライン接続できない場合、まずここで「この機械からリレーに接続できるか」を確認します。WebSocketメインチャネルと直接接続バックアップチャネルを別々に測定します。</value></data>
+<data name="Settings_RelayServerAddressLabel" xml:space="preserve"><value>リレーサーバーアドレス</value></data>
+<data name="Settings_RelayServerAddressHint" xml:space="preserve"><value>空欄で公式リレーを使用。自築サーバー（Linuxインストーラー）が表示したIPまたはドメインを入力すると、部屋一覧とオンラインがそちらへ接続されます。</value></data>
+<data name="Settings_RelayTcpPortLabel" xml:space="preserve"><value>直接接続ポート（TCP）</value></data>
+<data name="Settings_RelayWsPortLabel" xml:space="preserve"><value>WebSocketポート</value></data>
+<data name="Settings_RelayWsPathLabel" xml:space="preserve"><value>WebSocketパス</value></data>
+<data name="Settings_RelayResetButton" xml:space="preserve"><value>公式既定に戻す</value></data>
+<data name="Settings_RelayResetDone" xml:space="preserve"><value>リレー設定を公式既定に戻しました。</value></data>
 <data name="Settings_RelayNotTested" xml:space="preserve"><value>まだテストしていません</value></data>
 <data name="Settings_RelayTesting" xml:space="preserve"><value>テスト中･･･</value></data>
 <data name="Settings_RelayTestButton" xml:space="preserve"><value>遅延をテスト</value></data>

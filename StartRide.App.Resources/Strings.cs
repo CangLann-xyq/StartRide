@@ -3275,6 +3275,13 @@ public static class Strings
 	public static string Settings_RelaySection => Get("Settings_RelaySection");
 
 	public static string Settings_RelayDescription => Get("Settings_RelayDescription");
+	public static string Settings_RelayServerAddressLabel => Get("Settings_RelayServerAddressLabel");
+	public static string Settings_RelayServerAddressHint => Get("Settings_RelayServerAddressHint");
+	public static string Settings_RelayTcpPortLabel => Get("Settings_RelayTcpPortLabel");
+	public static string Settings_RelayWsPortLabel => Get("Settings_RelayWsPortLabel");
+	public static string Settings_RelayWsPathLabel => Get("Settings_RelayWsPathLabel");
+	public static string Settings_RelayResetButton => Get("Settings_RelayResetButton");
+	public static string Settings_RelayResetDone => Get("Settings_RelayResetDone");
 
 	public static string Settings_RelayNotTested => Get("Settings_RelayNotTested");
 
