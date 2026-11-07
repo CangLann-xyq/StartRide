@@ -99,13 +99,17 @@ public sealed class AiStep : ObservableObject
     private bool isError;
     private bool isRunning = true;
 
-    public AiStep(string title, string args)
+    public AiStep(string title, string args, int textOffset = 0)
     {
         Title = title;
         Args = args;
+        TextOffset = textOffset;
     }
 
     public string Title { get; }
+
+    /// <summary>这一步出现时正文已经写到了哪个字符（执行过程要插在正文中间）。</summary>
+    public int TextOffset { get; }
 
     /// <summary>模型传来的原始参数（折叠起来时也能看到它想干什么）。</summary>
     public string Args { get; }
@@ -178,6 +182,9 @@ public sealed class AiMessage : ObservableObject
     // 执行过程默认折叠：步骤展开会把正文顶出视野，要看的人自己点开。
     private bool isStepsExpanded;
     private bool isStreaming;
+    private string durationText = "正在回答…";
+    private bool stepsAutoOpened;
+    private readonly DateTime startedAt = DateTime.Now;
 
     public AiMessage(string role) => Role = role;
 
@@ -196,11 +203,34 @@ public sealed class AiMessage : ObservableObject
             {
                 OnPropertyChanged(nameof(HasText));
                 OnPropertyChanged(nameof(ThinkingHeader));
+                RefreshBodySplit();
             }
         }
     }
 
     public bool HasText => !string.IsNullOrEmpty(text);
+
+    /// <summary>
+    /// 正文按「第一次工具调用发生时的长度」切成两段，折叠块插在中间。
+    /// 1:1 参考程序 AiChatDetails.renderSteps：先写出的那段文字留在原位，
+    /// 后续输出接在折叠块下方，工具记录不会把整段答案顶下去。
+    /// </summary>
+    private int SplitAt => Steps.Count == 0
+        ? 0
+        : Math.Min(text.Length, Math.Max(0, Steps[0].TextOffset));
+
+    public string TextBefore => Steps.Count == 0 ? "" : text.Substring(0, SplitAt);
+    public string TextAfter => Steps.Count == 0 ? text : text.Substring(SplitAt);
+    public string BodyText => Steps.Count == 0 ? text : TextAfter;
+    public bool HasTextBefore => Steps.Count > 0 && SplitAt > 0;
+
+    private void RefreshBodySplit()
+    {
+        OnPropertyChanged(nameof(TextBefore));
+        OnPropertyChanged(nameof(TextAfter));
+        OnPropertyChanged(nameof(BodyText));
+        OnPropertyChanged(nameof(HasTextBefore));
+    }
 
     /// <summary>思考过程（deepseek-reasoner 的 reasoning_content）。</summary>
     public string Thinking
@@ -293,7 +323,35 @@ public sealed class AiMessage : ObservableObject
 
     public bool HasSteps => Steps.Count > 0;
 
-    public string StepsHeader => "执行过程 · " + Steps.Count + " 步";
+    /// <summary>
+    /// 折叠头文案，1:1 参考程序 AiChatDetails.renderSteps 的汇总口径：
+    /// 有失败 / 需确认 → 需要你查看；有进行中 → 正在检查；否则 → 已完成 N 项检查。
+    /// </summary>
+    public string StepsSummary
+    {
+        get
+        {
+            if (StepsNeedAttention) return "诊断操作 · 需要你查看";
+            if (Steps.Any(x => x.IsRunning)) return "正在检查 · " + Steps.Count + " 项";
+            return "已完成 " + Steps.Count + " 项检查";
+        }
+    }
+
+    public bool StepsNeedAttention => Steps.Any(x => x.IsError);
+    public string StepsHeader => StepsSummary;
+
+    /// <summary>消息顶部的耗时行（参考程序 .ai-duration）。</summary>
+    public string DurationText
+    {
+        get => durationText;
+        private set => SetProperty(ref durationText, value);
+    }
+
+    public string TimeText => startedAt.ToString("HH:mm");
+
+    /// <summary>本轮收尾时把耗时定格，别让流式刷新一直改这个数。</summary>
+    public void MarkDone() => DurationText =
+        "耗时 " + (DateTime.Now - startedAt).TotalSeconds.ToString("0.0") + " s";
 
     public bool IsStreaming
     {
@@ -304,11 +362,26 @@ public sealed class AiMessage : ObservableObject
     public void AddStep(AiStep step)
     {
         Steps.Add(step);
-        OnPropertyChanged(nameof(HasSteps));
-        OnPropertyChanged(nameof(StepsHeader));
+        RefreshStepsHeader();
+        RefreshBodySplit();
     }
 
-    public void RefreshStepsHeader() => OnPropertyChanged(nameof(StepsHeader));
+    /// <summary>步骤状态变化后重算折叠头与正文切分（IsRunning / IsError 会变）。</summary>
+    public void RefreshStepsHeader()
+    {
+        OnPropertyChanged(nameof(HasSteps));
+        OnPropertyChanged(nameof(StepsHeader));
+        OnPropertyChanged(nameof(StepsSummary));
+        OnPropertyChanged(nameof(StepsNeedAttention));
+        RefreshBodySplit();
+        // 参考程序 box.open = urgent || manualOpen：只有「需要你查看」才自动展开，
+        // 正在执行时只把汇总文案改成「正在检查」，不抢用户的屏幕。
+        if (!stepsAutoOpened && StepsNeedAttention)
+        {
+            stepsAutoOpened = true;
+            IsStepsExpanded = true;
+        }
+    }
 }
 
 /// <summary>
@@ -325,7 +398,8 @@ public sealed class AiMessage : ObservableObject
 public sealed class AiAssistantViewModel : ObservableObject
 {
     // ---- 一轮任务的硬闸门（「能跑满 8 步」和「绝不死循环」同时成立） ----------
-    // StepCapacity 既是 UI 横排的 8 个编号位，也是一轮任务允许的真实工具执行次数。
+    // StepCapacity 既是一轮任务允许的真实工具执行次数，也是「已完成 N 项检查」的上限。
+    // UI 侧改成参考程序那种按消息折叠的 details 列表，不再铺固定 8 位的横排刻度。
     // 以前只有 MaxRounds=8 一个「模型调用次数」上限：模型只要中途回一次不带工具的
     // 空内容、或上游抖一下返回 5xx，整轮就 return 了 —— 玩家看到的就是「没执行 8 步
     // 就停下」。现在把「步骤数 / 模型调用数 / 墙钟时间 / 重复调用 / 空回复」拆成
@@ -892,7 +966,8 @@ public sealed class AiAssistantViewModel : ObservableObject
 
                         var slot = StepSlots[executed];
                         var display = AiToolHost.DisplayName(call.Name);
-                        var step = new AiStep(display + "：" + ShortArgs(call.Arguments), call.Arguments);
+                        var step = new AiStep(display + "：" + ShortArgs(call.Arguments),
+                                              call.Arguments, bubble.Text.Length);
                         bubble.AddStep(step);
                         bubble.RefreshStepsHeader();
                         slot.Start(display);
@@ -909,12 +984,14 @@ public sealed class AiAssistantViewModel : ObservableObject
                             // 用户在这步中途点了停止 / 全局超时。
                             // 不在这里收尾的话，这一步会永远停在「执行中…」。
                             step.Finish(false, "已停止：这一步被中断。");
+                            bubble.RefreshStepsHeader();
                             slot.Finish(false, "已停止：这一步被中断。");
                             RefreshStepRail();
                             throw;
                         }
 
                         step.Finish(r.Ok, r.Output);
+                        bubble.RefreshStepsHeader();
                         slot.Finish(r.Ok, step.Detail);
                         executed++;
                         executedSteps = executed;   // 横排表头与真实执行次数同源
@@ -1002,7 +1079,7 @@ public sealed class AiAssistantViewModel : ObservableObject
         finally
         {
             // 无论怎么退出，所有气泡都必须收掉「正在输出」—— 这是那个卡住 bug 的根治点
-            foreach (var b in bubbles) b.IsStreaming = false;
+            foreach (var b in bubbles) { b.IsStreaming = false; b.MarkDone(); }
             understanding.UnderstandingDone = true;
             // 横排上任何还亮着「执行中」的格子也必须落地，否则永远转圈
             AbortRunningSlots("本轮已结束，这一步没有继续执行。");
