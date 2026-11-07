@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Launcher.Application.Services;
+using StartRide.Services;
 using Launcher.Domain.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -72,7 +73,7 @@ namespace StartRide.Core
                         "StartRide update manifest loaded. Source={Source} RemoteVersion={Remote} RemoteCode={Code}",
                         url, info.DisplayVersion, info.VersionCode);
 
-                    if (IsNewer(info, currentVersion))
+                    if (IsNewer(info, currentVersion, StartRideUpdateState.ReadAppliedCode()))
                     {
                         _logger.LogInformation(
                             "StartRide update available. Current={Current} Remote={Remote}", currentVersion, info.DisplayVersion);
@@ -196,10 +197,13 @@ namespace StartRide.Core
             return n[0] * 10000 + n[1] * 100 + n[2];
         }
 
-        internal static bool IsNewer(LauncherUpdateInfo remote, string currentVersion)
+        internal static bool IsNewer(LauncherUpdateInfo remote, string currentVersion, int appliedCode = 0)
         {
             if (remote == null) return false;
             int currentCode = VersionCodeFrom(currentVersion);
+            // 版本号固定 1.0.0：装过更高构建号之后，本地基准要跟着抬上去，
+            // 否则每次启动都会把同一个包再推一次（见 StartRideUpdateState）。
+            if (appliedCode > currentCode) currentCode = appliedCode;
             if (remote.VersionCode > 0 && currentCode > 0 && remote.VersionCode != currentCode)
             {
                 return remote.VersionCode > currentCode;

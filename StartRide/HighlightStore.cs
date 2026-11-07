@@ -262,18 +262,31 @@ namespace StartRide.Core
             IEnumerable<string> files;
             try
             {
-                files = Directory.GetFiles(dir, "session-*.json");
+                // 同时收 .json 与 .json.tmp：游戏侧先写 .tmp 再改名，
+                // 改名那一瞬 / 改名失败时 .tmp 是这份会话唯一的完整快照。
+                var found = new List<string>();
+                found.AddRange(Directory.GetFiles(dir, "session-*.json"));
+                found.AddRange(Directory.GetFiles(dir, "session-*.json.tmp"));
+                files = found;
             }
             catch
             {
                 return list;
             }
 
+            // 同一个 sessionId 可能同时存在两份（.json 与 .tmp）。
+            // 取高光条数更多的那份，绝不因为一次半截写入就让整场消失。
+            var best = new Dictionary<string, HighlightSession>(StringComparer.OrdinalIgnoreCase);
             foreach (string file in files)
             {
                 HighlightSession? s = LoadOne(file, dir, replaysDirectory);
-                if (s != null) list.Add(s);
+                if (s == null) continue;
+                if (!best.TryGetValue(s.SessionId, out var prev) || s.Count > prev.Count)
+                {
+                    best[s.SessionId] = s;
+                }
             }
+            list.AddRange(best.Values);
 
             return list
                 .OrderByDescending(s => s.StartedLocal ?? DateTime.MinValue)
@@ -283,31 +296,99 @@ namespace StartRide.Core
 
         public static HighlightSession? LoadOne(string jsonPath, string sessionDirectory, string replaysDirectory)
         {
-            try
+            string text = ReadTolerant(jsonPath);
+            HighlightSession? s = null;
+            if (!string.IsNullOrWhiteSpace(text))
             {
-                string text = File.ReadAllText(jsonPath, Encoding.UTF8);
-                if (string.IsNullOrWhiteSpace(text)) return null;
-
-                var s = JsonSerializer.Deserialize<HighlightSession>(text, ReadOptions);
-                if (s == null) return null;
-
-                s.JsonPath = jsonPath;
-                s.ShotsDirectory = sessionDirectory;
-                s.ReplaysDirectory = replaysDirectory ?? "";
-                if (string.IsNullOrWhiteSpace(s.SessionId))
+                try
                 {
-                    s.SessionId = Path.GetFileNameWithoutExtension(jsonPath);
+                    s = JsonSerializer.Deserialize<HighlightSession>(text, ReadOptions);
                 }
-                foreach (HighlightItem it in s.Items)
+                catch
                 {
-                    it.ShotsDirectory = sessionDirectory;
+                    s = null;      // 半截 JSON：下面用占位会话兜住
                 }
-                return s;
             }
-            catch
+
+            // 🔴 以前这里 catch 之后直接 return null —— 游戏正在写文件的那几十毫秒里，
+            //    整场会话就从回放页消失，刷新一下又回来，表现就是「高光时有时无」。
+            //    现在返回一个带文件名的占位会话：列表里至少有这一场，
+            //    下一次刷新（文件写完）自然会被内容更全的那份替换掉。
+            if (s == null)
             {
-                return null;
+                s = new HighlightSession { SessionId = SessionIdFromPath(jsonPath) };
+                try
+                {
+                    s.StartedAt = File.GetLastWriteTime(jsonPath)
+                        .ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                }
+                catch
+                {
+                    // 时间拿不到无所谓，AtText 会回退到空串
+                }
             }
+
+            s.JsonPath = jsonPath;
+            s.ShotsDirectory = sessionDirectory;
+            s.ReplaysDirectory = replaysDirectory ?? "";
+            if (string.IsNullOrWhiteSpace(s.SessionId))
+            {
+                s.SessionId = SessionIdFromPath(jsonPath);
+            }
+            foreach (HighlightItem it in s.Items)
+            {
+                it.ShotsDirectory = sessionDirectory;
+            }
+            return s;
+        }
+
+        /// <summary>
+        /// 以「允许别人同时读写」的方式读文本。File.ReadAllText 默认只放行
+        /// FileShare.Read，游戏侧正握着写句柄时会直接抛 IOException。
+        /// </summary>
+        private static string ReadTolerant(string path)
+        {
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+                    using var sr = new StreamReader(fs, Encoding.UTF8, true);
+                    return sr.ReadToEnd();
+                }
+                catch (IOException)
+                {
+                    if (attempt == 2) return "";
+                    System.Threading.Thread.Sleep(20);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    if (attempt == 2) return "";
+                    System.Threading.Thread.Sleep(20);
+                }
+                catch
+                {
+                    return "";
+                }
+            }
+            return "";
+        }
+
+        private static string SessionIdFromPath(string path)
+        {
+            var name = Path.GetFileName(path);
+            if (name.EndsWith(".json.tmp", StringComparison.OrdinalIgnoreCase))
+            {
+                name = name.Substring(0, name.Length - ".json.tmp".Length);
+            }
+            else
+            {
+                name = Path.GetFileNameWithoutExtension(name);
+            }
+            return name.StartsWith("session-", StringComparison.OrdinalIgnoreCase)
+                ? name.Substring("session-".Length)
+                : name;
         }
 
         public static List<string> CollectTypes(IEnumerable<HighlightSession> sessions)
@@ -359,7 +440,13 @@ namespace StartRide.Core
                 {
                     WriteIndented = true,
                 });
-                File.WriteAllText(Path.Combine(dir, "config.json"), json, new UTF8Encoding(false));
+                // 原子替换：先写 .tmp 再 Move(overwrite)。直接原地 WriteAllText
+                // 会让游戏侧读到半截 JSON，配置静默回退成默认值
+                //（onlyInSession=true → 单人模式高光时有时无）。
+                string target = Path.Combine(dir, "config.json");
+                string staging = target + ".tmp";
+                File.WriteAllText(staging, json, new UTF8Encoding(false));
+                File.Move(staging, target, true);
                 return null;
             }
             catch (Exception ex)

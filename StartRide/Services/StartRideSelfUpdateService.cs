@@ -368,7 +368,8 @@ namespace StartRide.Services
                     installDirectory: installDirectory,
                     stageDirectory: stageDirectory,
                     executableName: Path.GetFileName(newExecutable),
-                    logPath: logPath);
+                    logPath: logPath,
+                    appliedVersionCode: update.VersionCode);
             }
             catch (Exception ex)
             {
@@ -487,7 +488,8 @@ namespace StartRide.Services
 
         private static void StartApplyScript(
             string scriptPath, int processId, string installDirectory,
-            string stageDirectory, string executableName, string logPath)
+            string stageDirectory, string executableName, string logPath,
+            int appliedVersionCode)
         {
             var startInfo = new ProcessStartInfo
             {
@@ -516,6 +518,8 @@ namespace StartRide.Services
             startInfo.ArgumentList.Add(string.Join(";", FindObsoleteArtifacts(installDirectory, stageDirectory)));
             startInfo.ArgumentList.Add("-LogPath");
             startInfo.ArgumentList.Add(logPath);
+            startInfo.ArgumentList.Add("-AppliedVersionCode");
+            startInfo.ArgumentList.Add(appliedVersionCode.ToString(CultureInfo.InvariantCulture));
 
             using Process? process = Process.Start(startInfo);
             if (process == null)
@@ -558,7 +562,8 @@ namespace StartRide.Services
     [Parameter(Mandatory = $true)][string]$StageDirectory,
     [Parameter(Mandatory = $true)][string]$ExecutableName,
     [string]$ObsoleteNames = '',
-    [string]$LogPath = ''
+    [string]$LogPath = '',
+    [int]$AppliedVersionCode = 0
 )
 
 $ErrorActionPreference = 'Continue'
@@ -680,6 +685,22 @@ if ($failed -eq 0) {
         Write-UpdateLog 'staging directory removed'
     } catch {
         Write-UpdateLog 'staging directory could not be removed'
+    }
+    # 只有文件全部复制成功才记「这个构建已装过」，安装失败时用户可以重试。
+    # 与 StartRideUpdateState.cs 的 StateFileName / StatePropertyName 保持一致。
+    if ($AppliedVersionCode -gt 0) {
+        try {
+            $stateDir = Join-Path $env:APPDATA 'StartRide'
+            if (-not (Test-Path -LiteralPath $stateDir)) {
+                New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
+            }
+            $stateFile = Join-Path $stateDir 'update-state.json'
+            $stateJson = @{ appliedVersionCode = $AppliedVersionCode } | ConvertTo-Json -Compress
+            Set-Content -LiteralPath $stateFile -Value $stateJson -Encoding UTF8
+            Write-UpdateLog ('applied version code written ' + $AppliedVersionCode)
+        } catch {
+            Write-UpdateLog ('failed to write update state  ' + $_.Exception.Message)
+        }
     }
 }
 

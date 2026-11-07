@@ -162,7 +162,9 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		}
 		catch (Exception exception)
 		{
-			PluginLog("房间登记到大厅失败（不影响房间码联机）：" + exception.Message);
+			// 登记失败**不是**无关紧要：大厅列表里没有这间房，别人就只能靠房间码进来，
+			// 而且加入者读不到房主地图会退回默认图 —— 两人会跑在不同的地图上，互相看不见。
+			PluginLog("房间登记到大厅失败（别人在大厅看不到这间房，只能用房间码邀请）：" + exception.Message);
 		}
 
 		EnsureModePackageReady(mode.Id);
@@ -190,7 +192,7 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		var room = new Room { Id = code, Name = code, Capacity = 8 };
 
 		// 房主选的地图只存在大厅列表里（中继不带 map），所以这里读不到就等于不知道该进哪张图。
-		// GetRoomsAsync 出错时会静默返回空列表，因此多试两次，失败才退化。
+		// GetRoomsAsync 读不到时返回 null（不再静默返回空列表），因此多试两次，失败才退化。
 		try
 		{
 			room = await LookupRoomAsync(code).ConfigureAwait(false) ?? room;
@@ -734,6 +736,15 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			}
 
 			var rooms = await api.GetRoomsAsync().ConfigureAwait(false);
+			if (rooms == null)
+			{
+				// 读不到 ≠ 房间不存在：GetRoomsAsync 内部已经把所有候选地址（明文中继端口 →
+				// 官方域名）都试过一轮，这里再重试只会让进房白白多等十几秒，直接放弃并记下来。
+				// 绝不能当成「房间不在列表里」就悄悄退回默认地图 —— 那会让进房的人和房主
+				// 跑在不同的图上，两人都看得见房间却永远看不见对方。
+				PluginLog("大厅公告板读取失败（" + (ApiService.LastRoomsError ?? "未知原因") + "），无法确认房主地图");
+				break;
+			}
 			var hit = rooms.FirstOrDefault(r => string.Equals(r.Id, code, StringComparison.OrdinalIgnoreCase));
 			if (hit == null)
 			{

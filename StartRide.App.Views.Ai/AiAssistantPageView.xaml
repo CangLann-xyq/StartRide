@@ -31,14 +31,31 @@
       </Setter>
     </Style>
 
-    <!-- 附注面板（思考过程 / 执行过程）：比正文淡一档，等宽字，左边一条竖线 -->
+    <!--
+      玻璃卡：1:1 参考站 auth-panel_tokenPanel 的版式语言 ——
+      14px 圆角、单像素亮边、自上而下的浅渐变、内侧一道高光，
+      里面是「小号灰标签 + 等宽正文」。旧版是「左边一条竖线」的附注块，
+      在深色底上太像引用块，不像一个独立的过程卡片。
+    -->
     <Style x:Key="AiSubPanel" TargetType="{x:Type Border}">
       <Setter Property="Margin" Value="0,0,0,8" />
-      <Setter Property="Padding" Value="10,8" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="BorderThickness" Value="2,0,0,0" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Border}" />
-      <Setter Property="Background" Value="#12FFFFFF" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+            <GradientStop Color="#12FFFFFF" Offset="0" />
+            <GradientStop Color="#06FFFFFF" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 内部还要再分「标签 / 正文」两行时用的同款卡（无外边距） -->
+    <Style x:Key="AiGlassCard" TargetType="{x:Type Border}" BasedOn="{StaticResource AiSubPanel}">
+      <Setter Property="Margin" Value="0" />
     </Style>
 
     <Style x:Key="AiMono" TargetType="{x:Type TextBlock}">
@@ -47,6 +64,18 @@
       <Setter Property="LineHeight" Value="17" />
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    </Style>
+
+    <!-- 卡内小号标签 / 右上计数：和参考站 tokenPanel 的 span + token 同层级 -->
+    <Style x:Key="AiCardLabel" TargetType="{x:Type TextBlock}">
+      <Setter Property="FontSize" Value="10.5" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    </Style>
+
+    <Style x:Key="AiCardCount" TargetType="{x:Type TextBlock}">
+      <Setter Property="FontSize" Value="10.5" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
     </Style>
 
     <Style x:Key="AiBubble" TargetType="{x:Type Border}">
@@ -291,6 +320,7 @@
     <Grid Grid.Column="0" Margin="0,0,18,0">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
@@ -305,7 +335,98 @@
         </TextBlock>
       </StackPanel>
 
-      <ScrollViewer Grid.Row="1" x:Name="ChatScroll" VerticalScrollBarVisibility="Auto"
+      <!--
+        执行步骤横排 —— 1:1 参考站 auth-panel_steps：
+        8 个 23px 圆形编号徽标，三态（待执行 / 进行中 / 已完成）+ 失败态，
+        底下一条发丝分隔线，线下面是当前步的玻璃详情卡。
+        固定 8 位：既是「一轮最多 8 步」的可视化，也是 SendAsync 的硬闸门。
+      -->
+      <Border Grid.Row="1" Margin="0,0,0,10" CornerRadius="14" Padding="14,12"
+              BorderThickness="1" BorderBrush="#14FFFFFF"
+              Visibility="{Binding StepRailVisible, Converter={StaticResource BoolVis}}">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+            <GradientStop Color="#10FFFFFF" Offset="0" />
+            <GradientStop Color="#06FFFFFF" Offset="1" />
+          </LinearGradientBrush>
+        </Border.Background>
+        <StackPanel>
+          <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Style="{StaticResource AiCardLabel}" Text="执行步骤" />
+            <TextBlock Grid.Column="1" Style="{StaticResource AiCardCount}"
+                       Text="{Binding StepRailHeader, Mode=OneWay}" />
+          </Grid>
+
+          <ItemsControl ItemsSource="{Binding StepSlots}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="8" Rows="1" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel HorizontalAlignment="Center" ToolTip="{Binding Title}">
+                  <Grid Width="23" Height="23" HorizontalAlignment="Center">
+                    <Ellipse x:Name="Dot" Fill="#0AFFFFFF" Stroke="#33FFFFFF" StrokeThickness="1" />
+                    <TextBlock x:Name="Num" Text="{Binding Badge}" FontSize="10"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.Text.Muted}" />
+                  </Grid>
+                  <TextBlock x:Name="Cap" Text="{Binding Title}" FontSize="9.5" Margin="0,4,0,0"
+                             MaxWidth="76" TextTrimming="CharacterEllipsis" TextAlignment="Center"
+                             Foreground="{DynamicResource Brush.Text.Muted}" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                  <!-- 进行中：主题蓝实心 + 白字（参考站 data-current=true） -->
+                  <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                    <Setter TargetName="Dot" Property="Fill" Value="#FF0891FE" />
+                    <Setter TargetName="Dot" Property="Stroke" Value="#FF0891FE" />
+                    <Setter TargetName="Num" Property="Foreground" Value="#FFFFFF" />
+                    <Setter TargetName="Cap" Property="Foreground" Value="#FF0891FE" />
+                    <Setter TargetName="Cap" Property="FontWeight" Value="SemiBold" />
+                  </DataTrigger>
+                  <!-- 已完成：浅蓝填充 + 蓝字（参考站 data-complete=true） -->
+                  <DataTrigger Binding="{Binding IsComplete}" Value="True">
+                    <Setter TargetName="Dot" Property="Fill" Value="#2C4A90" />
+                    <Setter TargetName="Dot" Property="Stroke" Value="#5A8FE8" />
+                    <Setter TargetName="Num" Property="Foreground" Value="#BBD8FF" />
+                  </DataTrigger>
+                  <!-- 失败：琥珀，不用红（项目约定：蓝黑界面里红色像报警灯） -->
+                  <DataTrigger Binding="{Binding IsError}" Value="True">
+                    <Setter TargetName="Dot" Property="Fill" Value="#4D3A20" />
+                    <Setter TargetName="Dot" Property="Stroke" Value="#E8B96A" />
+                    <Setter TargetName="Num" Property="Foreground" Value="#E8B96A" />
+                    <Setter TargetName="Cap" Property="Foreground" Value="#E8B96A" />
+                  </DataTrigger>
+                </DataTemplate.Triggers>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- 发丝线：参考站 .auth-panel_steps 的 border-bottom -->
+          <Border Style="{StaticResource AiDivider}" Margin="0,10,0,8" />
+
+          <Border Style="{StaticResource AiGlassCard}"
+                  Visibility="{Binding HasCurrentStep, Converter={StaticResource BoolVis}}">
+            <StackPanel>
+              <TextBlock x:Name="StepCardTitle" Style="{StaticResource AiCardLabel}"
+                         Text="{Binding CurrentStepTitle, Mode=OneWay}" FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock Style="{StaticResource AiMono}" Margin="0,6,0,0"
+                         Text="{Binding CurrentStepDetail, Mode=OneWay}" />
+            </StackPanel>
+          </Border>
+
+          <TextBlock Style="{StaticResource AiHint}" Margin="0,6,0,0"
+                     Text="一轮最多 8 步。跑满、重复调用或 8 分钟超时都会明确停下，不会空转；剩余刻度保持待执行。" />
+        </StackPanel>
+      </Border>
+
+      <ScrollViewer Grid.Row="2" x:Name="ChatScroll" VerticalScrollBarVisibility="Auto"
                     HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
         <ScrollViewer.Resources>
           <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource MainContentScrollBarStyle}" />
@@ -333,46 +454,28 @@
                       </Border>
                     </StackPanel>
 
-                    <!-- 思考过程（可折叠） -->
+                    <!--
+                      思考过程：1:1 参考站玻璃卡（小号灰标签 + 等宽正文），可折叠。
+                      执行步骤已移到上方本轮刻度横排，这里不再重复铺一份列表。
+                    -->
                     <StackPanel Visibility="{Binding HasThinking, Converter={StaticResource BoolVis}}">
                       <ToggleButton Style="{StaticResource AiFoldToggle}"
                                     Content="{Binding ThinkingHeader, Mode=OneWay}"
                                     IsChecked="{Binding IsThinkingExpanded, Mode=TwoWay}" />
-                      <Border Style="{StaticResource AiSubPanel}"
+                      <Border Style="{StaticResource AiGlassCard}"
                               Visibility="{Binding IsThinkingExpanded, Converter={StaticResource BoolVis}}">
-                        <TextBlock Style="{StaticResource AiMono}" Text="{Binding Thinking}" />
+                        <StackPanel>
+                          <TextBlock Style="{StaticResource AiCardLabel}" Text="思考过程" />
+                          <TextBlock Style="{StaticResource AiMono}" Margin="0,6,0,0"
+                                     Text="{Binding Thinking}" />
+                        </StackPanel>
                       </Border>
                     </StackPanel>
 
-                    <!-- 执行过程（可折叠，每步一条） -->
-                    <StackPanel Visibility="{Binding HasSteps, Converter={StaticResource BoolVis}}">
-                      <ToggleButton Style="{StaticResource AiFoldToggle}"
-                                    Content="{Binding StepsHeader, Mode=OneWay}"
-                                    IsChecked="{Binding IsStepsExpanded, Mode=TwoWay}" />
-                      <Border Style="{StaticResource AiSubPanel}"
-                              Visibility="{Binding IsStepsExpanded, Converter={StaticResource BoolVis}}">
-                        <ItemsControl ItemsSource="{Binding Steps}">
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                              <StackPanel Margin="0,0,0,8">
-                                <TextBlock x:Name="StepTitle" Style="{StaticResource AiMono}"
-                                           FontWeight="SemiBold" Text="{Binding Title}" />
-                                <TextBlock Style="{StaticResource AiMono}" Text="{Binding Detail}" />
-                              </StackPanel>
-                              <DataTemplate.Triggers>
-                                <!--
-                                  用琥珀而不是红：#FF7A85 那种红在这套蓝黑界面里像报警灯，
-                                  而「被拒绝 / 被中断」不是系统故障，只是这一步没成。
-                                -->
-                                <DataTrigger Binding="{Binding IsError}" Value="True">
-                                  <Setter TargetName="StepTitle" Property="Foreground" Value="#E8B96A" />
-                                </DataTrigger>
-                              </DataTemplate.Triggers>
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </Border>
-                    </StackPanel>
+                    <!-- 本条消息用到的步骤数（详情看上方横排，避免两处重复占屏） -->
+                    <TextBlock Style="{StaticResource AiCardLabel}" Margin="0,2,0,6"
+                               Text="{Binding StepsHeader, Mode=OneWay}"
+                               Visibility="{Binding HasSteps, Converter={StaticResource BoolVis}}" />
 
                     <!-- 正文 -->
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" LineHeight="22" FontSize="13"
@@ -415,7 +518,7 @@
         故意做成页面内的一条而不是模态对话框 —— 模态会把 SendAsync 的续体
         卡在另一个消息循环里，用户一关窗就再也没人给结果，整轮任务永远挂着。
       -->
-      <Border Grid.Row="2" Margin="0,10,0,0" CornerRadius="12" Padding="14,11"
+      <Border Grid.Row="3" Margin="0,10,0,0" CornerRadius="12" Padding="14,11"
               BorderThickness="1" BorderBrush="#4DE0A03C" Background="#1CE0A03C"
               Visibility="{Binding HasPendingConfirm, Converter={StaticResource BoolVis}}">
         <Grid>
@@ -444,7 +547,7 @@
       </Border>
 
       <!-- 输入区 -->
-      <Border Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,10,0,0" Padding="12,10"
+      <Border Grid.Row="4" HorizontalAlignment="Stretch" Margin="0,10,0,0" Padding="12,10"
               CornerRadius="14" BorderThickness="1"
               BorderBrush="#1CFFFFFF" Background="#10FFFFFF">
         <Grid>
@@ -487,6 +590,61 @@
         <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource MainContentScrollBarStyle}" />
       </ScrollViewer.Resources>
       <StackPanel>
+
+        <!-- 本周额度：放最上面，因为「还能不能聊」比任何开关都先被关心 -->
+        <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">
+          <StackPanel>
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Width="3" Height="12" CornerRadius="1.5" VerticalAlignment="Center"
+                      Background="{DynamicResource Brush.Accent.Primary}" />
+              <TextBlock Grid.Column="1" Style="{StaticResource AiSideTitle}" Margin="8,0,0,0" Text="本周额度" />
+              <TextBlock Grid.Column="2" Text="周一 00:00 重置" FontSize="10" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Text.Muted}" />
+            </Grid>
+
+            <TextBlock Text="{Binding QuotaSummary}"
+                       FontSize="18" FontWeight="SemiBold" Margin="0,2,0,8"
+                       Foreground="{DynamicResource Brush.Text.Strong}" />
+
+            <ProgressBar Value="{Binding QuotaPercent, Mode=OneWay}" Maximum="100" Height="5"
+                         Background="#1AFFFFFF" BorderThickness="0">
+              <ProgressBar.Style>
+                <Style TargetType="{x:Type ProgressBar}">
+                  <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}" />
+                  <Setter Property="Template">
+                    <Setter.Value>
+                      <ControlTemplate TargetType="{x:Type ProgressBar}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="2.5" ClipToBounds="True">
+                          <Grid>
+                            <Border x:Name="PART_Track" />
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}" CornerRadius="2.5" />
+                          </Grid>
+                        </Border>
+                      </ControlTemplate>
+                    </Setter.Value>
+                  </Setter>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding QuotaWarning}" Value="True">
+                      <Setter Property="Foreground" Value="#E8B96A" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </ProgressBar.Style>
+            </ProgressBar>
+
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,8,0,0" Text="{Binding QuotaDetail}" />
+
+            <TextBlock Style="{StaticResource AiHint}" Margin="0,6,0,0" Foreground="#E8B96A"
+                       Text="额度快用完了。额度按 DeepSeek 实际 token 计费折算，用完要等下周一。"
+                       Visibility="{Binding QuotaWarning, Converter={StaticResource BoolVis}}" />
+          </StackPanel>
+        </Border>
 
         <!-- 模式 -->
         <Border Style="{StaticResource AiSideCard}" Margin="0,0,0,12">

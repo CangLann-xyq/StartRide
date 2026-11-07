@@ -41,17 +41,34 @@ local function newState()
     topCount = 0,
     lastDamage = nil,
     lastReport = {},
+    -- 预留前的值，供上报失败时回滚（每个类型一份）
+    prevReport = {},
+    prevBar = 0,
+    prevCount = 0,
   }
 end
 
 S = newState()
 
-local function ready(st, typ)
+-- 判定时先「预留」冷却：M.step 必须自洽（离线单测 / 诊断脚本会直接调它）。
+-- 预留值先存一份，report() 失败时由 rollbackReport() 完整还原 ——
+-- 这样既保住直接调用方的去重，也不会让一次 queueGameEngineLua 抛错
+-- 白白吃掉这次高光。
+local function reserve(st, typ)
   local last = st.lastReport[typ]
   local cd = COOLDOWN[typ] or COOLDOWN_DEFAULT
   if last and (st.t - last) < cd then return false end
+  st.prevReport[typ] = last
   st.lastReport[typ] = st.t
   return true
+end
+
+local function rollbackReport(st, ev)
+  st.lastReport[ev.type] = st.prevReport[ev.type]
+  if ev.type == 'topspeed' then
+    st.topReported = st.prevBar
+    st.topCount = st.prevCount
+  end
 end
 
 local function detectJump(st, sample)
@@ -71,7 +88,7 @@ local function detectJump(st, sample)
   st.airPos = nil
 
   if airTime < JMP_MIN_AIRTIME then return nil end
-  if not ready(st, 'jump') then return nil end
+  if not reserve(st, 'jump') then return nil end
 
   local dist = 0
   if startPos and sample.pos then
@@ -98,7 +115,7 @@ local function detectImpact(st, sample)
 
   st.lastDamage = sample.damage
   if delta < IMPACT_MIN then return nil end
-  if not ready(st, 'impact') then return nil end
+  if not reserve(st, 'impact') then return nil end
   return { type = 'impact', value = delta, extra = 0, speed = sample.gs }
 end
 
@@ -112,7 +129,7 @@ local function detectRollover(st, sample)
   local dur = st.t - st.roofFrom
   st.roofFrom = nil
   if dur < ROLL_MIN then return nil end
-  if not ready(st, 'rollover') then return nil end
+  if not reserve(st, 'rollover') then return nil end
   return { type = 'rollover', value = dur, extra = 0, speed = sample.gs }
 end
 
@@ -126,7 +143,7 @@ local function detectBurnout(st, sample)
   local dur = st.t - st.burnFrom
   st.burnFrom = nil
   if dur < BURNOUT_MIN then return nil end
-  if not ready(st, 'burnout') then return nil end
+  if not reserve(st, 'burnout') then return nil end
   return { type = 'burnout', value = dur, extra = 0, speed = sample.gs }
 end
 
@@ -156,30 +173,58 @@ local function detectTopSpeed(st, sample)
 
   -- 冷却期内不报，**也不推进档位**：冷却过去后这一档还能补报，
   -- 不会把中间档悄悄吞掉（150 报了、200 没了）。
-  if not ready(st, 'topspeed') then return nil end
+  if not reserve(st, 'topspeed') then return nil end
 
+  -- 记「当时的实际速度」而不是刚跨过的档位：匀速 220 km/h 时若记档位，
+  -- 冷却一过就会按 150/200 再报两次，违反「匀速只报 1 次」的既有契约。
+  -- 预留前的值先存好，上报失败可整体回滚。
+  st.prevBar = st.topReported
+  st.prevCount = st.topCount
   st.topReported = sample.gs
   st.topCount = st.topCount + 1
   return { type = 'topspeed', value = sample.gs, extra = 0, speed = sample.gs }
 end
 
-function M.step(sample, dt)
+-- 每帧把五个判定全部跑一遍。以前用 if-not-ev 短路：跳跃落地那一帧
+-- detectImpact 根本没被调用，伤害基线没更新，下一帧算出的 delta 会叠两帧
+-- 甚至更多 —— 这就是「落地凭空多一条重击」和「真撞击反而漏掉」的来源。
+-- 各类型自带冷却，同帧多事件不会刷屏。
+function M.stepAll(sample, dt)
   if not S then S = newState() end
   local st = S
 
   st.t = st.t + (tonumber(dt) or 0)
   st.lastUpZ = sample.upZ
 
-  local ev = detectJump(st, sample)
-  if not ev then ev = detectImpact(st, sample) end
-  if not ev then ev = detectRollover(st, sample) end
-  if not ev then ev = detectBurnout(st, sample) end
-  if not ev then ev = detectTopSpeed(st, sample) end
-  return ev
+  local out = {}
+  local ev
+  ev = detectJump(st, sample);     if ev then out[#out + 1] = ev end
+  ev = detectImpact(st, sample);   if ev then out[#out + 1] = ev end
+  ev = detectRollover(st, sample); if ev then out[#out + 1] = ev end
+  ev = detectBurnout(st, sample);  if ev then out[#out + 1] = ev end
+  ev = detectTopSpeed(st, sample); if ev then out[#out + 1] = ev end
+  return out
+end
+
+-- 兼容旧的离线单测 / 诊断脚本：只返回本帧第一个事件。
+function M.step(sample, dt)
+  local all = M.stepAll(sample, dt)
+  return all[1]
 end
 
 function M.reset()
   S = newState()
+end
+
+-- 只清「正在进行中」的事件：下车 / 切镜头该丢的是没飞完的那一次跳跃，
+-- 而不是整局的冷却记录、极速档位和伤害基线。整局状态只由 onInit / onReset /
+-- setEnabled(false) 重建。以前离开一帧就 M.reset()，冷却被抹平后会重复上报。
+function M.clearInFlight()
+  if not S then return end
+  S.airFrom = nil
+  S.airPos = nil
+  S.roofFrom = nil
+  S.burnFrom = nil
 end
 
 function M.debugState()
@@ -200,6 +245,8 @@ local burnoutWheels = nil
 local burnoutWheelsValid = false
 local playerVehicle = false
 local enabled = true
+local PLAYER_AWAY_RESET = 0.15   -- 允许 anyPlayerSeated 抖动的秒数
+local awayTime = 0
 
 local function logI(...)
   local parts = {}
@@ -208,11 +255,13 @@ local function logI(...)
 end
 
 local function report(ev)
-  pcall(function()
+  local ok = pcall(function()
     obj:queueGameEngineLua(string.format(
       "startride.onHighlight('%s', %.3f, %.3f, %.3f)",
       ev.type, ev.value or 0, ev.extra or 0, ev.speed or 0))
   end)
+  if not ok then logI('上报失败', tostring(ev.type)) end
+  return ok == true
 end
 
 local function collect()
@@ -223,15 +272,22 @@ local function collect()
   sample.upZ = (upOk and tonumber(uz)) or 1
 
   local airborne = sample.gs > JMP_MIN_SPEED and sample.upZ > JMP_MIN_UPZ
-  if airborne and wheels and wheels.wheelCount and wheels.wheelCount > 0 then
-    for i = 0, wheels.wheelCount - 1 do
-      local wd = wheels.wheels[i]
-      if not wd or wd.contactMaterialID1 ~= -1 or wd.contactMaterialID2 ~= -1 then
-        airborne = false
-        break
+  if wheels and wheels.wheelCount and wheels.wheelCount > 0 then
+    if airborne then
+      for i = 0, wheels.wheelCount - 1 do
+        local wd = wheels.wheels[i]
+        if not wd or wd.contactMaterialID1 ~= -1 or wd.contactMaterialID2 ~= -1 then
+          airborne = false
+          break
+        end
       end
     end
+  elseif wheels == nil or wheels.wheelCount == nil then
+    -- 车轮数据整体拿不到（部分模组车 / 载具）：退回车身姿态判定，
+    -- 但把门槛抬高，避免贴地高速被误判成腾空。
+    airborne = sample.gs > 10 and sample.upZ > 0.9
   else
+    -- wheelCount == 0：船、飞行器等没有轮子的载具，不判跳跃
     airborne = false
   end
   sample.airborne = airborne
@@ -290,6 +346,7 @@ end
 
 local function onInit()
   M.reset()
+  awayTime = 0
   enabled = true
   buildBurnoutWheels()
   refreshPlayerFlag()
@@ -303,17 +360,31 @@ local function updateGFX(dt)
 
   refreshPlayerFlag()
   if not playerVehicle then
-    if S and (S.airFrom or S.roofFrom or S.burnFrom) then M.reset() end
+    -- ⚠️ 以前只要任意一帧 anyPlayerSeated 抖动（切镜头 / 暂停 / 上下车）
+    --    就 M.reset()：滞空、烧胎中途被清掉 → 这次高光凭空消失，
+    --    冷却记录也一起被抹平 → 紧接着又重复报一次。
+    --    现在容忍 0.15 秒抖动；超过之后只丢「进行中」的事件，
+    --    冷却 / 档位 / 伤害基线保持不变，避免重复上报。
+    awayTime = awayTime + dt
+    if awayTime >= PLAYER_AWAY_RESET then
+      M.clearInFlight()
+      awayTime = 0
+    end
     return
   end
+  awayTime = 0
 
   collect()
-  local ev = M.step(sample, dt)
-  if ev then report(ev) end
+  local events = M.stepAll(sample, dt)
+  for i = 1, #events do
+    local ev = events[i]
+    if not report(ev) then rollbackReport(S, ev) end
+  end
 end
 
 local function onReset()
   M.reset()
+  awayTime = 0
   buildBurnoutWheels()
 end
 

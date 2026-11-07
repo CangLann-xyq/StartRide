@@ -1121,9 +1121,20 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 			// 房间列表要显示「房主那张图」的名字，先把地图目录准备好（同一份缓存，只会读一次）
 			await LoadLobbyLevelsAsync().ConfigureAwait(true);
 
-			List<Room> rooms = await api.GetRoomsAsync().ConfigureAwait(true);
+			List<Room>? rooms = await api.GetRoomsAsync().ConfigureAwait(true);
 			PublicRooms.Clear();
 			SelectedJoinRoom = null;
+
+			// null = 真的读不到（所有候选公告板地址都失败），跟「大厅里确实没人建房」分开报。
+			// 以前这里一律按空列表处理，于是网络把公告板打死时，界面只显示「暂无公开房间」，
+			// 房主还以为房间登记成功了，实际两边各自建房、进游戏互相看不见。
+			if (rooms == null)
+			{
+				RoomsLoadStatus = Strings.Multiplayer_Join_RoomsLoadFailed;
+				logger.LogWarning("Public room list unavailable: {Error}", ApiService.LastRoomsError);
+				OnPropertyChanged("HasPublicRooms");
+				return;
+			}
 
 			foreach (Room room in rooms)
 			{
@@ -1212,8 +1223,48 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	}
 
 	[RelayCommand(CanExecute = "CanCreateLobby")]
+	/// <summary>
+	/// 联机门禁：账号必须先在 QQ 群发过激活码。
+	/// 读不到状态（未登录 / 网络或服务异常）一律放行 —— 只拦「服务端明确说未激活」，
+	/// 否则一次网络抖动就能把正常用户锁在联机门外。
+	/// </summary>
+	private async Task<bool> EnsureActivatedAsync(Action<string> report, CancellationToken cancellationToken)
+	{
+		ActivationCheck check;
+		try
+		{
+			check = await AppState.Current.CloudSync.CheckActivationAsync().ConfigureAwait(true);
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			return false;
+		}
+		catch (Exception exception)
+		{
+			logger?.LogDebug(exception, "Activation check failed, allow by default");
+			return true;
+		}
+		if (check.State == ActivationState.Ok || check.State == ActivationState.NetworkError)
+		{
+			return true;
+		}
+		if (check.State == ActivationState.AccountInvalid)
+		{
+			logger?.LogInformation("Multiplayer blocked: account invalid ({Error})", check.Error);
+			report(Strings.Multiplayer_AccountInvalid);
+			return false;
+		}
+		logger?.LogInformation("Multiplayer blocked: not activated, code={Code}", check.Status?.Code);
+		report(string.Format(Strings.Multiplayer_NeedActivationFormat, check.Status?.Code ?? "-", check.Status?.GroupUrl ?? "https://qm.qq.com/q/UY9VqreEuq"));
+		return false;
+	}
+
 	private async Task CreateLobbyAsync(CancellationToken cancellationToken)
 	{
+		if (!await EnsureActivatedAsync(ReportFailure, cancellationToken).ConfigureAwait(true))
+		{
+			return;
+		}
 		IsCreatingLobby = true;
 		IsLanWorldDetectionDialogOpen = true;
 		try
@@ -1284,6 +1335,10 @@ public sealed class MultiplayerPageViewModel : ObservableObject
 	{
 		string text = JoinRoomCode.Trim();
 		if (text.Length == 0)
+		{
+			return;
+		}
+		if (!await EnsureActivatedAsync(ReportJoinFailure, cancellationToken).ConfigureAwait(true))
 		{
 			return;
 		}

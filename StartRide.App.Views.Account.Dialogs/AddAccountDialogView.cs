@@ -30,6 +30,49 @@ public partial class AddAccountDialogView : UserControl, IComponentConnector
 		}
 	}
 
+	private void CopyActivationCode_OnClick(object sender, RoutedEventArgs e)
+	{
+		if (base.DataContext is AccountPageViewModel accountPageViewModel)
+		{
+			string code = accountPageViewModel.Dialog.SteamActivationCode;
+			if (string.IsNullOrEmpty(code))
+			{
+				return;
+			}
+			try
+			{
+				Clipboard.SetText(code);
+			}
+			catch
+			{
+				// 剪贴板被别的进程占着时静默失败，用户还能手动选中复制
+			}
+		}
+	}
+
+	private void OpenActivationGroup_OnClick(object sender, RoutedEventArgs e)
+	{
+		if (base.DataContext is AccountPageViewModel accountPageViewModel)
+		{
+			string url = accountPageViewModel.Dialog.SteamActivationGroupUrl;
+			if (string.IsNullOrEmpty(url))
+			{
+				return;
+			}
+			try
+			{
+				Process.Start(new ProcessStartInfo(url)
+				{
+					UseShellExecute = true
+				});
+			}
+			catch
+			{
+				// 打不开浏览器就算了，链接本身在界面上可复制
+			}
+		}
+	}
+
 	private void ThirdPartyCredentialsPanel_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
 	{
 		object newValue = e.NewValue;

@@ -57,6 +57,41 @@ namespace StartRide.Core
     /// 流式：一边收 SSE 一边回调 onReasoning / onContent，UI 才能逐字显示
     /// 「思考过程」和正文，而不是等整段返回。
     /// </summary>
+    /// <summary>
+    /// 本周 AI 额度快照（服务端按账号计费）。
+    ///
+    /// 单位是服务端自定义的「点」：1 元 = PointsPerYuan 点（默认 10000），
+    /// 每周上限由服务端 SR_AI_WEEKLY_POINTS 决定，以 /quota 返回的 LimitYuan 为准，
+    /// 客户端不写死金额——运营侧调整额度无需重新发版。
+    /// 客户端只负责显示和提前劝阻，**真正的拦截在服务端**——前端算得再准也能被绕过。
+    /// </summary>
+    public sealed class AiQuota
+    {
+        public string Username { get; set; } = "";
+        public string WeekKey { get; set; } = "";
+        public double PointsPerYuan { get; set; } = 10000;
+        public double Limit { get; set; }
+        public double Used { get; set; }
+        public double Left { get; set; }
+        public double LimitYuan { get; set; }
+        public double LeftYuan { get; set; }
+        public double Percent { get; set; }
+        public string? Error { get; set; }
+
+        public bool Exhausted => Limit > 0 && Left <= 0;
+
+        /// <summary>侧栏一行的文案：优先显示「还剩多少钱」，钱才是最直观的量。</summary>
+        public string Summary =>
+            Error != null
+                ? Error
+                : $"本周还剩 ¥{LeftYuan:0.00} / ¥{LimitYuan:0.00}";
+
+        public string Detail =>
+            Error != null
+                ? ""
+                : $"已用 {Percent:0.#}%　{Used:0.#} / {Limit:0.#} 点　重置于下周一 00:00";
+    }
+
     public sealed class AiChatClient
     {
         /// <summary>
@@ -86,6 +121,39 @@ namespace StartRide.Core
         private const string ClientTag = "startride-launcher";
 
         /// <summary>
+        /// 读当前登录账号的 token（cloud-auth.json，和 CloudSyncService 同一份）。
+        ///
+        /// 为什么要带：AI 额度是按账号算的，服务端要靠 token 认出是谁；
+        /// 不带就只会得到 401，界面上表现为「AI 用不了」。
+        /// 这里刻意不缓存 —— AI 对话一次往返几秒，读一个小文件的开销可以忽略，
+        /// 而缓存反而会在「切号/退出登录」后继续用旧 token，报出难懂的错。
+        /// </summary>
+        private static string? ReadAccountToken()
+        {
+            try
+            {
+                var p = Path.Combine(AppSettings.ConfigDirectory, "cloud-auth.json");
+                if (!File.Exists(p)) return null;
+                using var doc = JsonDocument.Parse(File.ReadAllText(p));
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object) return null;
+                foreach (var name in new[] { "Token", "token" })
+                {
+                    if (root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String)
+                    {
+                        var s = el.GetString();
+                        if (!string.IsNullOrWhiteSpace(s)) return s;
+                    }
+                }
+            }
+            catch
+            {
+                // 文件损坏/被占用都不该让 AI 直接崩，交给服务端 401 去兜
+            }
+            return null;
+        }
+
+        /// <summary>
         /// 多久收不到一帧就算断流。
         /// deepseek-reasoner 在最难的题上首字也可能憋 30~40 秒，
         /// 所以阈值要比「正常最慢」再宽一点，避免把思考中的模型误判成断线。
@@ -105,6 +173,92 @@ namespace StartRide.Core
             };
             // 整体不设超时：思考型模型可能几十秒才吐第一个字，用 CancellationToken 控制
             return new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        }
+
+        /// <summary>
+        /// 查本周 AI 额度。失败不抛——侧栏显示一行提示就行，不能因为查不到额度就让整个页面报错。
+        /// </summary>
+        public static async Task<AiQuota> GetQuotaAsync(CancellationToken ct)
+        {
+            var q = new AiQuota();
+            var token = ReadAccountToken();
+            if (string.IsNullOrEmpty(token))
+            {
+                q.Error = "未登录，AI 助手需要账户登录后使用";
+                return q;
+            }
+
+            for (var attempt = 0; attempt < BaseCandidates.Length; attempt++)
+            {
+                try
+                {
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    cts.CancelAfter(TimeSpan.FromSeconds(8));
+                    using var req = new HttpRequestMessage(HttpMethod.Get, CurrentBase + "/quota");
+                    req.Headers.TryAddWithoutValidation("x-sr-client", ClientTag);
+                    req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+                    using var resp = await Http.SendAsync(req, cts.Token);
+                    var text = await resp.Content.ReadAsStringAsync(cts.Token);
+
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        q.Error = (int)resp.StatusCode == 401
+                            ? "登录已过期，请到账户页重新登录"
+                            : $"额度查询失败（{(int)resp.StatusCode}）";
+                        return q;
+                    }
+
+                    using var doc = JsonDocument.Parse(text);
+                    if (doc.RootElement.TryGetProperty("data", out var d))
+                    {
+                        q.Error = null;
+                        FillQuota(d, q);
+                        return q;
+                    }
+                    q.Error = "额度数据格式异常";
+                    return q;
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    q.Error = "额度查询超时";
+                    return q;
+                }
+                catch (Exception ex) when (ex is HttpRequestException or IOException)
+                {
+                    AdvanceBase();      // 换备用域再试一次
+                }
+                catch (Exception ex)
+                {
+                    q.Error = "额度查询失败：" + ex.Message;
+                    return q;
+                }
+            }
+            q.Error = "额度查询失败：网络不通";
+            return q;
+        }
+
+        private static double Num(JsonElement d, string name, double dflt = 0)
+        {
+            if (d.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.Number)
+            {
+                return el.GetDouble();
+            }
+            return dflt;
+        }
+
+        private static void FillQuota(JsonElement d, AiQuota q)
+        {
+            if (d.TryGetProperty("username", out var u) && u.ValueKind == JsonValueKind.String)
+                q.Username = u.GetString() ?? "";
+            if (d.TryGetProperty("weekKey", out var w) && w.ValueKind == JsonValueKind.String)
+                q.WeekKey = w.GetString() ?? "";
+            q.PointsPerYuan = Num(d, "pointsPerYuan", 10000);
+            q.Limit = Num(d, "limit");
+            q.Used = Num(d, "used");
+            q.Left = Num(d, "left");
+            q.LimitYuan = Num(d, "limitYuan");
+            q.LeftYuan = Num(d, "leftYuan");
+            q.Percent = Num(d, "percent");
         }
 
         public static string DefaultModel => "deepseek-chat";
@@ -200,13 +354,55 @@ namespace StartRide.Core
             {
                 using var req = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/chat");
                 req.Headers.TryAddWithoutValidation("x-sr-client", ClientTag);
+                var token = ReadAccountToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+                }
                 req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
                 resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
                 if (!resp.IsSuccessStatusCode)
                 {
                     var body = await resp.Content.ReadAsStringAsync(ct);
-                    result.Error = $"服务端返回 {(int)resp.StatusCode}：{Trim(body, 300)}";
+                    var code = (int)resp.StatusCode;
+
+                    // 401：没登录 / token 过期。这不是「服务坏了」，得说清楚该去做什么。
+                    if (code == 401)
+                    {
+                        result.Error = "未登录或登录已过期。请先到「账户」页登录，AI 助手按账号计费。";
+                        return result;
+                    }
+
+                    // 502：上游（DeepSeek）瞬时故障，服务端已自动重试仍未成功。
+                    // 不把「上游返回 500」这种技术黑话丢给玩家；失败请求不计费，要说清楚。
+                    // 注意只拦 502 —— 429 里有「额度用完」的专用提示，不能被覆盖。
+                    if (code == 502)
+                    {
+                        result.Error = "AI 服务暂时繁忙，请稍等几秒再发一次（本次未扣除额度）。";
+                        return result;
+                    }
+
+                    // 服务端把额度用完定义成 4291，msg 里已经写好了人话（含金额与重置时间），直接透给用户
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(body);
+                        if (doc.RootElement.TryGetProperty("msg", out var m) && m.ValueKind == JsonValueKind.String)
+                        {
+                            var msg = m.GetString();
+                            if (!string.IsNullOrWhiteSpace(msg))
+                            {
+                                result.Error = msg;
+                                return result;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // 不是 JSON 就走下面的通用文案
+                    }
+
+                    result.Error = $"服务端返回 {code}：{Trim(body, 300)}";
                     return result;
                 }
 

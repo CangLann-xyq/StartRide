@@ -1755,6 +1755,12 @@ local HL = {
   cfgLoaded = false,
   sessionMap = '',
   savedAt = 0,
+  -- 中继抖动宽限：断一帧就结束会话会把已记录的高光整批清掉，
+  -- 这是「高光时有时无」的主因。断开后先等 8 秒，回来就续用同一个会话。
+  lostGrace = 8,
+  lostSince = 0,
+  -- 上次落盘失败时留着 events 等重试，绝不静默丢数据
+  saveFailed = false,
 }
 
 local AUTOSAVE_INTERVAL = 30
@@ -1846,10 +1852,12 @@ local function hlStartRecording()
   local ok, res = pcall(function() return core_replay.startRecording() end)
   if ok and type(res) == 'table' and res.success then
     HL.curReplay = tostring(res.filename or '')
-    HL.curReplayFrom = 0
+    -- ⚠️ 不要在这里把 curReplayFrom 归零：分段续录时它已累加了前几段时长，
+    --    归零会让第二段之后所有高光的时间码倒退回 0（回放对不上）。
+    --    归零只在 hlStartSession 里做一次。
     HL.recElapsed = 0
     HL.ownRecording = true
-    table.insert(HL.replays, { file = HL.curReplay, from = 0, to = 0 })
+    table.insert(HL.replays, { file = HL.curReplay, from = HL.curReplayFrom, to = 0 })
     logMsg('高光：已开始录制 →', HL.curReplay)
     return true
   end
@@ -1887,7 +1895,13 @@ local function hlRotateIfNeeded()
   HL.curReplayFrom = HL.curReplayFrom + pos
   pcall(function() core_replay.stopRecording() end)
   HL.ownRecording = false
-  hlStartRecording()
+  local restarted = hlStartRecording()
+  if not restarted then
+    -- 续录失败：清掉旧文件名并停掉计时，别让后面的高光继续指向已停掉的录像
+    HL.curReplay = ''
+    HL.recElapsed = 0
+    logMsg('高光：分段续录失败，后续高光不再标注录像（事件仍照常记录）')
+  end
   logMsg('高光：录制已分段，本段', string.format('%.0fs', pos))
 end
 
@@ -1912,7 +1926,7 @@ end
 
 local function hlSave(reason)
   local dir = hlDir()
-  if not dir or HL.sessionId == '' then return end
+  if not dir or HL.sessionId == '' then return false end
 
   local tail = HL.curReplayFrom + (HL.recElapsed or 0)
   for _, seg in ipairs(HL.replays) do
@@ -1939,9 +1953,23 @@ local function hlSave(reason)
     counts = counts,
   }
 
+  -- 先写 .tmp 再改名：启动器每 30 秒会读这个文件，直接原地写会读到半截 JSON，
+  -- 解析失败就整场会话从列表里消失 —— 表现正是「高光时有时无」。
   local path = dir .. '/session-' .. HL.sessionId .. '.json'
-  local ok = pcall(function() return jsonWriteFile(path, data) end)
-  logMsg('高光：已落盘', path, '共', tostring(#HL.events), '条', ok and 'ok' or 'FAILED')
+  local tmp = path .. '.tmp'
+  local wrote = pcall(function() return jsonWriteFile(tmp, data) end)
+  if not wrote then
+    logMsg('高光：写临时文件失败', tmp)
+    return false
+  end
+  -- Windows 的 os.rename 覆盖不了已存在文件：先删旧再改名。
+  -- 万一改名也失败就保留 .tmp，启动器会兜底读它，数据不会丢。
+  pcall(function() os.remove(path) end)
+  local rok, moved = pcall(function() return os.rename(tmp, path) end)
+  logMsg('高光：已落盘', path, '共', tostring(#HL.events), '条',
+    (rok and moved) and 'ok' or 'tmp-only')
+  HL.saveFailed = false
+  return true
 end
 
 local function hlStartSession()
@@ -1961,6 +1989,8 @@ local function hlStartSession()
   HL.lastLine = ''
   HL.savedAt = 0
   HL.sessionMap = localMap or ''
+  HL.lostSince = 0
+  HL.saveFailed = false
 
   hlLoadConfig()
   if not HL.enabled then
@@ -1979,14 +2009,20 @@ local function hlEndSession(reason)
   HL.active = false
   pcall(hlStopRecording)
   local n = #HL.events
-  pcall(function() hlSave(reason or 'normal') end)
-  logMsg('高光：会话结束，共记录', tostring(n), '条高光')
-  HL.events = {}
-  HL.replays = {}
+  local okSave, saved = pcall(hlSave, reason or 'normal')
+  logMsg('高光：会话结束，共记录', tostring(n), '条高光',
+    (okSave and saved) and '已落盘' or '落盘失败，待重试')
+  -- 🔴 只有确实写成功才清空。以前无条件清空，落盘一失败整场高光就凭空消失。
+  if okSave and saved then
+    HL.events = {}
+    HL.replays = {}
+  else
+    HL.saveFailed = true
+  end
 end
 
 function M.onHighlight(typ, value, extra, speed)
-  pcall(function()
+  local done, failure = pcall(function()
     if type(typ) ~= 'string' then return end
     value = tonumber(value) or 0
     extra = tonumber(extra) or 0
@@ -2028,13 +2064,19 @@ function M.onHighlight(typ, value, extra, speed)
       at = os.date('%H:%M:%S'),
       wall = os.time(),
     }
-    local shot = hlTakeShot(typ)
+    -- 截图失败绝不能连带把这条高光丢掉：单独 pcall，事件先落表再记日志
+    local shotOk, shot = pcall(hlTakeShot, typ)
+    if not shotOk then
+      logMsg('高光：截图异常（事件仍会记录）', tostring(shot))
+      shot = nil
+    end
     if shot then ev.shot = shot end
     table.insert(HL.events, ev)
 
     logMsg('高光：' .. line, '时间码=' .. string.format('%.1fs', offset),
       ev.replay and ('录像=' .. ev.replay) or '无录像', shot or '无截图')
   end)
+  if not done then logMsg('高光：记录事件失败', tostring(failure)) end
 end
 
 local function hlTick(dtSim, dtReal)
@@ -2052,6 +2094,17 @@ local function hlTick(dtSim, dtReal)
   local always = (HL.onlyInSession == false) and (localMap ~= '')
   local want = live or always
 
+  -- 中继抖动 / 换图读条时 relayState 会短暂不是 connected。
+  -- 以前一掉线就 hlEndSession → HL.events 被清空，玩家看到「高光时有时无」。
+  -- 给 8 秒宽限：期间保持 want，连接回来就直接续用同一会话。
+  local nowWall = os.clock()
+  if want then
+    HL.lostSince = 0
+  elseif HL.active then
+    if HL.lostSince == 0 then HL.lostSince = nowWall end
+    if (nowWall - HL.lostSince) < HL.lostGrace then want = true end
+  end
+
   if want and HL.active and HL.sessionMap ~= '' and localMap ~= ''
      and localMap ~= HL.sessionMap then
     pcall(hlEndSession, 'map-change')
@@ -2065,13 +2118,23 @@ local function hlTick(dtSim, dtReal)
   HL.lastTick = HL.lastTick + (dtReal or 0)
   if HL.lastTick < 1.0 then return end
   HL.lastTick = 0
+
+  -- 上次落盘失败：即使会话已经结束也要重试，别把数据留在内存里等进程退出
+  if HL.saveFailed then
+    local rok, saved = pcall(hlSave, 'autosave-retry')
+    if rok and saved and not HL.active then
+      HL.events = {}
+      HL.replays = {}
+    end
+  end
+
   if not HL.active then return end
   if HL.ownRecording then pcall(hlRotateIfNeeded) end
 
   HL.savedAt = (HL.savedAt or 0) + 1
   if HL.savedAt >= AUTOSAVE_INTERVAL then
     HL.savedAt = 0
-    pcall(function() hlSave('autosave') end)
+    pcall(hlSave, 'autosave')
   end
 end
 

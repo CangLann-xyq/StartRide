@@ -1880,4 +1880,23 @@
   <data name="Lobby_GameModeSetFailed" xml:space="preserve"><value>モードを変更できませんでした。中継サーバーへの接続を確認してください。</value></data>
   <data name="Lobby_GameModeRevisionMismatchFormat" xml:space="preserve"><value>モード「{0}」のルール版は {1}、こちらは {2} です。ルールが一致しない可能性があります。</value></data>
   <data name="Lobby_JoinedGameModeLabel" xml:space="preserve"><value>モード</value></data>
+  <data name="Multiplayer_NeedActivationFormat" xml:space="preserve"><value>このアカウントはまだ認証されていないため、マルチプレイは使えません。
+
+認証コード：{0}
+
+QQ グループ（{1}）にコードを送ると自動で結果が返ります。その後にもう一度お試しください。</value></data>
+  <data name="Dialog_SteamActivationTitle" xml:space="preserve"><value>QQ グループ認証</value></data>
+  <data name="Dialog_SteamActivationSubtitle" xml:space="preserve"><value>Steam 認証が完了しました。最後の手順：認証コードを StartRide グループに送信してください。ボットが確認するとアカウントが追加されます。</value></data>
+  <data name="SteamActivation_CodeLabel" xml:space="preserve"><value>認証コード</value></data>
+  <data name="SteamActivation_CodeHint" xml:space="preserve"><value>全選択（Ctrl+A）してコピーし、グループに送信してください。</value></data>
+  <data name="SteamActivation_GroupLabel" xml:space="preserve"><value>認証グループ</value></data>
+  <data name="SteamActivation_GroupTextFormat" xml:space="preserve"><value>グループ {0}    リンク {1}</value></data>
+  <data name="SteamActivation_Copy_Button" xml:space="preserve"><value>コードをコピー</value></data>
+  <data name="SteamActivation_OpenGroup_Button" xml:space="preserve"><value>グループを開く</value></data>
+  <data name="SteamActivation_Recheck_Button" xml:space="preserve"><value>認証済み、再確認</value></data>
+  <data name="Status_SteamActivationRequired" xml:space="preserve"><value>Steam 認証済み — アカウント追加には QQ グループでの認証が必要です</value></data>
+  <data name="Status_SteamActivationChecking" xml:space="preserve"><value>認証状態を確認しています…</value></data>
+  <data name="Status_SteamActivationPending" xml:space="preserve"><value>まだ認証が確認できません。通常 1〜3 秒で返信されます。少し待ってから再度お試しください（SR-XXXXXX の完全なコード）。</value></data>
+  <data name="Status_SteamActivationServerUnreachable" xml:space="preserve"><value>アクティベーションサーバーに接続できません（現在のネットワークで公式ドメインが遮断されています）。直接接続も失敗しました。ネットワークまたはプロキシを確認して再試行してください。</value></data>
+  <data name="Multiplayer_AccountInvalid" xml:space="preserve"><value>このアカウントは無効になりました（サーバーデータがリセットされました）。アカウントページで削除し、Steam アカウントを再追加して QQ グループ認証を完了してください。</value></data>
 </root>

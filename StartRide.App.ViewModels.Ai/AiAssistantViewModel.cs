@@ -12,6 +12,86 @@ using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Ai;
 
+/// <summary>执行步骤横排里一个编号位的状态。</summary>
+public enum AiStepState
+{
+    Pending,
+    Running,
+    Complete,
+    Error,
+}
+
+/// <summary>
+/// 「执行步骤」横排里的一个编号位。
+///
+/// 1:1 复刻参考站 auth-panel_steps 的语义：23px 圆形编号徽标 + 一小段标题，
+/// 三态（待执行 / 进行中 / 已完成），这里多一个失败态。
+/// 一轮任务固定 8 个位置，先占位的先亮；跑满 8 步必须停 —— 这既是 UI，
+/// 也是 SendAsync 的硬闸门，界面上看到的数字和真实执行次数永远是同一个数。
+/// </summary>
+public sealed class AiStepSlot : ObservableObject
+{
+    private string title = "";
+    private string detail = "等待执行";
+    private AiStepState state = AiStepState.Pending;
+
+    public AiStepSlot(int index) => Index = index;
+
+    public int Index { get; }
+
+    public string Badge => (Index + 1).ToString();
+
+    public string Title
+    {
+        get => title;
+        set => SetProperty(ref title, value);
+    }
+
+    public string Detail
+    {
+        get => detail;
+        set => SetProperty(ref detail, value);
+    }
+
+    public AiStepState State
+    {
+        get => state;
+        set
+        {
+            if (!SetProperty(ref state, value)) return;
+            OnPropertyChanged(nameof(IsPending));
+            OnPropertyChanged(nameof(IsRunning));
+            OnPropertyChanged(nameof(IsComplete));
+            OnPropertyChanged(nameof(IsError));
+        }
+    }
+
+    public bool IsPending => state == AiStepState.Pending;
+    public bool IsRunning => state == AiStepState.Running;
+    public bool IsComplete => state == AiStepState.Complete;
+    public bool IsError => state == AiStepState.Error;
+
+    public void Start(string stepTitle)
+    {
+        Title = stepTitle;
+        Detail = "执行中…";
+        State = AiStepState.Running;
+    }
+
+    public void Finish(bool ok, string output)
+    {
+        Detail = string.IsNullOrWhiteSpace(output) ? "（无输出）" : output;
+        State = ok ? AiStepState.Complete : AiStepState.Error;
+    }
+
+    public void Reset()
+    {
+        Title = "";
+        Detail = "等待执行";
+        State = AiStepState.Pending;
+    }
+}
+
 /// <summary>执行过程里的一步（一次工具调用）。</summary>
 public sealed class AiStep : ObservableObject
 {
@@ -244,7 +324,19 @@ public sealed class AiMessage : ObservableObject
 /// </summary>
 public sealed class AiAssistantViewModel : ObservableObject
 {
-    private const int MaxRounds = 8;          // 一轮任务里最多来回几次（防止模型自己死循环）
+    // ---- 一轮任务的硬闸门（「能跑满 8 步」和「绝不死循环」同时成立） ----------
+    // StepCapacity 既是 UI 横排的 8 个编号位，也是一轮任务允许的真实工具执行次数。
+    // 以前只有 MaxRounds=8 一个「模型调用次数」上限：模型只要中途回一次不带工具的
+    // 空内容、或上游抖一下返回 5xx，整轮就 return 了 —— 玩家看到的就是「没执行 8 步
+    // 就停下」。现在把「步骤数 / 模型调用数 / 墙钟时间 / 重复调用 / 空回复」拆成
+    // 五个互不依赖的硬闸门，任何一个到顶都必须停，但没到顶就不许提前收工。
+    public const int StepCapacity = 8;
+    private const int MaxModelCalls = StepCapacity + 2;   // 8 步 + 收尾成文 + 1 次容错
+    private const int MaxIdenticalCalls = 3;              // 同工具+同参连续 3 次 = 模型在原地打转
+    private const int MaxEmptyReplies = 2;                // 连续空正文最多重试 2 次
+    private const int MaxTransientErrors = 2;             // 上游 5xx/断流最多自动重试 2 次
+    private static readonly TimeSpan TurnTimeout = TimeSpan.FromMinutes(8);
+
     private const int MaxHistory = 26;        // 发给模型的历史条数上限
     private const int ToolResultSendLimit = 6000;
 
@@ -253,6 +345,10 @@ public sealed class AiAssistantViewModel : ObservableObject
     private readonly List<Dictionary<string, object?>> history = new();
 
     private CancellationTokenSource? cts;
+    // 本轮的「用户停止 + 全局超时」合并令牌。确认条必须挂在它上面，
+    // 只挂在 cts 上的话，8 分钟超时触发时用户正停在「允许吗」这条上，
+    // 没有任何人去 set 那个 TaskCompletionSource → 整轮永远挂着。
+    private CancellationToken turnToken;
     private string input = "";
     private bool isBusy;
     private bool isAgentMode;
@@ -262,6 +358,7 @@ public sealed class AiAssistantViewModel : ObservableObject
     private AiPermission policyExec = AiPermission.Ask;
     private string workspaceRoot = "";
     private bool useReasoning;
+    private AiQuota quota = new() { Error = "正在读取额度…" };
 
     // ---- 确认流程 ------------------------------------------------------
     // 一轮任务里用户点过「本轮都允许」的工具（中文名，够用且不会和工具名漂移）
@@ -283,6 +380,9 @@ public sealed class AiAssistantViewModel : ObservableObject
         useReasoning = string.Equals(s.AiModel, AiChatClient.ReasoningModel, StringComparison.OrdinalIgnoreCase);
         isAgentMode = s.AiAgentMode;
 
+        for (var i = 0; i < StepCapacity; i++) StepSlots.Add(new AiStepSlot(i));
+        stepRailVisible = isAgentMode;
+
         SendCommand = new RelayCommand(() => _ = SendAsync(), () => !IsBusy && !string.IsNullOrWhiteSpace(Input));
         StopCommand = new RelayCommand(Stop, () => IsBusy);
         AllowOnceCommand = new RelayCommand(() => ResolveConfirm(true));
@@ -292,6 +392,7 @@ public sealed class AiAssistantViewModel : ObservableObject
         ClearCommand = new RelayCommand(Clear, () => !IsBusy);
         PickFolderCommand = new RelayCommand(PickFolder);
         CheckHealthCommand = new RelayCommand(() => _ = CheckHealthAsync());
+        _ = RefreshQuotaAsync();      // 进页面就读一次本周额度，别等第一次对话完才显示
 
         Messages.Add(new AiMessage(AiMessage.RoleNotice)
         {
@@ -306,6 +407,74 @@ public sealed class AiAssistantViewModel : ObservableObject
     // ------------------------------------------------------------------
     public ObservableCollection<AiMessage> Messages { get; } = new();
 
+    // ------------------------------------------------------------------
+    // 执行步骤横排（一轮任务 8 个编号位）
+    //
+    // 固定 8 个槽位而不是「跑一步加一个」：玩家一进 Agent 模式就能看到完整
+    // 的 8 步刻度，跑到第几步一目了然，也不会出现「还没到 8 步就停了」的错觉
+    // —— 剩下几位会明确留在「待执行」。
+    // ------------------------------------------------------------------
+    public ObservableCollection<AiStepSlot> StepSlots { get; } = new();
+
+    private int executedSteps;
+    private AiStepSlot? currentSlot;
+    private bool stepRailVisible;
+
+    public bool StepRailVisible
+    {
+        get => stepRailVisible;
+        private set => SetProperty(ref stepRailVisible, value);
+    }
+
+    public string StepRailHeader => "执行步骤 · " + executedSteps + " / " + StepCapacity;
+
+    public bool HasCurrentStep => currentSlot != null;
+
+    public string CurrentStepTitle => currentSlot == null
+        ? ""
+        : "第 " + (currentSlot.Index + 1) + " 步 · " + currentSlot.Title;
+
+    public string CurrentStepDetail => currentSlot?.Detail ?? "";
+
+    public bool CurrentStepIsError => currentSlot?.IsError ?? false;
+
+    /// <summary>每轮开始前把 8 个刻度擦干净（不重建集合，避免 WPF 绑定断掉）。</summary>
+    private void ResetStepRail()
+    {
+        executedSteps = 0;
+        currentSlot = null;
+        foreach (var slot in StepSlots) slot.Reset();
+        RefreshStepRail();
+    }
+
+    private void RefreshStepRail()
+    {
+        OnPropertyChanged(nameof(StepRailHeader));
+        OnPropertyChanged(nameof(HasCurrentStep));
+        OnPropertyChanged(nameof(CurrentStepTitle));
+        OnPropertyChanged(nameof(CurrentStepDetail));
+        OnPropertyChanged(nameof(CurrentStepIsError));
+    }
+
+    private void SelectSlot(AiStepSlot slot)
+    {
+        currentSlot = slot;
+        RefreshStepRail();
+    }
+
+    /// <summary>
+    /// 收尾：任何还在「执行中」的槽位都必须落地。
+    /// 少这一步的话，中断/超时/异常之后横排会永远亮着一个转圈的蓝点。
+    /// </summary>
+    private void AbortRunningSlots(string reason)
+    {
+        foreach (var slot in StepSlots)
+        {
+            if (slot.IsRunning) slot.Finish(false, reason);
+        }
+        RefreshStepRail();
+    }
+
     public RelayCommand SendCommand { get; }
     public RelayCommand StopCommand { get; }
     public RelayCommand AllowOnceCommand { get; }
@@ -314,6 +483,44 @@ public sealed class AiAssistantViewModel : ObservableObject
     public RelayCommand ClearCommand { get; }
     public RelayCommand PickFolderCommand { get; }
     public RelayCommand CheckHealthCommand { get; }
+
+    // ------------------------------------------------------------------
+    // 本周额度（服务端按账号计费，客户端只做显示与提前劝阻）
+    // ------------------------------------------------------------------
+    public AiQuota Quota
+    {
+        get => quota;
+        private set
+        {
+            quota = value;
+            OnPropertyChanged(nameof(Quota));
+            OnPropertyChanged(nameof(QuotaSummary));
+            OnPropertyChanged(nameof(QuotaDetail));
+            OnPropertyChanged(nameof(QuotaPercent));
+            OnPropertyChanged(nameof(QuotaWarning));
+            OnPropertyChanged(nameof(QuotaExhausted));
+        }
+    }
+
+    public string QuotaSummary => quota.Summary;
+    public string QuotaDetail => quota.Detail;
+    public double QuotaPercent => quota.Percent;
+
+    /// <summary>用了 80% 以上就变色提醒，别等到弹「额度用完」才让人知道。</summary>
+    public bool QuotaWarning => quota.Error == null && (quota.Percent >= 80 || quota.Exhausted);
+    public bool QuotaExhausted => quota.Error == null && quota.Exhausted;
+
+    public async Task RefreshQuotaAsync()
+    {
+        try
+        {
+            Quota = await AiChatClient.GetQuotaAsync(CancellationToken.None);
+        }
+        catch
+        {
+            // 查额度失败只是少一行信息，不该打断对话
+        }
+    }
 
     public string Input
     {
@@ -372,6 +579,8 @@ public sealed class AiAssistantViewModel : ObservableObject
                 // 权限区跟着 Agent 开关一起亮/灰
                 OnPropertyChanged(nameof(PermissionsEnabled));
                 OnPropertyChanged(nameof(AgentOffHintVisible));
+                StepRailVisible = value;
+                if (!value) ResetStepRail();
             }
         }
     }
@@ -500,6 +709,19 @@ public sealed class AiAssistantViewModel : ObservableObject
         IsBusy = true;
         StatusText = "思考中…";
         turnAllowedTools.Clear();
+        if (IsAgentMode)
+        {
+            StepRailVisible = true;
+            ResetStepRail();
+        }
+
+        // 全局硬超时：和用户「停止」共用一条链路，但两者要能分辨
+        //（超时是安全收尾，不是用户主动取消）。用 linked CTS 而不是去 Cancel
+        // 用户那一侧的 cts，Stop() 之后才判断得出到底是谁触发的。
+        using var turnCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        turnCts.CancelAfter(TurnTimeout);
+        var turnCt = turnCts.Token;
+        turnToken = turnCt;
 
         // 「正在理解需求」占位：首轮响应一到就自动消失（见 understanding 标记）。
         var understanding = new AiMessage(AiMessage.RoleAssistant) { IsUnderstanding = true };
@@ -511,6 +733,14 @@ public sealed class AiAssistantViewModel : ObservableObject
         //    （停止按钮跟着变灰）—— 表现就是「跑到一半没输出，还停不下来」。
         var bubbles = new List<AiMessage>();
 
+        var executed = 0;          // 真实执行过的工具步数（= 横排上亮起的格子数）
+        var modelCalls = 0;
+        var emptyReplies = 0;
+        var transientErrors = 0;
+        var identicalCalls = 0;
+        var lastCallKey = "";
+        string? stopReason = null;
+
         try
         {
             var model = IsAgentMode
@@ -518,10 +748,23 @@ public sealed class AiAssistantViewModel : ObservableObject
                 : (UseReasoning ? AiChatClient.ReasoningModel : AiChatClient.DefaultModel);
             var toolSchema = IsAgentMode ? AiToolHost.BuildToolSchema() : null;
 
-            var rounds = 0;
-            for (; rounds < MaxRounds; rounds++)
+            while (true)
             {
-                ct.ThrowIfCancellationRequested();
+                // 五个硬闸门：任何一个到顶都必须停，且都要有明确文案。
+                // ThrowIfCancellationRequested 放最前面，保证全局超时 / 用户停止
+                // 一定落到 finally，绝不会出现「跑到一半没人收尾」。
+                turnCt.ThrowIfCancellationRequested();
+
+                if (modelCalls >= MaxModelCalls)
+                {
+                    stopReason = "模型调用次数已达 " + MaxModelCalls + " 次上限";
+                    break;
+                }
+                if (executed >= StepCapacity)
+                {
+                    stopReason = StepCapacity + " 个执行步骤已全部跑完";
+                    break;
+                }
 
                 // 第二轮起，把上一轮气泡的「正在输出」收掉 —— 否则历史里会同时
                 // 有好几个气泡在闪「正在输出…」，看起来像并行跑了好几件事。
@@ -532,6 +775,7 @@ public sealed class AiAssistantViewModel : ObservableObject
                 Messages.Add(bubble);
 
                 var started = DateTime.UtcNow;
+                modelCalls++;
                 var res = await client.StreamAsync(
                     model,
                     BuildRequestMessages(),
@@ -551,39 +795,61 @@ public sealed class AiAssistantViewModel : ObservableObject
                         bubble.Text += piece;
                         StatusText = "生成中…";
                     },
-                    ct);
+                    turnCt);
 
                 bubble.IsStreaming = false;
                 bubble.IsThinkingExpanded = false;
                 understanding.UnderstandingDone = true;
 
-                // ① 用户点了停止
-                if (res.Cancelled)
+                // ① 用户点了停止 / 全局超时
+                if (res.Cancelled || turnCt.IsCancellationRequested)
                 {
                     if (!bubble.HasText && !bubble.HasThinking && !bubble.HasSteps)
                         Messages.Remove(bubble);
-                    StatusText = "已停止";
+                    if (ct.IsCancellationRequested)
+                    {
+                        StatusText = "已停止";
+                    }
+                    else
+                    {
+                        Messages.Add(new AiMessage(AiMessage.RoleNotice)
+                        {
+                            Text = "本轮达到 " + (int)TurnTimeout.TotalMinutes
+                                   + " 分钟硬超时，已自动停止（不会继续空转）。可以把任务拆小再发。",
+                        });
+                        StatusText = "已超时停止";
+                    }
                     return;         // finally 会收拾干净
                 }
 
-                // ② 出错 / 断流
+                // ② 上游 5xx / 断流：这是「没跑满 8 步就停」的头号原因。
+                //    以前一次失败就 return，现在原地重试，重试不占步骤额度。
                 if (!res.Ok)
                 {
                     if (!bubble.HasText && !bubble.HasThinking && !bubble.HasSteps)
                         Messages.Remove(bubble);
-                    else if (res.StreamBroken)
+                    transientErrors++;
+                    if (transientErrors <= MaxTransientErrors)
                     {
-                        // 半截内容留着（对用户有用），只是明确标一句「这里断了」
-                        bubble.Text += "\n\n〔输出在此中断〕";
+                        Messages.Add(new AiMessage(AiMessage.RoleNotice)
+                        {
+                            Text = "上游暂时不可用（" + res.Error + "），自动重试 "
+                                   + transientErrors + "/" + MaxTransientErrors + "…",
+                        });
+                        StatusText = "重试中…";
+                        await Task.Delay(700, turnCt);
+                        continue;
                     }
-                    Messages.Add(new AiMessage(AiMessage.RoleNotice) { Text = "⚠️ " + res.Error });
+                    Messages.Add(new AiMessage(AiMessage.RoleNotice) { Text = res.Error });
                     StatusText = res.StreamBroken ? "已中断" : "出错";
                     return;
                 }
+                transientErrors = 0;
 
                 // ③ 有工具调用 → 逐个执行，然后带着结果再来一轮
                 if (res.ToolCalls.Count > 0)
                 {
+                    emptyReplies = 0;
                     history.Add(BuildAssistantToolCallMessage(res, bubble.Text));
 
                     // 中间轮的「正文」是模型调工具前的说明，不是给用户的最终答案。
@@ -598,29 +864,61 @@ public sealed class AiAssistantViewModel : ObservableObject
 
                     foreach (var call in res.ToolCalls)
                     {
-                        ct.ThrowIfCancellationRequested();
+                        turnCt.ThrowIfCancellationRequested();
 
-                        var step = new AiStep(AiToolHost.DisplayName(call.Name) + "：" + ShortArgs(call.Arguments),
-                            call.Arguments);
+                        // 同一个工具 + 完全相同参数连着调 = 模型在原地打转。
+                        // 不看返回值、不看模型解释，只看调用本身，最不容易被绕过去。
+                        var callKey = call.Name + "|" + (call.Arguments ?? "");
+                        identicalCalls = callKey == lastCallKey ? identicalCalls + 1 : 1;
+                        lastCallKey = callKey;
+                        if (identicalCalls >= MaxIdenticalCalls && stopReason == null)
+                        {
+                            stopReason = "同一个工具带着相同参数连续调用了 " + MaxIdenticalCalls + " 次（模型在原地打转）";
+                        }
+
+                        // 8 步用尽 / 判定死循环后，本轮剩下的调用仍必须给模型一条
+                        // tool 回执，否则下一轮请求会因为缺 tool 消息被上游 400 拒掉。
+                        if (executed >= StepCapacity || stopReason != null)
+                        {
+                            history.Add(new Dictionary<string, object?>
+                            {
+                                ["role"] = "tool",
+                                ["tool_call_id"] = call.Id,
+                                ["content"] = "（本步未执行：" + (stopReason ?? ("已达 " + StepCapacity + " 步上限"))
+                                              + "。请直接给出结论，不要再调用工具。）",
+                            });
+                            continue;
+                        }
+
+                        var slot = StepSlots[executed];
+                        var display = AiToolHost.DisplayName(call.Name);
+                        var step = new AiStep(display + "：" + ShortArgs(call.Arguments), call.Arguments);
                         bubble.AddStep(step);
                         bubble.RefreshStepsHeader();
-                        StatusText = "执行 " + AiToolHost.DisplayName(call.Name) + "…";
+                        slot.Start(display);
+                        SelectSlot(slot);
+                        StatusText = "第 " + (executed + 1) + "/" + StepCapacity + " 步 · " + display + "…";
 
                         AiToolResult r;
                         try
                         {
-                            r = await tools.ExecuteAsync(call.Name, call.Arguments, ct, ConfirmAsync);
+                            r = await tools.ExecuteAsync(call.Name, call.Arguments, turnCt, ConfirmAsync);
                         }
                         catch (OperationCanceledException)
                         {
-                            // 用户在这步中途点了停止。
-                            // 不在这里收尾的话，这一步会永远停在「执行中…」——
-                            // 界面上看起来像卡死了，其实整个任务已经停了。
+                            // 用户在这步中途点了停止 / 全局超时。
+                            // 不在这里收尾的话，这一步会永远停在「执行中…」。
                             step.Finish(false, "已停止：这一步被中断。");
+                            slot.Finish(false, "已停止：这一步被中断。");
+                            RefreshStepRail();
                             throw;
                         }
 
                         step.Finish(r.Ok, r.Output);
+                        slot.Finish(r.Ok, step.Detail);
+                        executed++;
+                        executedSteps = executed;   // 横排表头与真实执行次数同源
+                        RefreshStepRail();
 
                         history.Add(new Dictionary<string, object?>
                         {
@@ -631,8 +929,32 @@ public sealed class AiAssistantViewModel : ObservableObject
                     }
 
                     TrimHistory();
+                    if (stopReason != null) break;
+                    if (executed >= StepCapacity)
+                    {
+                        stopReason = StepCapacity + " 个执行步骤已全部跑完";
+                        break;
+                    }
                     StatusText = "整理结果…";
                     continue;
+                }
+
+                // ④ 没有工具调用 = 最终答案。但「一个字都没有」不算答案：
+                //    上游偶尔给一段空 SSE 就断开，以前会当成任务完成直接收工，
+                //    看起来就是「没执行到 8 步就停了」。
+                if (string.IsNullOrWhiteSpace(res.Content))
+                {
+                    emptyReplies++;
+                    if (emptyReplies <= MaxEmptyReplies)
+                    {
+                        if (!bubble.HasText && !bubble.HasThinking && !bubble.HasSteps)
+                            Messages.Remove(bubble);
+                        StatusText = "等待模型输出…";
+                        await Task.Delay(500, turnCt);
+                        continue;
+                    }
+                    stopReason = "连续收到 " + MaxEmptyReplies + " 次空回复";
+                    break;
                 }
 
                 history.Add(new Dictionary<string, object?>
@@ -643,22 +965,34 @@ public sealed class AiAssistantViewModel : ObservableObject
                 TrimHistory();
 
                 var secs = (DateTime.UtcNow - started).TotalSeconds;
-                StatusText = string.Format("完成 · {0:0.0}s", secs);
+                StatusText = string.Format("完成 · {0:0.0}s · {1}/{2} 步", secs, executed, StepCapacity);
                 return;
             }
 
-            // 走满 MaxRounds 还没收尾：必须说清楚，否则用户看到的就是「说到一半停了」
+            // 走到这里一定是某个硬闸门拦下来的（或死循环检测命中）。
+            // 文案里写清楚「用了几步 / 为什么停」，别让玩家以为程序崩了。
             Messages.Add(new AiMessage(AiMessage.RoleNotice)
             {
-                Text = $"⚠️ 已经连续调用 {MaxRounds} 轮工具，为防死循环先停在这里。"
-                       + "可以把任务拆小一点再发，或者告诉我继续。",
+                Text = "已停止：" + stopReason + "。本轮共执行 " + executed + "/" + StepCapacity
+                       + " 步，为防死循环不会继续。可以把任务拆小一点再发，或直接说「继续」。",
             });
-            StatusText = "已达轮次上限";
+            StatusText = "已达安全上限";
         }
         catch (OperationCanceledException)
         {
-            Messages.Add(new AiMessage(AiMessage.RoleNotice) { Text = "已停止。" });
-            StatusText = "已停止";
+            if (ct.IsCancellationRequested)
+            {
+                Messages.Add(new AiMessage(AiMessage.RoleNotice) { Text = "已停止。" });
+                StatusText = "已停止";
+            }
+            else
+            {
+                Messages.Add(new AiMessage(AiMessage.RoleNotice)
+                {
+                    Text = "本轮达到 " + (int)TurnTimeout.TotalMinutes + " 分钟硬超时，已自动停止。",
+                });
+                StatusText = "已超时停止";
+            }
         }
         catch (Exception ex)
         {
@@ -670,12 +1004,18 @@ public sealed class AiAssistantViewModel : ObservableObject
             // 无论怎么退出，所有气泡都必须收掉「正在输出」—— 这是那个卡住 bug 的根治点
             foreach (var b in bubbles) b.IsStreaming = false;
             understanding.UnderstandingDone = true;
+            // 横排上任何还亮着「执行中」的格子也必须落地，否则永远转圈
+            AbortRunningSlots("本轮已结束，这一步没有继续执行。");
 
             ClearPendingConfirm(false);
             turnAllowedTools.Clear();
+            turnToken = default;
             cts?.Dispose();
             cts = null;
             IsBusy = false;
+
+            // 这一轮真实花掉多少额度只有服务端知道，收尾后回读一次
+            _ = RefreshQuotaAsync();
         }
     }
 
@@ -711,7 +1051,7 @@ public sealed class AiAssistantViewModel : ObservableObject
         StatusText = "等你确认…";
 
         // 用户这会儿点「停止」也要能把确认条收掉，否则界面会留个孤儿提示条
-        confirmCancelReg = (cts?.Token ?? CancellationToken.None).Register(() => ResolveConfirm(false));
+        confirmCancelReg = turnToken.Register(() => ResolveConfirm(false));
         return tcs.Task;
     }
 

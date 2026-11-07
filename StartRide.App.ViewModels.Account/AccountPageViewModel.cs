@@ -1,3 +1,4 @@
+using System;
 using System.CodeDom.Compiler;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -6,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using StartRide.App.Services;
 using Launcher.Application.Accounts;
+using StartRide.Core;
 
 namespace StartRide.App.ViewModels.Account;
 
@@ -150,7 +152,36 @@ public sealed class AccountPageViewModel : ObservableObject
 	{
 		await AccountList.InitializeAsync();
 		Appearance.RefreshAccountsSilentlyAsync();
+		_ = VerifySelectedAccountSafeAsync();
+	}
 
+	/// <summary>
+	/// 启动即校验当前 Steam 账户在服务端是否仍然有效。
+	/// 后台清库 / 换了激活体系之后，本地账户和 token 都还在，光靠「添加账户」时的门禁
+	/// 永远拦不到老用户 —— 他们不删账户就能一直用旧的。这里在启动时补一刀。
+	/// 网络不通不打扰（只拦服务端明确说"没有这个账号"或"未激活"）。
+	/// </summary>
+	private async Task VerifySelectedAccountSafeAsync()
+	{
+		try
+		{
+			await Task.Delay(1500).ConfigureAwait(true);
+			LauncherAccount? account = AccountList.SelectedAccount;
+			if (account == null || !account.Id.StartsWith("steam-", StringComparison.Ordinal))
+			{
+				return;
+			}
+			ActivationCheck check = await AppState.Current.CloudSync.CheckActivationAsync().ConfigureAwait(true);
+			if (!check.IsBlocked)
+			{
+				return;
+			}
+			Dialog.ReportAccountNeedsReactivation(check.State, check.Status?.Code);
+			dialogService.ShowAddAccountDialog();		}
+		catch (Exception)
+		{
+			// 启动校验失败不能挡住用户开机，联机入口还有一道门禁。
+		}
 	}
 
 	public Task PrimeAsync()

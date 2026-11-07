@@ -28,6 +28,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 
 	private const string DialogFailureIcon = "\ue783";
 
+	private const string DefaultActivationGroupUrl = "https://qm.qq.com/q/UY9VqreEuq";
+
+	private const string DefaultActivationGroupId = "972240292";
+
 	private const string RenameInputIcon = "\ue70f";
 
 	private readonly AccountListViewModel accountList;
@@ -53,6 +57,18 @@ public sealed class AccountDialogViewModel : ObservableObject
 
 	[ObservableProperty]
 	private string addAccountDialogStep = "Type";
+
+	private SteamUserInfo? pendingSteamUser;
+
+	private AuthResponse? pendingSteamAuth;
+
+	private string steamActivationCode = string.Empty;
+
+	private string steamActivationGroupUrl = string.Empty;
+
+	private string steamActivationGroupId = string.Empty;
+
+	private string steamActivationMessage = string.Empty;
 
 	[ObservableProperty]
 	private string newOfflineAccountName = string.Empty;
@@ -174,6 +190,74 @@ public sealed class AccountDialogViewModel : ObservableObject
 
 	public bool IsThirdPartyImportResultStep => AddAccountDialogStep == "ThirdPartyImportResult";
 
+	/// <summary>Steam 授权通过、但账号还没在 QQ 群激活时停在这一步。</summary>
+	public bool IsSteamActivationStep => AddAccountDialogStep == "SteamActivation";
+
+	public string SteamActivationCode
+	{
+		get
+		{
+			return steamActivationCode;
+		}
+		private set
+		{
+			if (!EqualityComparer<string>.Default.Equals(steamActivationCode, value))
+			{
+				steamActivationCode = value;
+				OnPropertyChanged("SteamActivationCode");
+			}
+		}
+	}
+
+	public string SteamActivationGroupText
+	{
+		get
+		{
+			if (string.IsNullOrEmpty(steamActivationGroupId))
+			{
+				return steamActivationGroupUrl;
+			}
+			if (string.IsNullOrEmpty(steamActivationGroupUrl))
+			{
+				return steamActivationGroupId;
+			}
+			return string.Format(Strings.SteamActivation_GroupTextFormat, steamActivationGroupId, steamActivationGroupUrl);
+		}
+	}
+
+	public string SteamActivationGroupUrl
+	{
+		get
+		{
+			return steamActivationGroupUrl;
+		}
+		private set
+		{
+			if (!EqualityComparer<string>.Default.Equals(steamActivationGroupUrl, value))
+			{
+				steamActivationGroupUrl = value;
+				OnPropertyChanged("SteamActivationGroupUrl");
+				OnPropertyChanged("SteamActivationGroupText");
+			}
+		}
+	}
+
+	public string SteamActivationMessage
+	{
+		get
+		{
+			return steamActivationMessage;
+		}
+		private set
+		{
+			if (!EqualityComparer<string>.Default.Equals(steamActivationMessage, value))
+			{
+				steamActivationMessage = value;
+				OnPropertyChanged("SteamActivationMessage");
+			}
+		}
+	}
+
 	public bool IsMicrosoftLoginStep => AddAccountDialogStep == "MicrosoftLogin";
 
 	public bool IsMicrosoftLoginResultStep => AddAccountDialogStep == "MicrosoftResult";
@@ -259,6 +343,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 					if (IsAccountTypeStep)
 					{
 						return SelectedAccountTypeOption != null;
+					}
+					if (IsSteamActivationStep)
+					{
+						return true;
 					}
 					return false;
 				}
@@ -387,6 +475,7 @@ public sealed class AccountDialogViewModel : ObservableObject
 		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionTitle,
 		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressTitle,
 		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultTitle,
+		"SteamActivation" => Strings.Dialog_SteamActivationTitle,
 		_ => AccountDialogText.GetAddTitle(AddAccountDialogStep, IsMicrosoftAccountAlreadyAdded, IsMicrosoftLoginSuccessful),
 	};
 
@@ -399,6 +488,7 @@ public sealed class AccountDialogViewModel : ObservableObject
 		"ThirdPartyProfileSelection" => Strings.Dialog_ThirdPartyProfileSelectionSubtitle,
 		"ThirdPartyImportProgress" => Strings.Dialog_ThirdPartyImportProgressSubtitle,
 		"ThirdPartyImportResult" => Strings.Dialog_ThirdPartyImportResultSubtitle,
+		"SteamActivation" => Strings.Dialog_SteamActivationSubtitle,
 		_ => AccountDialogText.GetAddSubtitle(AddAccountDialogStep),
 	};
 
@@ -432,6 +522,10 @@ public sealed class AccountDialogViewModel : ObservableObject
 	{
 		get
 		{
+			if (IsSteamActivationStep)
+			{
+				return Strings.SteamActivation_Recheck_Button;
+			}
 			if (!IsMicrosoftReauthenticationResultStep)
 			{
 				return Strings.Confirm_Button;
@@ -1009,7 +1103,7 @@ public sealed class AccountDialogViewModel : ObservableObject
 		if (!IsAddAccountDialogBusy)
 		{
 			string password = thirdPartyPassword ?? string.Empty;
-			if (!(await TryHandleAddAccountResultStepAsync(password)) && !(await TryHandleThirdPartyReauthenticationAsync(password)) && !(await TryHandleThirdPartyCredentialsAsync(password)) && !(await TryHandleSteamTypeStepAsync()) && SelectedAccountTypeOption != null && !TryAdvanceAccountTypeStep())
+			if (!(await TryHandleSteamActivationStepAsync()) && !(await TryHandleAddAccountResultStepAsync(password)) && !(await TryHandleThirdPartyReauthenticationAsync(password)) && !(await TryHandleThirdPartyCredentialsAsync(password)) && !(await TryHandleSteamTypeStepAsync()) && SelectedAccountTypeOption != null && !TryAdvanceAccountTypeStep())
 			{
 				await AddOfflineAccountAsync();
 			}
@@ -1157,9 +1251,12 @@ public sealed class AccountDialogViewModel : ObservableObject
 			var auth = await api.SteamLoginAsync(steamUser.SteamId64, steamUser.DisplayName);
 			if (auth == null || !string.IsNullOrEmpty(auth.Error))
 			{
-				logger?.LogWarning("Steam login: cloud auth failed ({Error}), fallback to local", auth?.Error);
+				// 拿不到云端授权就无法判定激活状态：宁可拦住，也不能静默回退本地证据建号，
+				// 否则 QQ 群激活门禁等于不存在（旧实现就是在这里被绕过的）。
+				logger?.LogWarning("Steam login: cloud auth failed ({Error}), activation gate cannot be evaluated", auth?.Error);
+				ReportStatus(Strings.Status_SteamActivationServerUnreachable);
+				return true;
 			}
-			else
 			{
 				AppState.Current.CloudSync.SaveAuth(auth);
 				logger?.LogInformation("Steam login: cloud auth ok username={U} ownsBeamng={O} playtime={P}min",
@@ -1176,86 +1273,16 @@ public sealed class AccountDialogViewModel : ObservableObject
 					ReportStatus(string.Format(Strings.Status_SteamBeamngFoundFormat,
 						auth.BeamngPlaytimeMin / 60.0));
 				}
+				// QQ 群激活门禁：Steam 授权通过但账号还没在群里发过激活码，
+				// 就停在激活步骤 —— 账户不落盘，激活成功后才继续添加。
+				if (!auth.Activated)
+				{
+					await EnterSteamActivationStepAsync(steamUser, auth).ConfigureAwait(true);
+					return true;
+				}
 			}
 
-			string accountId = "steam-" + steamUser.SteamId64;
-
-			string? avatarSource = null;
-			if (!string.IsNullOrWhiteSpace(steamUser.AvatarHash))
-			{
-				try
-				{
-					avatarSource = await SteamLoginClient.DownloadAvatarToFileAsync(steamUser.AvatarHash, steamUser.SteamId64);
-				}
-				catch
-				{
-					avatarSource = null;
-				}
-			}
-			if (string.IsNullOrWhiteSpace(avatarSource))
-			{
-				avatarSource = SteamLoginClient.GetCachedAvatarPath(steamUser.SteamId64);
-			}
-			if (string.IsNullOrWhiteSpace(avatarSource) && auth != null && !string.IsNullOrEmpty(auth.Avatar))
-			{
-				try
-				{
-					avatarSource = await SteamLoginClient.DownloadAvatarFromUrlAsync(auth.Avatar, steamUser.SteamId64);
-				}
-				catch
-				{
-					avatarSource = null;
-				}
-				if (string.IsNullOrWhiteSpace(avatarSource))
-				{
-					avatarSource = auth.Avatar;
-				}
-			}
-			string displayName = !string.IsNullOrWhiteSpace(auth?.Username) ? auth.Username : steamUser.DisplayName;
-
-			LauncherAccount? existing = null;
-			foreach (AccountItemViewModel item in accountList.Accounts)
-			{
-				if (string.Equals(item.Id, accountId, StringComparison.Ordinal))
-				{
-					existing = item.Account;
-					break;
-				}
-			}
-			if (existing != null)
-			{
-				if (!string.IsNullOrWhiteSpace(avatarSource)
-					&& !string.Equals(existing.AvatarSource, avatarSource, StringComparison.Ordinal))
-				{
-
-					LauncherAccount refreshed = AccountMapper.WithAvatar(existing, avatarSource);
-					refreshed = AccountMapper.WithOfflineUuid(refreshed, existing.OfflineUuidGenerationMode, steamUser.SteamId64);
-					await accountList.ReplaceSelectedAccountAndPersistAsync(existing, refreshed);
-					existing = refreshed;
-					logger?.LogInformation("Steam login: existing account avatar refreshed -> {A} (uuid preserved={U})", avatarSource, refreshed.Uuid);
-				}
-				else
-				{
-					logger?.LogInformation("Steam login: account already exists, select it");
-				}
-				accountList.SelectAccount(existing, persistSelection: true);
-				IsAddAccountDialogOpen = false;
-				ReportStatus(string.Format(Strings.Status_SteamAccountAddedFormat, existing.DisplayName));
-				return true;
-			}
-			LauncherAccount account = new LauncherAccount
-			{
-				Id = accountId,
-				DisplayName = displayName,
-				Uuid = steamUser.SteamId64,
-				Kind = LauncherAccountKind.Offline,
-				AvatarSource = avatarSource
-			};
-			logger?.LogInformation("Steam login: adding account name={Name} avatar={Avatar} uuid={Uuid}", account.DisplayName, avatarSource ?? "<none>", account.Uuid);
-			await accountList.AddAndSelectAsync(account);
-			logger?.LogInformation("Steam login: account added and selected");
-			IsAddAccountDialogOpen = false;
-			ReportStatus(string.Format(Strings.Status_SteamAccountAddedFormat, account.DisplayName));
+			await CompleteSteamAccountAddAsync(steamUser, auth).ConfigureAwait(true);
 		}
 		catch (Exception ex)
 		{
@@ -1267,6 +1294,192 @@ public sealed class AccountDialogViewModel : ObservableObject
 			IsAddAccountDialogBusy = false;
 		}
 		return true;
+	}
+
+	/// <summary>
+	/// Steam 授权成功但账号未激活：记下待添加的账户，切到激活步骤。
+	/// 激活码/群号优先用服务端返回的权威值，取不到再退回内置默认。
+	/// </summary>
+	private async Task EnterSteamActivationStepAsync(SteamUserInfo steamUser, AuthResponse auth)
+	{
+		pendingSteamUser = steamUser;
+		pendingSteamAuth = auth;
+		SteamActivationCode = auth.ActivationCode ?? string.Empty;
+		SteamActivationGroupUrl = string.Empty;
+		steamActivationGroupId = string.Empty;
+		SteamActivationMessage = string.Empty;
+		AddAccountDialogStep = "SteamActivation";
+		try
+		{
+			ActivationStatus? status = await AppState.Current.CloudSync.GetActivationAsync().ConfigureAwait(true);
+			if (status != null)
+			{
+				if (string.IsNullOrEmpty(SteamActivationCode) && !string.IsNullOrEmpty(status.Code))
+				{
+					SteamActivationCode = status.Code;
+				}
+				if (!string.IsNullOrEmpty(status.GroupUrl))
+				{
+					SteamActivationGroupUrl = status.GroupUrl;
+				}
+				if (!string.IsNullOrEmpty(status.GroupId))
+				{
+					steamActivationGroupId = status.GroupId;
+				}
+			}
+		}
+		catch (Exception exception)
+		{
+			logger?.LogDebug(exception, "Steam activation: fetch status failed");
+		}
+		if (string.IsNullOrEmpty(SteamActivationGroupUrl))
+		{
+			SteamActivationGroupUrl = DefaultActivationGroupUrl;
+		}
+		if (string.IsNullOrEmpty(steamActivationGroupId))
+		{
+			steamActivationGroupId = DefaultActivationGroupId;
+		}
+		logger?.LogInformation("Steam activation: gated, code={Code} group={Group}", SteamActivationCode, steamActivationGroupId);
+		ReportStatus(Strings.Status_SteamActivationRequired);
+	}
+
+	/// <summary>
+	/// 启动校验发现当前账号需要重新认证时调用：把原因写进激活面板的提示行，
+	/// 让用户点开"添加账户"时能看到为什么要重来一遍。
+	/// </summary>
+	public void ReportAccountNeedsReactivation(ActivationState state, string? activationCode)
+	{
+		SteamActivationMessage = state == ActivationState.AccountInvalid
+			? Strings.Multiplayer_AccountInvalid
+			: string.Format(Strings.Multiplayer_NeedActivationFormat, activationCode ?? "-", DefaultActivationGroupUrl);
+		logger?.LogInformation("Account verification: needs reactivation, state={State}, code={Code}", state, activationCode);
+	}
+
+	/// <summary>激活页点「我已激活」：重新问服务端，已激活就把账户补上。</summary>
+	private async Task<bool> TryHandleSteamActivationStepAsync()
+	{
+		if (!IsSteamActivationStep)
+		{
+			return false;
+		}
+		if (pendingSteamUser == null)
+		{
+			IsAddAccountDialogOpen = false;
+			return true;
+		}
+		IsAddAccountDialogBusy = true;
+		try
+		{
+			SteamActivationMessage = Strings.Status_SteamActivationChecking;
+			ActivationStatus? status = await AppState.Current.CloudSync.GetActivationAsync().ConfigureAwait(true);
+			if (status == null || !status.Activated)
+			{
+				SteamActivationMessage = Strings.Status_SteamActivationPending;
+				return true;
+			}
+			SteamUserInfo steamUser = pendingSteamUser;
+			AuthResponse? auth = pendingSteamAuth;
+			pendingSteamUser = null;
+			pendingSteamAuth = null;
+			SteamActivationMessage = string.Empty;
+			logger?.LogInformation("Steam activation: confirmed, finish adding account");
+			await CompleteSteamAccountAddAsync(steamUser, auth).ConfigureAwait(true);
+			IsAddAccountDialogOpen = false;
+		}
+		catch (Exception exception)
+		{
+			logger?.LogWarning(exception, "Steam activation: recheck failed");
+			SteamActivationMessage = Strings.Status_SteamActivationPending;
+		}
+		finally
+		{
+			IsAddAccountDialogBusy = false;
+		}
+		return true;
+	}
+
+	private async Task CompleteSteamAccountAddAsync(SteamUserInfo steamUser, AuthResponse? auth)
+	{
+		string accountId = "steam-" + steamUser.SteamId64;
+
+		string? avatarSource = null;
+		if (!string.IsNullOrWhiteSpace(steamUser.AvatarHash))
+		{
+			try
+			{
+				avatarSource = await SteamLoginClient.DownloadAvatarToFileAsync(steamUser.AvatarHash, steamUser.SteamId64);
+			}
+			catch
+			{
+				avatarSource = null;
+			}
+		}
+		if (string.IsNullOrWhiteSpace(avatarSource))
+		{
+			avatarSource = SteamLoginClient.GetCachedAvatarPath(steamUser.SteamId64);
+		}
+		if (string.IsNullOrWhiteSpace(avatarSource) && auth != null && !string.IsNullOrEmpty(auth.Avatar))
+		{
+			try
+			{
+				avatarSource = await SteamLoginClient.DownloadAvatarFromUrlAsync(auth.Avatar, steamUser.SteamId64);
+			}
+			catch
+			{
+				avatarSource = null;
+			}
+			if (string.IsNullOrWhiteSpace(avatarSource))
+			{
+				avatarSource = auth.Avatar;
+			}
+		}
+		string displayName = !string.IsNullOrWhiteSpace(auth?.Username) ? auth.Username : steamUser.DisplayName;
+
+		LauncherAccount? existing = null;
+		foreach (AccountItemViewModel item in accountList.Accounts)
+		{
+			if (string.Equals(item.Id, accountId, StringComparison.Ordinal))
+			{
+				existing = item.Account;
+				break;
+			}
+		}
+		if (existing != null)
+		{
+			if (!string.IsNullOrWhiteSpace(avatarSource)
+				&& !string.Equals(existing.AvatarSource, avatarSource, StringComparison.Ordinal))
+			{
+
+				LauncherAccount refreshed = AccountMapper.WithAvatar(existing, avatarSource);
+				refreshed = AccountMapper.WithOfflineUuid(refreshed, existing.OfflineUuidGenerationMode, steamUser.SteamId64);
+				await accountList.ReplaceSelectedAccountAndPersistAsync(existing, refreshed);
+				existing = refreshed;
+				logger?.LogInformation("Steam login: existing account avatar refreshed -> {A} (uuid preserved={U})", avatarSource, refreshed.Uuid);
+			}
+			else
+			{
+				logger?.LogInformation("Steam login: account already exists, select it");
+			}
+			accountList.SelectAccount(existing, persistSelection: true);
+			IsAddAccountDialogOpen = false;
+			ReportStatus(string.Format(Strings.Status_SteamAccountAddedFormat, existing.DisplayName));
+			return;
+		}
+		LauncherAccount account = new LauncherAccount
+		{
+			Id = accountId,
+			DisplayName = displayName,
+			Uuid = steamUser.SteamId64,
+			Kind = LauncherAccountKind.Offline,
+			AvatarSource = avatarSource
+		};
+		logger?.LogInformation("Steam login: adding account name={Name} avatar={Avatar} uuid={Uuid}", account.DisplayName, avatarSource ?? "<none>", account.Uuid);
+		await accountList.AddAndSelectAsync(account);
+		logger?.LogInformation("Steam login: account added and selected");
+		IsAddAccountDialogOpen = false;
+		ReportStatus(string.Format(Strings.Status_SteamAccountAddedFormat, account.DisplayName));
+
 	}
 
 	public AccountDialogViewModel(AccountListViewModel accountList, IMicrosoftAccountService microsoftAccountService, IThirdPartyAccountService thirdPartyAccountService, IOfflineAccountUuidService offlineUuidService, IStatusService statusService, ILogger<AccountDialogViewModel>? logger = null)
@@ -1679,6 +1892,8 @@ public sealed class AccountDialogViewModel : ObservableObject
 		OnPropertyChanged("IsMicrosoftAccountTypeSelected");
 		OnPropertyChanged("AddAccountDialogTitle");
 		OnPropertyChanged("AddAccountDialogSubtitle");
+		OnPropertyChanged("IsSteamActivationStep");
+		OnPropertyChanged("SteamActivationGroupText");
 	}
 
 	private void NotifyAddAccountDialogActionPropertiesChanged()
@@ -1725,6 +1940,12 @@ public sealed class AccountDialogViewModel : ObservableObject
 		isDirectThirdPartyAddAccountEntry = false;
 		navigateToAccountAfterThirdPartyAddition = false;
 		hasPendingDroppedThirdPartyNavigation = false;
+		pendingSteamUser = null;
+		pendingSteamAuth = null;
+		SteamActivationCode = string.Empty;
+		SteamActivationGroupUrl = string.Empty;
+		steamActivationGroupId = string.Empty;
+		SteamActivationMessage = string.Empty;
 		AddAccountDialogStep = "Type";
 		if (clearOfflineName)
 		{

@@ -151,6 +151,10 @@ public static class Strings
 
 	public static string Multiplayer_LobbyOwnerPlaceholder => Get("Multiplayer_LobbyOwnerPlaceholder");
 
+	public static string Multiplayer_NeedActivationFormat => Get("Multiplayer_NeedActivationFormat");
+
+	public static string Multiplayer_AccountInvalid => Get("Multiplayer_AccountInvalid");
+
 	public static string Multiplayer_LobbyGameWorldPlaceholder => Get("Multiplayer_LobbyGameWorldPlaceholder");
 
 	public static string Multiplayer_LobbyRoomCodeHeader => Get("Multiplayer_LobbyRoomCodeHeader");
@@ -3482,5 +3486,31 @@ public static class Strings
 	public static string Replays_EmptyHighlightsAction => Get("Replays_EmptyHighlightsAction");
 
 	public static string Replays_OpenHighlightsFolderButton => Get("Replays_OpenHighlightsFolderButton");
+
+	public static string Dialog_SteamActivationTitle => Get("Dialog_SteamActivationTitle");
+
+	public static string Dialog_SteamActivationSubtitle => Get("Dialog_SteamActivationSubtitle");
+
+	public static string SteamActivation_CodeLabel => Get("SteamActivation_CodeLabel");
+
+	public static string SteamActivation_CodeHint => Get("SteamActivation_CodeHint");
+
+	public static string SteamActivation_GroupLabel => Get("SteamActivation_GroupLabel");
+
+	public static string SteamActivation_GroupTextFormat => Get("SteamActivation_GroupTextFormat");
+
+	public static string SteamActivation_Copy_Button => Get("SteamActivation_Copy_Button");
+
+	public static string SteamActivation_OpenGroup_Button => Get("SteamActivation_OpenGroup_Button");
+
+	public static string SteamActivation_Recheck_Button => Get("SteamActivation_Recheck_Button");
+
+	public static string Status_SteamActivationRequired => Get("Status_SteamActivationRequired");
+
+	public static string Status_SteamActivationChecking => Get("Status_SteamActivationChecking");
+
+	public static string Status_SteamActivationPending => Get("Status_SteamActivationPending");
+
+	public static string Status_SteamActivationServerUnreachable => Get("Status_SteamActivationServerUnreachable");
 
 }

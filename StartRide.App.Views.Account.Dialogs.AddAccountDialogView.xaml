@@ -52,6 +52,18 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ListBox>
+    <StackPanel Grid.Row="1" Style="{StaticResource DialogFormPanelStyle}" Visibility="{Binding Dialog.IsSteamActivationStep, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+      <TextBlock Text="{x:Static res:Strings.SteamActivation_CodeLabel}" Style="{StaticResource DialogFieldLabelTextStyle}" />
+      <TextBox Style="{StaticResource LauncherDialogTextBoxStyle}" IsReadOnly="True" FontFamily="Consolas" FontSize="20" Text="{Binding Dialog.SteamActivationCode, Mode=OneWay}" />
+      <TextBlock Margin="0,4,0,0" Style="{StaticResource DialogValidationTextStyle}" TextWrapping="Wrap" Text="{x:Static res:Strings.SteamActivation_CodeHint}" />
+      <TextBlock Margin="0,14,0,6" Text="{x:Static res:Strings.SteamActivation_GroupLabel}" Style="{StaticResource DialogFieldLabelTextStyle}" />
+      <TextBox Style="{StaticResource LauncherDialogTextBoxStyle}" IsReadOnly="True" FontSize="12" Text="{Binding Dialog.SteamActivationGroupText, Mode=OneWay}" />
+      <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+        <Button Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.SteamActivation_Copy_Button}" Click="CopyActivationCode_OnClick" />
+        <Button Style="{StaticResource LauncherDialogButtonStyle}" Margin="8,0,0,0" Content="{x:Static res:Strings.SteamActivation_OpenGroup_Button}" Click="OpenActivationGroup_OnClick" />
+      </StackPanel>
+      <TextBlock Margin="0,12,0,0" Style="{StaticResource DialogValidationTextStyle}" TextWrapping="Wrap" Text="{Binding Dialog.SteamActivationMessage, Mode=OneWay}" />
+    </StackPanel>
     <StackPanel Grid.Row="1" Style="{StaticResource DialogFormPanelStyle}" Visibility="{Binding Dialog.IsOfflineNameStep, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
       <TextBlock Text="{x:Static res:Strings.Account_UsernameLabel}" Style="{StaticResource DialogFieldLabelTextStyle}" />
       <TextBox Style="{StaticResource LauncherDialogTextBoxStyle}" Text="{Binding Dialog.NewOfflineAccountName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />

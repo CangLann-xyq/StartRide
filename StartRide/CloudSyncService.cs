@@ -72,6 +72,27 @@ namespace StartRide.Core
             }
         }
 
+        /// <summary>查询当前账号的激活状态（未登录或服务不可达返回 null）。</summary>
+        public Task<ActivationStatus?> GetActivationAsync()
+        {
+            if (!IsLoggedIn) return Task.FromResult<ActivationStatus?>(null);
+            return _api.GetActivationAsync();
+        }
+
+        /// <summary>带判据的激活校验：未激活 / 账号失效 / 网络失败三态分得清。</summary>
+        public Task<ActivationCheck> CheckActivationAsync()
+        {
+            if (!IsLoggedIn)
+            {
+                return Task.FromResult(new ActivationCheck
+                {
+                    State = ActivationState.AccountInvalid,
+                    Error = "本地未登录"
+                });
+            }
+            return _api.CheckActivationAsync();
+        }
+
         public void ClearAuth()
         {
             Auth = null;

@@ -1881,4 +1881,23 @@
   <data name="Lobby_GameModeSetFailed" xml:space="preserve"><value>玩法沒改成功，請確認中繼連線正常後重試。</value></data>
   <data name="Lobby_GameModeRevisionMismatchFormat" xml:space="preserve"><value>玩法「{0}」規則版本為 {1}，本機是 {2}，可能與其他人的規則不一致</value></data>
   <data name="Lobby_JoinedGameModeLabel" xml:space="preserve"><value>玩法</value></data>
+  <data name="Multiplayer_NeedActivationFormat" xml:space="preserve"><value>這個帳號還沒啟用，多人連線暫時無法使用。
+
+啟用碼：{0}
+
+把啟用碼傳到 QQ 交流群（{1}），群裡會自動回覆啟用結果，然後再回來點多人連線。</value></data>
+  <data name="Dialog_SteamActivationTitle" xml:space="preserve"><value>QQ 群啟用</value></data>
+  <data name="Dialog_SteamActivationSubtitle" xml:space="preserve"><value>Steam 授權已完成。最後一步：把啟用碼傳到 StartRide 使用者群，機器人驗證通過後才會新增這個帳戶。</value></data>
+  <data name="SteamActivation_CodeLabel" xml:space="preserve"><value>你的啟用碼</value></data>
+  <data name="SteamActivation_CodeHint" xml:space="preserve"><value>全選（Ctrl+A）後複製，傳到群裡。</value></data>
+  <data name="SteamActivation_GroupLabel" xml:space="preserve"><value>啟用群</value></data>
+  <data name="SteamActivation_GroupTextFormat" xml:space="preserve"><value>群號 {0}    群連結 {1}</value></data>
+  <data name="SteamActivation_Copy_Button" xml:space="preserve"><value>複製啟用碼</value></data>
+  <data name="SteamActivation_OpenGroup_Button" xml:space="preserve"><value>開啟群連結</value></data>
+  <data name="SteamActivation_Recheck_Button" xml:space="preserve"><value>我已啟用，重新檢測</value></data>
+  <data name="Status_SteamActivationRequired" xml:space="preserve"><value>Steam 授權通過，還需在 QQ 群啟用才能新增帳戶</value></data>
+  <data name="Status_SteamActivationChecking" xml:space="preserve"><value>正在查詢啟用狀態…</value></data>
+  <data name="Status_SteamActivationPending" xml:space="preserve"><value>還沒偵測到啟用。機器人回執通常 1~3 秒，稍等一下再點一次；碼要完整（SR-XXXXXX）。</value></data>
+  <data name="Status_SteamActivationServerUnreachable" xml:space="preserve"><value>連不上啟用伺服器（官方網域在目前網路被攔截）。已嘗試明文直連仍失敗；請檢查網路或代理後重試。</value></data>
+  <data name="Multiplayer_AccountInvalid" xml:space="preserve"><value>帳號已失效（伺服器資料已重設）。請在帳戶頁刪除後重新新增 Steam 帳戶，並完成 QQ 群啟用。</value></data>
 </root>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace StartRide.Core
 {
@@ -54,6 +54,8 @@ namespace StartRide.Core
             return new[]
             {
                 SelfHostedUpdateBase + "/" + file,
+                // 主源不可达时的国内备用；与启动器其它接口同一套域名兜底。
+                "https://windseek.cloud/update/" + file,
                 GitHubRawBase + "/update/" + file,
             };
         }
