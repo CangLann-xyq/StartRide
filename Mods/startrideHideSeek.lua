@@ -157,6 +157,7 @@ local S = {
   lastAnnounce = '',
   lastSentKey  = '',
   cfgLoaded    = false,
+  cfgCheckedAt = 0,
   lastBlockReason = '',
 
   -- 出生方案
@@ -1006,6 +1007,12 @@ function M.tick(dtReal, win)
   if not S.cfgLoaded then pcall(readConfig) end
 
   S.clock = S.clock + (tonumber(dtReal) or 0.016)
+
+  -- 与 startrideMode.lua 一致：房主改配置后 2 秒内生效，不必重启游戏。
+  if S.clock - (S.cfgCheckedAt or 0) >= 2 then
+    S.cfgCheckedAt = S.clock
+    pcall(readConfig)
+  end
 
   win = win or {}
   S.selfId     = tostring(win.selfId or 'self')

@@ -125,6 +125,33 @@ internal static class NativeBackdrop
 		}
 	}
 
+	/// <summary>
+	/// 读回 DWM 实际记录的 SYSTEMBACKDROP_TYPE，用于验证「首帧之后亚克力是否真的生效」。
+	/// 返回 -1 = 读不到（HWND 未创建 / 旧版 Windows 不支持该属性），调用方应跳过校验。
+	/// </summary>
+	public static int ReadBackdropType(Window window)
+	{
+		nint handle = new WindowInteropHelper(window).Handle;
+		if (handle == IntPtr.Zero)
+		{
+			return -1;
+		}
+		try
+		{
+			int value;
+			int hr = DwmGetWindowAttribute(handle, DwmWindowAttribute.SystemBackdropType, out value, 4);
+			return (hr == 0) ? value : -1;
+		}
+		catch (DllNotFoundException)
+		{
+			return -1;
+		}
+		catch (EntryPointNotFoundException)
+		{
+			return -1;
+		}
+	}
+
 	public static Color GetOpaqueWindowBackgroundColor(EffectiveTheme theme)
 	{
 		if (theme != EffectiveTheme.Light)
@@ -139,4 +166,7 @@ internal static class NativeBackdrop
 
 	[DllImport("dwmapi.dll")]
 	private static extern int DwmExtendFrameIntoClientArea(nint hwnd, ref Margins margins);
+
+	[DllImport("dwmapi.dll")]
+	private static extern int DwmGetWindowAttribute(nint hwnd, DwmWindowAttribute attribute, out int attributeValue, int attributeSize);
 }

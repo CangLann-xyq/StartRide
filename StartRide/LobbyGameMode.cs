@@ -12,7 +12,8 @@ namespace StartRide.Core
     /// 让加入者在进房前就知道这局是干什么的，模组也可以按玩法决定自己的行为。
     ///
     /// ⚠️ 这里只描述**机制**（id / 显示名 / 规则开关 / 对模组的提示），
-    /// 不带任何界面资源。UI 一律用 StartRide 自己的样式渲染。
+    /// UI 一律用 StartRide 自己的样式渲染；IconKey 只是指向 assets/icons 的字符串键，
+    /// 新增图标必须同时登记进 StartRide.csproj 的 Resource 清单（漏了会静默显示空白）。
     /// </summary>
     public sealed class LobbyGameMode
     {
@@ -50,7 +51,7 @@ namespace StartRide.Core
         /// <summary>展开后的完整规则说明，详情区用。</summary>
         public string Detail { get; }
 
-        /// <summary>图标键（走既有的 SvgIcon 资源，不引入新图）。</summary>
+        /// <summary>图标键（SvgIcon 资源路径，玩法图标为 beamng/mode_*）。</summary>
         public string IconKey { get; }
 
         /// <summary>是否要求玩家分散出生（捉迷藏/警匪这类不该在同一落点开局）。</summary>
@@ -102,7 +103,7 @@ namespace StartRide.Core
                 "不设目标也不分队。地图上的路、赛道、越野场地全部开放，"
                 + "适合随便开开、看风景、试车或几个人约着跑一段。"
                 + "新人第一次联机建议先从这个模式开始。",
-                "beamng/route",
+                "beamng/mode_free_drive",
                 spawnsApart: false),
 
             new LobbyGameMode(
@@ -113,7 +114,7 @@ namespace StartRide.Core
                 + "被找到的人转为搜索者一起抓。局内锁掉小地图与自由视角，"
                 + "搜索者只能靠肉眼在车流里认车，躲不了「开地图直接看位置」。"
                 + "推荐配合车流使用 —— 混在 AI 车里更难被发现。",
-                "general/general_pin",
+                "beamng/mode_hide_seek",
                 spawnsApart: true,
                 traffic: true),
 
@@ -123,7 +124,7 @@ namespace StartRide.Core
                 "分队对抗，追捕与逃逸",
                 "分警察与强盗两队。强盗要在地图上完成目标并甩掉追捕，警察负责拦截与逼停。"
                 + "双方车辆不限，撞毁即为出局，队伍全员出局或时间耗尽分出胜负。",
-                "main_menu_multiplayer",
+                "beamng/mode_cops_robber",
                 spawnsApart: true,
                 teams: true),
 
@@ -133,7 +134,7 @@ namespace StartRide.Core
                 "最后站着的人赢",
                 "所有人集中到一个封闭场地里互相撞击，车辆损毁即出局，最后剩下的一辆获胜。"
                 + "按回合进行，每回合结束后自动复位重新开始。",
-                "beamng/vehicle",
+                "beamng/mode_derby",
                 spawnsApart: false,
                 rounds: true),
 
@@ -143,7 +144,7 @@ namespace StartRide.Core
                 "刷圈速，比谁更快",
                 "在赛道图上按回合刷单圈成绩，每人依次发车、计时取最快圈。"
                 + "适合正经比一比谁开得快，也可以当练车用。",
-                "beamng/route",
+                "beamng/mode_track_day",
                 spawnsApart: true,
                 teams: false,
                 rounds: true)

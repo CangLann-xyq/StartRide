@@ -207,6 +207,11 @@
 
     <EmbeddedResource Include="docs\legal\*.md" Exclude="docs\legal\README.md" LogicalName="StartRide.App.Resources.Legal.%(Filename)%(Extension)" />
     <Resource Include="assets\icons\beamng\car.svg" />
+    <Resource Include="assets\icons\beamng\mode_free_drive.svg" />
+    <Resource Include="assets\icons\beamng\mode_hide_seek.svg" />
+    <Resource Include="assets\icons\beamng\mode_cops_robber.svg" />
+    <Resource Include="assets\icons\beamng\mode_derby.svg" />
+    <Resource Include="assets\icons\beamng\mode_track_day.svg" />
     <Resource Include="assets\icons\beamng\map.svg" />
     <Resource Include="assets\icons\beamng\replay.svg" />
     <Resource Include="assets\icons\beamng\mod.svg" />

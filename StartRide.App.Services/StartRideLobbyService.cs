@@ -117,6 +117,8 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		string spawnPoint = ResolveSpawnPoint(mapId, settings.LobbySpawnPoint);
 		int capacity = ClampCapacity(settings.LobbyCapacity);
 		var mode = LobbyGameModeCatalog.Normalize(settings.LobbyGameMode);
+		RunAdmissionChecks(hosting: true, mode: mode, wantedMap: settings.LobbyMapId,
+			mapId: mapId, capacity: capacity, peer: null);
 
 		var code = NewRoomCode();
 		var room = new Room
@@ -209,10 +211,22 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 
 		// 玩法也是房主那份为准。大厅列表没带上玩法时（老房主 / 登记失败），
 		// 退回本机记住的值，至少不会显示成空白；中继快照随后会把它纠正过来。
+		string rawPeerMode = room.GameMode;
 		string modeId = LobbyGameModeCatalog.IsKnown(room.GameMode)
 			? LobbyGameModeCatalog.Normalize(room.GameMode).Id
 			: LobbyGameModeCatalog.Normalize(settings.LobbyGameMode).Id;
 		room.GameMode = modeId;
+
+		// 准入检查放在连中继之前：规则版本不一致 / 房主地图本机缺失 / 已满员
+		// 这些情况连接本身会成功，但进游戏后才会暴露成「互相看不见」或「限制不生效」。
+		RunAdmissionChecks(hosting: false, mode: LobbyGameModeCatalog.Normalize(modeId),
+			wantedMap: room.Map, mapId: mapId, capacity: room.Capacity, peer: room);
+		if (!LobbyGameModeCatalog.IsKnown(rawPeerMode))
+		{
+			ReportAdmission("房主用的玩法本版不认识（" + rawPeerMode
+				+ "），已按" + LobbyGameModeCatalog.DisplayName(modeId)
+				+ "进入，建议双方更新到同一版本");
+		}
 
 		session.ConfigureRoom(mapId, spawnPoint, modeId, push: false);
 
@@ -306,6 +320,14 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 			return false;
 		}
 
+		// Normalize 会把不认识的 id 静默换成自由驾驶。老客户端 / 手改配置
+		// 传进来时，用户以为切了玩法其实没切，这里必须当场拒绝。
+		if (!LobbyGameModeCatalog.IsKnown(modeId))
+		{
+			PluginLog("修改玩法失败：不认识的玩法 id " + modeId);
+			return false;
+		}
+
 		var mode = LobbyGameModeCatalog.Normalize(modeId);
 		if (!session.SetGameMode(mode.Id))
 		{
@@ -325,6 +347,11 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 		}
 
 		EnsureModePackageReady(mode.Id);
+		if (mode.Teams && Capacity < 3)
+		{
+			ReportAdmission(mode.Title + " 是分队对抗，建议至少 3 人再开局；"
+				+ "人没到齐时玩法会停在等待阶段");
+		}
 		PluginLog("玩法已改为 " + mode.Title);
 		RaiseSnapshotChanged(Publish(MultiplayerLobbyState.Active));
 		return true;
@@ -1119,6 +1146,82 @@ public sealed class StartRideLobbyService : IMultiplayerLobbyService, IStartRide
 
 	private static string CleanName(string? name) =>
 		string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim();
+
+	/// <summary>
+	/// 建房 / 加房前的玩法准入检查。全部只提示、不阻断：人数没到齐、房主还在等人
+	/// 都是正常状态，硬拦会把「先建房再叫人」这条路堵死。
+	/// 重点是把以前只写进日志（用户根本看不到）的隐患变成可见提示。
+	/// </summary>
+	private void RunAdmissionChecks(bool hosting, LobbyGameMode mode, string? wantedMap,
+		string mapId, int capacity, Room? peer)
+	{
+		var notes = new List<string>();
+
+		// ① 规则版本：两端规则版本不同 = 限制只对一端的车生效，玩法直接失去公平性
+		if (!hosting && peer != null && peer.GameModeRevision > 0
+			&& peer.GameModeRevision != mode.Revision)
+		{
+			notes.Add("房主的玩法规则版本是 r" + peer.GameModeRevision + "，你本机是 r"
+				+ mode.Revision + "；两端限制可能不一致，建议都更新到同一版本");
+		}
+
+		// ② 地图：ResolveMapId 退回默认图时，两端跑在不同地图上必然互相看不见
+		if (!hosting && !string.IsNullOrWhiteSpace(wantedMap)
+			&& !string.Equals(wantedMap.Trim(), mapId, StringComparison.OrdinalIgnoreCase))
+		{
+			notes.Add("房主的地图 " + wantedMap + " 本机不可用，已退回 "
+				+ BeamNgLevelCatalog.DisplayName(settings, mapId)
+				+ "；两端地图不同会互相看不见对方，请先装好同一张图");
+		}
+
+		// ③ 满员：中继会拒绝，但连上再掉线不如提前说明
+		if (!hosting && peer != null && peer.Capacity > 0 && peer.Players >= peer.Capacity)
+		{
+			notes.Add("房间已有 " + peer.Players + "/" + peer.Capacity
+				+ " 人，可能已满；若被拒绝请稍后再试");
+		}
+
+		// ④ 出生点：要求分散出生的玩法，图上落点不足等于开局全挤在一起
+		if (mode.SpawnsApart)
+		{
+			var level = BeamNgLevelCatalog.Find(settings, mapId);
+			if (level != null && level.SpawnPoints.Count < 2)
+			{
+				notes.Add(mode.Title + " 需要分散出生，但 "
+					+ BeamNgLevelCatalog.DisplayName(settings, mapId) + " 只有 "
+					+ level.SpawnPoints.Count + " 个可用出生点，开局会挤在同一位置");
+			}
+		}
+
+		// ⑤ 分队玩法人太少时提前说明（capacity 已被 ClampCapacity 钳到 >= 2）
+		if (hosting && mode.Teams && capacity < 3)
+		{
+			notes.Add(mode.Title + " 是分队对抗，建议把人数上限调到 3 以上；"
+				+ "人没到齐时玩法会停在等待阶段");
+		}
+
+		foreach (var note in notes)
+		{
+			ReportAdmission(note);
+		}
+
+		PluginLog("准入检查：" + (notes.Count == 0
+			? "通过（" + mode.Title + " / " + mapId + "）"
+			: "发现 " + notes.Count + " 项提示（" + mode.Title + " / " + mapId + "）"));
+	}
+
+	/// <summary>准入提示同时进日志和界面 toast，避免只在 Debug 输出里躺着。</summary>
+	private static void ReportAdmission(string message)
+	{
+		PluginLog("准入检查：" + message);
+		try
+		{
+			AppState.Current.Notify(message);
+		}
+		catch
+		{
+		}
+	}
 
 	private static string DescribeError(string error) =>
 		string.IsNullOrWhiteSpace(error) ? "无响应" : error;

@@ -174,6 +174,7 @@ local S = {
 
   -- 配置是否已加载
   cfgLoaded    = false,
+  cfgCheckedAt = 0,
 
   finishReason     = '',
   ramDamage        = {},
@@ -1497,6 +1498,14 @@ function M.tick(dtReal, win)
 
   S.clock = S.clock + (tonumber(dtReal) or 0.016)
 
+  -- 房主中途改规则 / 换玩法时，启动器会重写 startride/multiplayer.json。
+  -- 旧实现 cfgLoaded 一旦置 true 就再也不读，游戏内永远停在首帧那份参数，
+  -- 只能重启游戏。这里每 2 秒轻量复检一次；readConfig 是纯赋值，重复调用无副作用。
+  if S.clock - (S.cfgCheckedAt or 0) >= 2 then
+    S.cfgCheckedAt = S.clock
+    pcall(readConfig)
+  end
+
   win = win or {}
   S.selfId     = tostring(win.selfId or 'self')
   S.playerName = tostring(win.playerName or '')
@@ -1713,7 +1722,10 @@ local function ruleResolve(mode, name)
   local hd = MODE_HARD[mode]
   if type(hd) == 'table' then
     local hv = hd[name]
-    if hv ~= nil then return hv == true end
+    -- 模式适配包里 hard 是 0/1 数字表（startrideModePacks.lua），explicit / limits
+    -- 已归一化成布尔。两边都得认：`1 == true` 恒为 false，会让所有模式底线
+    -- 静默失效，并且提前 return 把房主「更严」的覆写一起短路掉。
+    if hv ~= nil then return hv == true or (tonumber(hv) or 0) > 0 end
   end
   -- ② 房主逐条覆写（更严永远有效；想关掉非底线项也允许）
   local v = tonumber(TUNE[name])
@@ -1722,7 +1734,7 @@ local function ruleResolve(mode, name)
   local ex = MODE_EXPLICIT[mode]
   if type(ex) == 'table' then
     local ev = ex[name]
-    if ev ~= nil then return ev == true end
+    if ev ~= nil then return ev == true or (tonumber(ev) or 0) > 0 end
   end
   -- ④ 旧手写表里的模式语义例外（模式包缺失时的兜底）
   local mr = MODE_RULES[mode]
