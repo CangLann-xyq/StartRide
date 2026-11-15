@@ -1477,6 +1477,44 @@ local function spawnTick()
   end)
   if not pos or not rot then return end
 
+  -- 多人同图同出生点是默认行为：房主没特意选、加入者本地也没设过，都会落到该图的
+  -- 默认出生点对象上（见启动器 ResolveSpawnPoint 的兜底），于是所有人被 teleport 到
+  -- **完全相同的坐标**。远程车虽然有「重叠侧移」保护，但那只改生成点，位置同步随后
+  -- 就会把它拉回对方的真实坐标 —— 两辆车精确穿模，玩家视角里等同于「没见到对方人」。
+  -- 这里按房间名单给每人一个环形错位：排序后第 1 位留在原点，其余均匀排开。
+  -- ⚠️ 名单必须两端算出来一致，所以用 playerName 排序而不是 join 顺序（顺序会随
+  --    断线重连变化）。模式包自己的出生规划（警匪/德比/捉迷藏/赛道日）在这之后
+  --    teleport，会把错位覆盖掉，不冲突。
+  do
+    local names = {}
+    local seen = false
+    for _, pl in ipairs(mpPlayers) do
+      local nm = pl and (pl.name or pl.id)
+      if type(nm) == 'string' and nm ~= '' then
+        names[#names + 1] = nm
+        if nm == playerName then seen = true end
+      end
+    end
+    if not seen and playerName ~= '' then names[#names + 1] = playerName end
+    if #names > 1 then
+      table.sort(names)
+      local slot = 1
+      for i = 1, #names do
+        if names[i] == playerName then
+          slot = i
+          break
+        end
+      end
+      if slot > 1 then
+        local ang = (slot - 1) / math.max(#names, 2) * math.pi * 2
+        local radius = 5.5
+        pos = vec3(pos.x + math.cos(ang) * radius, pos.y + math.sin(ang) * radius, pos.z)
+        logMsg('出生点与同房玩家重叠，已按序号错开 ' .. string.format('%.1f', radius)
+          .. 'm（第 ' .. tostring(slot) .. '/' .. tostring(#names) .. ' 位）')
+      end
+    end
+  end
+
   local ok = false
   pcall(function()
     if spawn and spawn.safeTeleport then
