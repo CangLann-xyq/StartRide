@@ -900,8 +900,35 @@ function M.applyRemoteTransform(gameVehicleID, jsonStr)
     local want = quat(r[1], r[2], r[3], r[4])
     local delta = cur:inversed() * want
 
+    -- 视觉去重叠（最后一道保险）：两个人真站在同一点时（同一个出生点、或被撞到
+    -- 一起），远程车会整台嵌进本机车里 —— 驾驶视角里就是「没见到对方人」，哪怕
+    -- 包全收到了。这里按水平距离给一个纯客户端的横向偏移：完全重合时推开 2m，
+    -- 2m 外原样不动；两人一分开偏移自然归零。只影响本机渲染，不写回位置同步，
+    -- 也不会让对端看到自己被推。
+    local px, py, pz = p[1], p[2], p[3]
+    pcall(function()
+      local lv = be:getPlayerVehicle(0)
+      if not lv then return end
+      local lp = lv:getPosition()
+      local ddx, ddy, ddz = px - lp.x, py - lp.y, pz - lp.z
+      if math.abs(ddz) > 2.5 then return end            -- 上下层（桥上/桥下）不算重叠
+      local d2 = ddx * ddx + ddy * ddy
+      if d2 >= 4.0 then return end                      -- 2m 外不动
+      local d = math.sqrt(d2)
+      -- 推开方向：对方车头方向的右侧。完全重合时也稳定可算，不会左右抖。
+      local rx, ry = 1, 0
+      local okd, fxx, fyy = pcall(function() return veh:getDirectionVectorXYZ() end)
+      if okd and fxx then
+        local n = math.sqrt(fxx * fxx + fyy * fyy)
+        if n > 1e-3 then rx, ry = -fyy / n, fxx / n end
+      end
+      local push = 2.0 * (1 - d / 2.0)
+      px, py = px + rx * push, py + ry * push
+      M.deOverlapShifts = (M.deOverlapShifts or 0) + 1
+    end)
+
     local localVel = veh:getVelocity()
-    veh:setClusterPosRelRot(refNode, p[1], p[2], p[3], delta.x, delta.y, delta.z, delta.w)
+    veh:setClusterPosRelRot(refNode, px, py, pz, delta.x, delta.y, delta.z, delta.w)
 
     local rx, ry, rz = v[1] or 0, v[2] or 0, v[3] or 0
     if not noCounter then
@@ -1482,47 +1509,91 @@ local function spawnTick()
   -- 默认出生点对象上（见启动器 ResolveSpawnPoint 的兜底），于是所有人被 teleport 到
   -- **完全相同的坐标**。远程车虽然有「重叠侧移」保护，但那只改生成点，位置同步随后
   -- 就会把它拉回对方的真实坐标 —— 两辆车精确穿模，玩家视角里等同于「没见到对方人」。
-  -- 这里按房间名单给每人一个环形错位：排序后第 1 位留在原点，其余均匀排开。
-  -- ⚠️ 名单必须两端算出来一致，所以用 playerName 排序而不是 join 顺序（顺序会随
-  --    断线重连变化）。模式包自己的出生规划（警匪/德比/捉迷藏/赛道日）在这之后
-  --    teleport，会把错位覆盖掉，不冲突。
+  -- 这里按房间名单给每人一个环形位置：以出生点为圆心、半径 5.5m 均匀排开。
+  -- 关键约定（全场景仿真实测过，见 _sr_mp_spawn_sim.py）：
+  --   · 排序键用 peerId（本会话唯一）→ 两端算出来的顺序必然一致
+  --   · 角度从 1/n 起算，谁都不占圆心 → 「我先落地、他后进房」任何时序都不会撞点
+  --   · 模式包自己的出生规划（警匪/德比/捉迷藏/赛道日）优先，见下面那段让位判断
   do
-    local names = {}
-    local seen = false
+    -- 排序键优先用 peerId（本会话内唯一），没有才退昵称：
+    --   ① 昵称能重名，重名时 table.sort 对相等元素不保证稳定 → 两端可能算出不同序号
+    --   ② 昵称能改，改完两端名单就对不上了
+    local keys = {}
+    local me = tostring(playerId or '')
+    local selfKey = nil
+    local nameKey = nil
     for _, pl in ipairs(mpPlayers) do
-      local nm = pl and (pl.name or pl.id)
+      -- ⚠️ 空串在 Lua 里是真值：写成 pl.name or pl.id 时，昵称为 "" 的对端会拿到
+      --    ""（而不是 id），接着被下面的空值判断丢掉 → 名单少一个人 → 序号全错。
+      local nm = pl and pl.name
+      if type(nm) ~= 'string' or nm == '' then nm = pl and pl.id end
       if type(nm) == 'string' and nm ~= '' then
-        names[#names + 1] = nm
-        if nm == playerName then seen = true end
+        local key = tostring(pl.id or nm)
+        keys[#keys + 1] = key
+        -- ⚠️ 必须分成两个游标：id 优先，昵称只是兜底。
+        --    写成一个 if/elseif 会在「重名」时错得很惨 —— 第一行昵称就跟我一样，
+        --    于是我在第一轮就认领了别人的槽位，后面真正的 id 永远匹配不到，
+        --    两个人拿到同一个 slot → 又叠在一起。
+        if selfKey == nil and me ~= '' and key == me then selfKey = key end
+        if nameKey == nil and nm == playerName then nameKey = key end
+      else
+        -- 对端条目缺字段（老版本/异常包）：仍然占一个位置，不能悄悄少一个人
+        keys[#keys + 1] = '#' .. tostring(#keys + 1)
       end
     end
-    if not seen and playerName ~= '' then names[#names + 1] = playerName end
-    -- 刚进图那一两秒 players 快照可能还在路上（本地桥刚连上），名单里只有自己。
-    -- 这时候直接按「一个人」落地就回到重叠原状，等于没改。先等名单，
-    -- 最多约 10 秒（60fps 下 600 帧），等不到再按现状落地，不能一直不落地。
-    if #names <= 1 and (tonumber(roomInfo.count) or 0) > 1 then
+    if selfKey == nil then selfKey = nameKey end
+    local selfSeen = (selfKey ~= nil)
+    -- 名单里没有自己（快照还没到，或对端是老版本不带 id）：把自己补进去，
+    -- 否则我们永远是第 1 位 = 原点 = 和真正的第 1 位撞在一起。
+    if not selfSeen and playerName ~= '' then
+      selfKey = (me ~= '') and me or playerName
+      keys[#keys + 1] = selfKey
+    end
+
+    -- ⚠️ 没收到「含自己的名单」时**不能**落地：join 之后服务端马上会回一份 players
+    --    快照，正常几百毫秒就到。赶在它之前落地，我只能按「房里就我一个」算，
+    --    必然占原点；而后来者的完整名单里，排序完全可能把我排到第 1 位以外的位置，
+    --    于是两人都在原点 → 又是互相看不见。先等约 2 秒，等不到再按现状落地。
+    if not selfSeen then
       spawnPlan.waitFrames = (spawnPlan.waitFrames or 0) + 1
-      if spawnPlan.waitFrames % 120 == 0 then
+      if spawnPlan.waitFrames % 60 == 0 then
         logMsg('等房间成员名单再落地（已等 ' .. tostring(spawnPlan.waitFrames) .. ' 帧）')
       end
-      if spawnPlan.waitFrames < 600 then return end
+      if spawnPlan.waitFrames < 120 then return end
+      logMsg('还没收到房间成员名单，按单人落地（名单到齐后不会再改位置）')
     end
-    if #names > 1 then
-      table.sort(names)
+
+    if #keys > 1 and selfKey ~= nil then
+      table.sort(keys)
       local slot = 1
-      for i = 1, #names do
-        if names[i] == playerName then
+      for i = 1, #keys do
+        if keys[i] == selfKey then
           slot = i
           break
         end
       end
-      if slot > 1 then
-        local ang = (slot - 1) / math.max(#names, 2) * math.pi * 2
-        local radius = 5.5
-        pos = vec3(pos.x + math.cos(ang) * radius, pos.y + math.sin(ang) * radius, pos.z)
-        logMsg('出生点与同房玩家重叠，已按序号错开 ' .. string.format('%.1f', radius)
-          .. 'm（第 ' .. tostring(slot) .. '/' .. tostring(#names) .. ' 位）')
-      end
+      -- 角度从 1/n 个圆周起算，**谁也不占原点**：原点专门留给「进房那一刻名单里
+      -- 就我一个、已经先落地」的人 —— 后来进房的人拿到名单时也不可能回头改他，
+      -- 只能自己躲开。于是「我先落地、他后进房」这种时序无论怎么交错，
+      -- 都不会出现两个人都站在原点。半径 5.5m、n<=16 时相邻弦长仍有 2.1m。
+      local ang = slot / #keys * math.pi * 2
+      local radius = 5.5
+      pos = vec3(pos.x + math.cos(ang) * radius, pos.y + math.sin(ang) * radius, pos.z)
+      logMsg('出生点与同房玩家重叠，已按序号错开 ' .. string.format('%.1f', radius)
+        .. 'm（第 ' .. tostring(slot) .. '/' .. tostring(#keys) .. ' 位）')
+    end
+  end
+
+  -- 玩法出生（警匪/德比/捉迷藏/赛道日）已经按方案把本机摆好了，这条默认出生点
+  -- 的线必须让位：否则上面那段等名单超时后再 teleport 一次，会把已经摆好的
+  -- 位置拽回所有人共用的默认出生点，等于又是一次「互相看不见」。
+  if SRSpawn and SRSpawn.appliedRound ~= nil then
+    local ar = 0
+    pcall(function() ar = tonumber(SRSpawn.appliedRound()) or 0 end)
+    if ar > 0 then
+      spawnPlan.applied = true
+      logMsg('玩法出生已生效，跳过默认出生点落地（回合 ' .. tostring(ar) .. '）')
+      return
     end
   end
 
@@ -3663,7 +3734,18 @@ function M.onInit()
 end
 
 function M.onUpdate(dtReal, dtSim, dtRaw)
-  pcall(onUpdateRaw, dtReal, dtSim, dtRaw)
+  -- ⚠️ 原来这里只写 pcall，错误被彻底吞掉：onUpdateRaw 里任何一段抛错，这一帧
+  --    后面的全部不执行（含 spawnTick / 收发包），而日志里一个字都没有 ——
+  --    现场看到的就是「模组像没装」「谁都不落地」「互相看不见」。
+  --    现在限流记一次（5 秒一条），错误可见但仍不打断游戏。
+  local ok, err = pcall(onUpdateRaw, dtReal, dtSim, dtRaw)
+  if not ok then
+    local now = os.clock()
+    if now - (M.__updErrAt or 0) > 5 then
+      M.__updErrAt = now
+      pcall(logMsg, 'ERR', 'onUpdate', tostring(err))
+    end
+  end
 end
 
 function M.onExtensionUnloaded()
