@@ -1281,6 +1281,7 @@ local function setSpawnPlan(map, spawnPoint, source)  spawnPlan.map = tostring(m
   spawnPlan.warned = false
   spawnPlan.mapWarned = false
   spawnPlan.mapSwitchTried = false
+  spawnPlan.waitFrames = 0
   if spawnPlan.spawnPoint ~= '' then
     logMsg('出生点已设定: ' .. spawnPlan.spawnPoint .. '  (' .. tostring(source) .. ')')
   end
@@ -1496,6 +1497,16 @@ local function spawnTick()
       end
     end
     if not seen and playerName ~= '' then names[#names + 1] = playerName end
+    -- 刚进图那一两秒 players 快照可能还在路上（本地桥刚连上），名单里只有自己。
+    -- 这时候直接按「一个人」落地就回到重叠原状，等于没改。先等名单，
+    -- 最多约 10 秒（60fps 下 600 帧），等不到再按现状落地，不能一直不落地。
+    if #names <= 1 and (tonumber(roomInfo.count) or 0) > 1 then
+      spawnPlan.waitFrames = (spawnPlan.waitFrames or 0) + 1
+      if spawnPlan.waitFrames % 120 == 0 then
+        logMsg('等房间成员名单再落地（已等 ' .. tostring(spawnPlan.waitFrames) .. ' 帧）')
+      end
+      if spawnPlan.waitFrames < 600 then return end
+    end
     if #names > 1 then
       table.sort(names)
       local slot = 1
