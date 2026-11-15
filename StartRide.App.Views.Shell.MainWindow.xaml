@@ -123,6 +123,10 @@
       <controls:DialogHost x:Name="DeleteAccountDialogHost" Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="380" UseIntegratedOverlay="True" DataContext="{Binding AccountPage}">
         <accountDialogViews:DeleteAccountDialogView />
       </controls:DialogHost>
+      <!-- 注销 StartRide 云端账号（只清云端账号/QQ 绑定/激活，不动 Steam） -->
+      <controls:DialogHost x:Name="DeleteCloudAccountDialogHost" Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="460" UseIntegratedOverlay="True" IsOpen="{Binding DataContext.AccountPage.Details.IsCloudDeleteDialogOpen, ElementName=RootWindow}" DataContext="{Binding DataContext.AccountPage.Details, ElementName=RootWindow}">
+        <accountDialogViews:DeleteCloudAccountDialogView />
+      </controls:DialogHost>
       <controls:DialogHost x:Name="OfflineUuidModeChangeDialogHost" Grid.ColumnSpan="2" Grid.RowSpan="2" DialogWidth="460" UseIntegratedOverlay="True" IsOpen="{Binding DataContext.AccountPage.OfflineUuid.IsOfflineUuidModeChangeDialogOpen, ElementName=RootWindow}" DataContext="{Binding DataContext.AccountPage.OfflineUuid, ElementName=RootWindow}">
         <Grid Style="{StaticResource DialogContentGridStyle}">
           <Grid.RowDefinitions>

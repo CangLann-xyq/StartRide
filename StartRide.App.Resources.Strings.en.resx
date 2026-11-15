@@ -1389,6 +1389,24 @@ The launcher has automatically switched to:
 <data name="Account_CopyUuidButton" xml:space="preserve"><value>Copy online ID</value></data>
 <data name="Account_RenameButton" xml:space="preserve"><value>Rename account</value></data>
 <data name="Account_DeleteButton" xml:space="preserve"><value>Delete account</value></data>
+  <data name="Account_CloudDeleteTitle" xml:space="preserve"><value>StartRide account</value></data>
+
+  <data name="Account_CloudDeleteHintFormat" xml:space="preserve"><value>Signed in as {0}. Deleting clears the StartRide account, its QQ binding and multiplayer activation. Your Steam account, local game files and saves are left untouched.</value></data>
+
+  <data name="Account_CloudDeleteButton" xml:space="preserve"><value>Delete StartRide account</value></data>
+
+  <data name="Dialog_DeleteCloudAccountTitle" xml:space="preserve"><value>Delete the StartRide account?</value></data>
+
+  <data name="Dialog_DeleteCloudAccountMessageFormat" xml:space="preserve"><value>This permanently deletes the StartRide account "{0}": profile, QQ group binding, multiplayer activation and cloud sync data are all removed. It cannot be undone.</value></data>
+
+  <data name="Dialog_DeleteCloudAccountNote" xml:space="preserve"><value>Your Steam account, game files, local saves and launcher settings are not affected. You can sign in again with the same Steam account, but you will need a new activation code and must activate in the QQ group again.</value></data>
+
+  <data name="Account_CloudDeleteConfirmButton" xml:space="preserve"><value>Delete</value></data>
+
+  <data name="Account_CloudDeleteBusy" xml:space="preserve"><value>Deleting…</value></data>
+
+  <data name="Account_CloudDeleteSuccess" xml:space="preserve"><value>Deleted. Your Steam account and local game are untouched. To play online again, add the account again and send the new activation code to the group.</value></data>
+
 
 <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>The authentication server must use HTTPS</value></data>
 

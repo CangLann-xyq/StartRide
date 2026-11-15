@@ -51,12 +51,56 @@
         <ControlTemplate TargetType="{x:Type Button}">
           <Border Name="Root" Background="{TemplateBinding Control.Background}" CornerRadius="19">
             <Grid>
-              <Border Name="HoverBackground" Background="#26FFFFFF" BorderBrush="#2AFFFFFF" BorderThickness="1" CornerRadius="19" Opacity="0" RenderTransformOrigin="0.5,0.5">
+              <Border Name="HoverBackground" CornerRadius="19" Opacity="0" BorderThickness="1" BorderBrush="#3DFFFFFF" RenderTransformOrigin="0.5,0.5">
+                <!-- 官网 gl-face：170° 渐变（.13 → .045@55% → .10）+ 24% 发丝边，悬停浮起薄薄一层 -->
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0.47,0" EndPoint="0.53,1">
+                    <GradientStop Color="#21FFFFFF" Offset="0" />
+                    <GradientStop Color="#0BFFFFFF" Offset="0.55" />
+                    <GradientStop Color="#1AFFFFFF" Offset="1" />
+                  </LinearGradientBrush>
+                </Border.Background>
                 <UIElement.RenderTransform>
                   <ScaleTransform x:Name="HoverScale" ScaleX="0.92" ScaleY="0.92" />
                 </UIElement.RenderTransform>
               </Border>
-              <Border Name="SelectedBackground" Background="{DynamicResource Brush.Accent.Primary}" CornerRadius="19" Opacity="0" />
+              <Border Name="SelectedBackground" CornerRadius="19" Opacity="0" BorderThickness="1" BorderBrush="#6BFFFFFF" RenderTransformOrigin="0.5,0.5">
+                <!-- 照 startride.top 顶部导航 .nav-links a::after 那枚「浮起来的玻璃胶囊」四件套：
+                     面 = 170° 渐变 .21/.075@55%/.16；边 = 42% 发丝白；
+                     内高光 = 顶 1px 30% 白 + 底 2px 8% 白（Border 画不了 inset，手画两条）；
+                     投影 = 0 3px 12px rgba(0,0,0,.24)；缩放 .92 → 1 回弹 .34s。 -->
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0.47,0" EndPoint="0.53,1">
+                    <GradientStop Color="#36FFFFFF" Offset="0" />
+                    <GradientStop Color="#13FFFFFF" Offset="0.55" />
+                    <GradientStop Color="#29FFFFFF" Offset="1" />
+                  </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="12" Color="#FF000000" Direction="270" Opacity="0.24" ShadowDepth="3" />
+                </Border.Effect>
+                <UIElement.RenderTransform>
+                  <ScaleTransform x:Name="SelectedScale" ScaleX="0.92" ScaleY="0.92" />
+                </UIElement.RenderTransform>
+                <Grid>
+                  <Border Height="1" Margin="1,1,1,0" VerticalAlignment="Top" CornerRadius="18">
+                    <Border.Background>
+                      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#4DFFFFFF" Offset="0" />
+                        <GradientStop Color="#00FFFFFF" Offset="1" />
+                      </LinearGradientBrush>
+                    </Border.Background>
+                  </Border>
+                  <Border Height="2" Margin="1,0,1,1" VerticalAlignment="Bottom" CornerRadius="18">
+                    <Border.Background>
+                      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#00FFFFFF" Offset="0" />
+                        <GradientStop Color="#14FFFFFF" Offset="1" />
+                      </LinearGradientBrush>
+                    </Border.Background>
+                  </Border>
+                </Grid>
+              </Border>
               <ContentPresenter Margin="{TemplateBinding Control.Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
           </Border>
@@ -109,6 +153,48 @@
             <DataTrigger Value="True" Binding="{Binding IsSelected}">
               <Setter TargetName="SelectedBackground" Property="UIElement.Opacity" Value="1" />
               <Setter Property="Foreground" Value="{DynamicResource Brush.F4FFFFFF}" />
+              <TriggerBase.EnterActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="SelectedBackground" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.34">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="SelectedScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.34">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="SelectedScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.34">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </TriggerBase.EnterActions>
+              <TriggerBase.ExitActions>
+                <BeginStoryboard>
+                  <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="SelectedBackground" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="SelectedScale" Storyboard.TargetProperty="ScaleX" To="0.92" Duration="0:0:0.2">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="SelectedScale" Storyboard.TargetProperty="ScaleY" To="0.92" Duration="0:0:0.2">
+                      <DoubleAnimation.EasingFunction>
+                        <QuarticEase EasingMode="EaseOut" />
+                      </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </TriggerBase.ExitActions>
             </DataTrigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

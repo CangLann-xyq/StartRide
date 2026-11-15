@@ -100,6 +100,34 @@ namespace StartRide.Core
             try { if (File.Exists(AuthPath)) File.Delete(AuthPath); } catch { }
         }
 
+        /// <summary>当前登录的 StartRide 账号昵称；未登录为空。</summary>
+        public string? LoggedInUserName => Auth?.Username;
+
+        /// <summary>
+        /// 注销 StartRide 账号（不可撤销）。
+        /// 服务端删账号行（含 QQ 绑定、激活状态、激活码）与云端同步/UGC/AI 用量；
+        /// 成功后本地凭据一起清掉，界面上就回到「未登录 + 未激活」。
+        /// Steam 账号、游戏本体、本机存档一概不动 —— 注销后同一个 Steam 账号还能重新登录。
+        /// </summary>
+        public async Task<AccountDeleteResult> DeleteAccountAsync()
+        {
+            if (!IsLoggedIn || Auth == null)
+            {
+                return new AccountDeleteResult { Ok = false, Message = "当前没有登录 StartRide 账号" };
+            }
+            string name = Auth.Username ?? "";
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new AccountDeleteResult { Ok = false, Message = "拿不到当前账号昵称，请重新登录后再试" };
+            }
+            AccountDeleteResult result = await _api.DeleteAccountAsync(name);
+            if (result.Ok)
+            {
+                ClearAuth();
+            }
+            return result;
+        }
+
         public void PushSettings()
         {
             if (!IsLoggedIn) return;

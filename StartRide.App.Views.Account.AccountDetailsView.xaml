@@ -263,6 +263,28 @@
                   <Border Style="{StaticResource RideHairlineStyle}" />
                   <Button HorizontalAlignment="Stretch" Style="{StaticResource LauncherPrimaryDialogButtonStyle}" Content="{x:Static res:Strings.Account_CopyUuidButton}" Command="{Binding OfflineUuid.CopySelectedUuidCommand}" />
                   <Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Style="{StaticResource LauncherDialogButtonStyle}" Content="{x:Static res:Strings.Account_DeleteButton}" Command="{Binding RequestDeleteAccountCommand}" CommandParameter="{Binding AccountList.SelectedItem}" />
+
+                  <!-- 注销 StartRide 云端账号：只清云端账号 / QQ 绑定 / 联机激活，
+                       不动 Steam 账号、游戏本体、本机存档与启动器设置。
+                       没登录云端账号时整块隐藏（没有可注销的对象）。 -->
+                  <StackPanel Visibility="{Binding HasCloudAccount, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                    <Border Margin="0,18,0,0" Style="{StaticResource RideHairlineStyle}" />
+                    <TextBlock Margin="0,16,0,0" Style="{StaticResource RideDetailTitleStyle}" Text="{x:Static res:Strings.Account_CloudDeleteTitle}" />
+                    <TextBlock Margin="0,8,0,0" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding CloudDeleteHintText}" />
+                    <Button Margin="0,12,0,0" HorizontalAlignment="Stretch" Style="{StaticResource LauncherDangerDialogButtonStyle}" Content="{x:Static res:Strings.Account_CloudDeleteButton}" Command="{Binding RequestDeleteCloudAccountCommand}" />
+                    <TextBlock Margin="0,10,0,0" FontSize="11.5" LineHeight="18" TextWrapping="Wrap" Text="{Binding CloudDeleteMessageText}" Visibility="{Binding HasCloudDeleteMessage, Converter={StaticResource BooleanToMenuTextVisibilityConverter}}">
+                      <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                          <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Warning}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding CloudDeleteSucceeded}" Value="True">
+                              <Setter Property="Foreground" Value="{DynamicResource Brush.7DFFB2}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </StackPanel>
                 </StackPanel>
               </Grid>
             </Border>

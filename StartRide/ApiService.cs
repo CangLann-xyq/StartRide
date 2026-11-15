@@ -430,6 +430,42 @@ namespace StartRide.Core
             catch { return null; }
         }
 
+        /// <summary>
+        /// 注销 StartRide 账号（不可撤销）。
+        /// 服务端删账号行（含 QQ 绑定、激活状态、激活码）与云端同步/UGC/AI 用量；
+        /// Steam 账号、游戏本体、本机存档一概不动 —— 注销后可以用同一 Steam 账号重新登录，
+        /// 只是要拿新的激活码重新加群激活。
+        /// confirmUsername 原样回传当前昵称，服务端据此二次确认，避免误删别人的号。
+        /// </summary>
+        public async Task<AccountDeleteResult> DeleteAccountAsync(string confirmUsername)
+        {
+            if (string.IsNullOrEmpty(Token))
+            {
+                return new AccountDeleteResult { Ok = false, Message = "当前没有登录 StartRide 账号" };
+            }
+            await EnsureApiBaseAsync();
+            try
+            {
+                var req = Authorized(HttpMethod.Post, $"{ApiBase}/account/delete");
+                req.Content = JsonContent.Create(new { confirm = confirmUsername ?? "" }, options: _jsonOpts);
+                var resp = await _http.SendAsync(req);
+                var r = await resp.Content.ReadFromJsonAsync<ApiResult<AccountDeletePayload>>(_jsonOpts);
+                if (r?.Code == 200)
+                {
+                    return new AccountDeleteResult { Ok = true, Message = r.Msg ?? "账号已注销" };
+                }
+                return new AccountDeleteResult
+                {
+                    Ok = false,
+                    Message = r?.Msg ?? ("注销失败（HTTP " + (int)resp.StatusCode + "）")
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AccountDeleteResult { Ok = false, Message = "注销失败：" + ex.Message };
+            }
+        }
+
         public async Task<SteamProfileInfo?> GetSteamProfileAsync(bool forceFresh = false)
         {
             if (string.IsNullOrEmpty(Token)) return null;
@@ -603,6 +639,18 @@ namespace StartRide.Core
 
         /// <summary>是否必须重新走一遍认证（未激活或账号已失效）。</summary>
         public bool IsBlocked => State == ActivationState.NotActivated || State == ActivationState.AccountInvalid;
+    }
+
+    public sealed class AccountDeletePayload
+    {
+        public string? Username { get; set; }
+    }
+
+    /// <summary>注销结果。失败也要有能直接给用户看的话（服务端 msg 原样透出）。</summary>
+    public sealed class AccountDeleteResult
+    {
+        public bool Ok { get; init; }
+        public string Message { get; init; } = "";
     }
 
     public class SyncEntry

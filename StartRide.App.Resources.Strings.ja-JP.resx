@@ -745,6 +745,24 @@
 <data name="Account_CopyUuidButton" xml:space="preserve"><value>オンライン ID をコピー</value></data>
 <data name="Account_RenameButton" xml:space="preserve"><value>アカウント名を変更</value></data>
 <data name="Account_DeleteButton" xml:space="preserve"><value>アカウントを削除</value></data>
+  <data name="Account_CloudDeleteTitle" xml:space="preserve"><value>StartRide アカウント</value></data>
+
+  <data name="Account_CloudDeleteHintFormat" xml:space="preserve"><value>現在 {0} でログイン中。削除すると StartRide 側のアカウント、QQ 連携、マルチプレイの有効化が消えます。Steam アカウント、ローカルのゲームとセーブデータには影響しません。</value></data>
+
+  <data name="Account_CloudDeleteButton" xml:space="preserve"><value>StartRide アカウントを削除</value></data>
+
+  <data name="Dialog_DeleteCloudAccountTitle" xml:space="preserve"><value>StartRide アカウントを削除しますか？</value></data>
+
+  <data name="Dialog_DeleteCloudAccountMessageFormat" xml:space="preserve"><value>StartRide アカウント「{0}」を完全に削除します。プロフィール、QQ グループ連携、マルチプレイの有効化、クラウド同期データがすべて消え、元に戻せません。</value></data>
+
+  <data name="Dialog_DeleteCloudAccountNote" xml:space="preserve"><value>Steam アカウント、ゲーム本体、ローカルのセーブデータ、ランチャー設定は影響を受けません。同じ Steam アカウントで再度ログインできますが、新しい有効化コードを取得して QQ グループで再度有効化する必要があります。</value></data>
+
+  <data name="Account_CloudDeleteConfirmButton" xml:space="preserve"><value>削除する</value></data>
+
+  <data name="Account_CloudDeleteBusy" xml:space="preserve"><value>削除中…</value></data>
+
+  <data name="Account_CloudDeleteSuccess" xml:space="preserve"><value>削除しました。Steam アカウントとローカルのゲームは影響を受けていません。再びマルチプレイするには、アカウントを再追加し、新しい有効化コードをグループに送ってください。</value></data>
+
 <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>認証サーバーは HTTPS を使用する必要があります</value></data>
 <data name="Status_WorldDownloadFailed" xml:space="preserve"><value>ワールドのダウンロードに失敗しました</value></data>
 <data name="Status_LocalModImportFileNotFound" xml:space="preserve"><value>インポートするモッドファイルが見つかりません。</value></data>

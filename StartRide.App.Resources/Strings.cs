@@ -1525,6 +1525,24 @@ public static class Strings
 	public static string Account_RenameButton => Get("Account_RenameButton");
 	public static string Account_DeleteButton => Get("Account_DeleteButton");
 
+	public static string Account_CloudDeleteTitle => Get("Account_CloudDeleteTitle");
+
+	public static string Account_CloudDeleteHintFormat => Get("Account_CloudDeleteHintFormat");
+
+	public static string Account_CloudDeleteButton => Get("Account_CloudDeleteButton");
+
+	public static string Dialog_DeleteCloudAccountTitle => Get("Dialog_DeleteCloudAccountTitle");
+
+	public static string Dialog_DeleteCloudAccountMessageFormat => Get("Dialog_DeleteCloudAccountMessageFormat");
+
+	public static string Dialog_DeleteCloudAccountNote => Get("Dialog_DeleteCloudAccountNote");
+
+	public static string Account_CloudDeleteConfirmButton => Get("Account_CloudDeleteConfirmButton");
+
+	public static string Account_CloudDeleteBusy => Get("Account_CloudDeleteBusy");
+
+	public static string Account_CloudDeleteSuccess => Get("Account_CloudDeleteSuccess");
+
 	public static string Account_AddButton => Get("Account_AddButton");
 
 	public static string Account_BuyMinecraftButton => Get("Account_BuyMinecraftButton");

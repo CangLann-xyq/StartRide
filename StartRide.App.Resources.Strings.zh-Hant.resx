@@ -745,6 +745,24 @@
 <data name="Account_CopyUuidButton" xml:space="preserve"><value>複製聯機 ID</value></data>
 <data name="Account_RenameButton" xml:space="preserve"><value>重新命名帳戶</value></data>
 <data name="Account_DeleteButton" xml:space="preserve"><value>刪除帳戶</value></data>
+  <data name="Account_CloudDeleteTitle" xml:space="preserve"><value>StartRide 帳號</value></data>
+
+  <data name="Account_CloudDeleteHintFormat" xml:space="preserve"><value>目前登入 {0}。刪除會清掉 StartRide 這邊的帳號、QQ 綁定與連線啟用；Steam 帳號、本機遊戲與存檔都不受影響。</value></data>
+
+  <data name="Account_CloudDeleteButton" xml:space="preserve"><value>刪除 StartRide 帳號</value></data>
+
+  <data name="Dialog_DeleteCloudAccountTitle" xml:space="preserve"><value>刪除 StartRide 帳號？</value></data>
+
+  <data name="Dialog_DeleteCloudAccountMessageFormat" xml:space="preserve"><value>將永久刪除 StartRide 帳號「{0}」：帳號資料、QQ 群綁定、連線啟用狀態與雲端同步資料一併清除，無法復原。</value></data>
+
+  <data name="Dialog_DeleteCloudAccountNote" xml:space="preserve"><value>Steam 帳號、遊戲本體、本機存檔與啟動器設定不受影響。刪除後可以用同一個 Steam 帳號重新新增帳戶登入，但要拿新的啟用碼重新加群啟用。</value></data>
+
+  <data name="Account_CloudDeleteConfirmButton" xml:space="preserve"><value>確認刪除</value></data>
+
+  <data name="Account_CloudDeleteBusy" xml:space="preserve"><value>正在刪除…</value></data>
+
+  <data name="Account_CloudDeleteSuccess" xml:space="preserve"><value>已刪除。Steam 帳號與本機遊戲未受影響；要重新連線，請重新新增帳戶，把新的啟用碼傳到群裡。</value></data>
+
 <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>認證伺服器必須使用 HTTPS</value></data>
 <data name="Status_WorldDownloadFailed" xml:space="preserve"><value>世界下載失敗</value></data>
 <data name="Status_LocalModImportFileNotFound" xml:space="preserve"><value>找不到要導入的模組文件。</value></data>

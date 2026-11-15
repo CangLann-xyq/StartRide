@@ -745,6 +745,15 @@
   <data name="Account_CopyUuidButton" xml:space="preserve"><value>复制联机 ID</value></data>
   <data name="Account_RenameButton" xml:space="preserve"><value>重命名账户</value></data>
   <data name="Account_DeleteButton" xml:space="preserve"><value>删除账户</value></data>
+  <data name="Account_CloudDeleteTitle" xml:space="preserve"><value>StartRide 账号</value></data>
+  <data name="Account_CloudDeleteHintFormat" xml:space="preserve"><value>当前登录 {0}。注销会清掉 StartRide 这边的账号、QQ 绑定与联机激活；Steam 账号、本机游戏与存档都不受影响。</value></data>
+  <data name="Account_CloudDeleteButton" xml:space="preserve"><value>注销 StartRide 账号</value></data>
+  <data name="Dialog_DeleteCloudAccountTitle" xml:space="preserve"><value>注销 StartRide 账号？</value></data>
+  <data name="Dialog_DeleteCloudAccountMessageFormat" xml:space="preserve"><value>将永久删除 StartRide 账号「{0}」：账号资料、QQ 群绑定、联机激活状态与云端同步数据一并清掉，无法恢复。</value></data>
+  <data name="Dialog_DeleteCloudAccountNote" xml:space="preserve"><value>Steam 账号、游戏本体、本机存档与启动器设置不受影响。注销后可以用同一个 Steam 账号重新添加账户登录，但要拿新的激活码重新加群激活。</value></data>
+  <data name="Account_CloudDeleteConfirmButton" xml:space="preserve"><value>确认注销</value></data>
+  <data name="Account_CloudDeleteBusy" xml:space="preserve"><value>正在注销…</value></data>
+  <data name="Account_CloudDeleteSuccess" xml:space="preserve"><value>已注销。Steam 账号与本机游戏未受影响；要重新联机，请重新添加账户，把新的激活码发到群里。</value></data>
   <data name="Account_ThirdPartyServerHttpsRequired" xml:space="preserve"><value>认证服务器必须使用 HTTPS</value></data>
   <data name="Status_WorldDownloadFailed" xml:space="preserve"><value>世界下载失败</value></data>
   <data name="Status_LocalModImportFileNotFound" xml:space="preserve"><value>找不到要导入的模组文件。</value></data>

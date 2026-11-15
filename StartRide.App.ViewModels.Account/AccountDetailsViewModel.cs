@@ -457,7 +457,160 @@ public sealed class AccountDetailsViewModel : ObservableObject
 		OnPropertyChanged("LaunchCountText");
 		OnPropertyChanged("LastLaunchText");
 		RaiseSteamProperties();
+		RaiseCloudAccountProperties();
 		SyncSteamIfStale();
+	}
+
+	// ===================== 注销 StartRide 账号 =====================
+	//
+	// 「注销」只针对 StartRide 自己的云端账号：服务端删账号行（QQ 绑定、激活状态、激活码）
+	// 与云端同步 / UGC / AI 用量，本地清掉 cloud-auth.json。
+	// Steam 账号、游戏本体、本机存档一概不动 —— 注销后同一个 Steam 账号还能重新添加账户登录，
+	// 只是要拿新的激活码重新加群激活。
+
+	private bool cloudDeleteDialogOpen;
+	private bool cloudDeleting;
+	private string cloudDeleteMessage = "";
+	private bool cloudDeleteSucceeded;
+
+	private RelayCommand? requestDeleteCloudAccountCommand;
+	private RelayCommand? cancelDeleteCloudAccountCommand;
+	private AsyncRelayCommand? confirmDeleteCloudAccountCommand;
+
+	/// <summary>当前有没有登录 StartRide 云端账号（没登录就没有可注销的东西）。</summary>
+	public bool HasCloudAccount => AppState.Current.CloudSync.IsLoggedIn;
+
+	/// <summary>当前登录的 StartRide 账号昵称。</summary>
+	public string CloudAccountName => AppState.Current.CloudSync.LoggedInUserName ?? "";
+
+	/// <summary>账户页里的说明（带当前昵称，危险操作必须让人看清删的是哪个号）。</summary>
+	public string CloudDeleteHintText =>
+		string.Format(Strings.Account_CloudDeleteHintFormat, CloudAccountName);
+
+	/// <summary>确认框正文（带昵称）。</summary>
+	public string CloudDeleteDialogMessage =>
+		string.Format(Strings.Dialog_DeleteCloudAccountMessageFormat, CloudAccountName);
+
+	public string CloudDeleteDialogNote => Strings.Dialog_DeleteCloudAccountNote;
+
+	/// <summary>注销后没有任何云端账号时提示「去哪重新登录」。</summary>
+	public bool HasNoCloudAccount => !HasCloudAccount;
+
+	public bool IsCloudDeleteDialogOpen
+	{
+		get => cloudDeleteDialogOpen;
+		private set
+		{
+			if (cloudDeleteDialogOpen != value)
+			{
+				cloudDeleteDialogOpen = value;
+				OnPropertyChanged("IsCloudDeleteDialogOpen");
+			}
+		}
+	}
+
+	public bool IsCloudDeleting
+	{
+		get => cloudDeleting;
+		private set
+		{
+			if (cloudDeleting != value)
+			{
+				cloudDeleting = value;
+				OnPropertyChanged("IsCloudDeleting");
+				OnPropertyChanged("CloudDeleteConfirmText");
+			}
+		}
+	}
+
+	/// <summary>界面上「注销中…」和「确认注销」共用一个按钮，靠这个换字。</summary>
+	public string CloudDeleteConfirmText => cloudDeleting
+		? Strings.Account_CloudDeleteBusy
+		: Strings.Account_CloudDeleteConfirmButton;
+
+	public bool HasCloudDeleteMessage => cloudDeleteMessage.Length > 0;
+
+	public string CloudDeleteMessageText => cloudDeleteMessage;
+
+	/// <summary>成功=提示色，失败=警告色。</summary>
+	public bool CloudDeleteSucceeded => cloudDeleteSucceeded;
+
+	public bool CloudDeleteFailed => !cloudDeleteSucceeded;
+
+	public IRelayCommand RequestDeleteCloudAccountCommand =>
+		requestDeleteCloudAccountCommand ??= new RelayCommand(RequestDeleteCloudAccount);
+
+	public IRelayCommand CancelDeleteCloudAccountCommand =>
+		cancelDeleteCloudAccountCommand ??= new RelayCommand(CancelDeleteCloudAccount);
+
+	public IAsyncRelayCommand ConfirmDeleteCloudAccountCommand =>
+		confirmDeleteCloudAccountCommand ??= new AsyncRelayCommand(ConfirmDeleteCloudAccountAsync);
+
+	private void RequestDeleteCloudAccount()
+	{
+		if (!HasCloudAccount)
+		{
+			return;
+		}
+		cloudDeleteMessage = "";
+		cloudDeleteSucceeded = false;
+		OnPropertyChanged("HasCloudDeleteMessage");
+		OnPropertyChanged("CloudDeleteMessageText");
+		IsCloudDeleteDialogOpen = true;
+	}
+
+	private void CancelDeleteCloudAccount()
+	{
+		if (IsCloudDeleting)
+		{
+			return;
+		}
+		IsCloudDeleteDialogOpen = false;
+	}
+
+	private async Task ConfirmDeleteCloudAccountAsync()
+	{
+		if (!HasCloudAccount || IsCloudDeleting)
+		{
+			return;
+		}
+		IsCloudDeleting = true;
+		AccountDeleteResult result;
+		try
+		{
+			result = await AppState.Current.CloudSync.DeleteAccountAsync().ConfigureAwait(true);
+		}
+		catch (Exception ex)
+		{
+			result = new AccountDeleteResult { Ok = false, Message = ex.Message };
+		}
+		finally
+		{
+			IsCloudDeleting = false;
+		}
+		IsCloudDeleteDialogOpen = false;
+		cloudDeleteSucceeded = result.Ok;
+		cloudDeleteMessage = result.Ok ? Strings.Account_CloudDeleteSuccess : result.Message;
+		OnPropertyChanged("HasCloudDeleteMessage");
+		OnPropertyChanged("CloudDeleteMessageText");
+		OnPropertyChanged("CloudDeleteSucceeded");
+		OnPropertyChanged("CloudDeleteFailed");
+		RaiseCloudAccountProperties();
+		// Steam 数据区块是按「本地账户 == 云端登录的 Steam 账号」判定的，注销后必须重新算一遍
+		RaiseSteamProperties();
+		AppState.Current.Log("注销 StartRide 账号：" + (result.Ok ? "成功" : "失败 - " + result.Message));
+	}
+
+	/// <summary>云端账号相关的派生值都不是可观察属性，只能手动通知。</summary>
+	private void RaiseCloudAccountProperties()
+	{
+		OnPropertyChanged("HasCloudAccount");
+		OnPropertyChanged("HasNoCloudAccount");
+		OnPropertyChanged("CloudAccountName");
+		OnPropertyChanged("CloudDeleteSucceeded");
+		OnPropertyChanged("CloudDeleteFailed");
+		OnPropertyChanged("HasCloudDeleteMessage");
+		OnPropertyChanged("CloudDeleteMessageText");
 	}
 
 	public AccountDetailsViewModel(AccountPageViewModel parent)
